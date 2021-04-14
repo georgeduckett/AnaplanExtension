@@ -45,12 +45,13 @@ module: {
       loader: "html-loader",
       exclude: /node_modules/
     },
-    { test: /\.g4/, loader: 'antlr4-webpack-loader' }
+    {
+      test: /\.g4/,
+      loader: 'antlr4-webpack-loader'
+    }
   ]
 },
-resolve: {
-  alias: alias
-},
+node: { module: "empty", net: "empty", fs: "empty" },
 plugins: [
   // clean the build folder
   new CleanWebpackPlugin(),

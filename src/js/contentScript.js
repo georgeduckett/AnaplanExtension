@@ -1,4 +1,6 @@
 import $ from 'jquery';
+import { InputStream, CommonTokenStream } from 'antlr4';
+import { AnaplanFormulaLexer, AnaplanFormulaParser, AnaplanFormulaVisitor } from '../anaplan/AnaplanFormula.g4';
 
 // Returns a function, that, as long as it continues to be invoked, will not
 // be triggered. The function will be called after it stops being called for
@@ -18,11 +20,20 @@ function debounce(func, wait, immediate) {
 		if (callNow) func.apply(context, args);
 	};
 };
-
+/*
 $(document)
-    .arrive(".formulaEditorText", function(e) {
-        console.log('editor arrived');
-        $('.formulaEditorText').on('keyup', debounce(() => {
-            alert($('.formulaEditorText').val());
-        }, 250));
-    });
+.arrive(".formulaEditorText", function(e) {
+	console.log('editor arrived');
+	$('.formulaEditorText').on('keyup', debounce(() => {
+		alert($('.formulaEditorText').val());
+
+
+		const input = $('.formulaEditorText').val();
+		const lexer = new AnaplanFormulaLexer(new InputStream(input));
+		const parser = new AnaplanFormulaParser(new CommonTokenStream(lexer));
+		const result = new AnaplanFormulaVisitor().visit(parser.formula());
+
+		alert(result);
+	}, 250));
+});
+*/
