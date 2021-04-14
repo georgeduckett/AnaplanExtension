@@ -1,0 +1,21 @@
+{
+    "name": "Page Redder",
+    "action": {},
+    "manifest_version": 3,
+    "version": "0.1",
+    "description": "Turns the page red when you click the icon",
+    "permissions": [
+      "activeTab",
+      "scripting"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts":
+    [
+        {
+          "matches": ["https://*.app.anaplan.com/*/anaplan/*"],
+          "js": ["lib/jquery-3.6.0.min.js", "lib/arrive.min.js", "contentScript.js"]
+        }
+    ]
+}
