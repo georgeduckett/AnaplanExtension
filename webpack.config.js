@@ -47,9 +47,15 @@ module: {
     },
     {
       test: /\.g4/,
-      loader: 'antlr4-webpack-loader'
+      exclude: /(node_modules)/,
+      use: {
+        loader:'antlr4-webpack-loader'
+      }
     }
   ]
+},
+resolve: {
+  modules: [path.resolve(__dirname, 'src'), 'node_modules']
 },
 node: { module: "empty", net: "empty", fs: "empty" },
 plugins: [

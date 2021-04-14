@@ -8,11 +8,11 @@
   },
   "dependencies": {
     "antlr4": "^4.9.2",
-    "antlr4-webpack-loader": "^0.1.1",
     "arrive": "^2.4.1",
     "jquery": "^3.6.0"
   },
   "devDependencies": {
+    "antlr4-webpack-loader": "^0.1.1",
     "clean-webpack-plugin": "3.0.0",
     "copy-webpack-plugin": "5.0.5",
     "css-loader": "3.2.0",
