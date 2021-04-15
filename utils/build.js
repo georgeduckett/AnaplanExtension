@@ -1,7 +1,7 @@
-import webpack from "webpack";
-import config, { chromeExtensionBoilerplate } from "../webpack.config";
+var webpack = require("webpack"),
+    config = require("../webpack.config");
 
-delete chromeExtensionBoilerplate;
+delete config.chromeExtensionBoilerplate;
 
 webpack(
   config,
