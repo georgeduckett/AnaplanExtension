@@ -1,4 +1,4 @@
-grammar AnaplanFormula;
+grammar anaplanFormula;
 
 formula: expression EOF;
 
