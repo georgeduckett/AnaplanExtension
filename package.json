@@ -2,7 +2,7 @@
   "name": "anaplanextension",
   "version": "1.0.0",
   "description": "",
-  "main": "background.js",
+  "main": "contentScript.js",
   "directories": {
     "lib": "lib"
   },
@@ -12,6 +12,7 @@
     "jquery": "^3.6.0"
   },
   "devDependencies": {
+    "antlr4": "^4.9.2",
     "antlr4-webpack-loader": "^0.1.1",
     "clean-webpack-plugin": "3.0.0",
     "copy-webpack-plugin": "5.0.5",
