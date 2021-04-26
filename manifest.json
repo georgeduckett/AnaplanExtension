@@ -1,24 +1,25 @@
 {
 	"manifest_version": 2,
-	"name": "Monaco Markdown Editor For GitHub",
+	"name": "Anaplan Extension by George Duckett",
 	"version": "0.5.0",
-
-	"description": "This extension brings the famous Monaco editor to GitHub!",
+	"description": "This extension enhances Anaplan in several ways, notable using the Monaco editor for formulas and providing several quick checks for validitity of formulas",
 	"icons": {
 		"128": "logo.drawio.png"
 	},
-
 	"options_ui": {
 		"page": "./dist/options.html",
 		"open_in_tab": true,
 		"chrome_style": true,
 		"browser_style": true
 	},
-
 	"content_scripts": [
 		{
-			"matches": ["https://*.app.anaplan.com/*/anaplan/*"],
-			"js": ["/dist/content-script.js"],
+			"matches": [
+				"https://*.app.anaplan.com/*/anaplan/*"
+			],
+			"js": [
+				"/dist/content-script.js"
+			],
 			"run_at": "document_end"
 		}
 	],
@@ -28,5 +29,7 @@
 		"scripting",
 		"https://*.app.anaplan.com/*/anaplan/*"
 	],
-	"web_accessible_resources": ["dist/*"]
+	"web_accessible_resources": [
+		"dist/*"
+	]
 }

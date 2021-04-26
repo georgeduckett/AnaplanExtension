@@ -27,6 +27,10 @@ module.exports = (env: any) => {
 		},
 		resolve: {
 			extensions: [".ts", ".js"],
+			fallback: {
+				assert: require.resolve("assert/"),
+				util: require.resolve("util/")
+			}
 		},
 		module: {
 			rules: [
@@ -76,10 +80,13 @@ module.exports = (env: any) => {
 			...(useCdnForMonaco
 				? []
 				: [
-						new MonacoWebpackPlugin({
-							languages: ["markdown"],
-						}),
-				  ]),
+					new MonacoWebpackPlugin({
+						languages: ["markdown"],
+					}),
+				]),
+			new webpack.ProvidePlugin({
+				process: 'process/browser',
+			}),
 		],
 	} as webpack.Configuration;
 };

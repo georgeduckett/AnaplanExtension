@@ -10,6 +10,10 @@ import {
 	editorWrapperDivClassName,
 	isMonacoNode,
 } from "./EditorWrapper";
+import { CharStreams, CommonTokenStream } from "antlr4ts";
+import { AnaplanFormulaLexer } from "../Anaplan/AnaplanFormulaLexer";
+import { AnaplanFormulaParser } from "../Anaplan/AnaplanFormulaParser";
+import { AnaplanExpressionType, AnaplanFormulaTypeEvaluatorVisitor } from "../Anaplan/AnaplanFormulaTypeEvaluatorVisitor";
 
 async function main() {
 	const settings = JSON.parse(
@@ -30,13 +34,24 @@ async function main() {
 				settings
 			);
 
-			/*if (textArea.hedietEditorWrapper ?? false) {
-				monaco.editor.create(textArea, {
-					value: textArea.value,
-					language: 'typescript'
-				});
-				textArea.hedietEditorWrapper = true;
-			}*/
+
+
+
+			const myinput: string = textArea.value as string;
+
+			const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
+			const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+			const myresult = new AnaplanFormulaTypeEvaluatorVisitor().visit(myparser.formula());
+			alert(AnaplanExpressionType[myresult]);
+
+
+
+
+
+
+
+
+
 		}
 
 		// Github seems to copy dom nodes around.
