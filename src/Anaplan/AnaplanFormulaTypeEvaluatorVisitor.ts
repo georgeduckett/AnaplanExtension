@@ -8,6 +8,8 @@ export enum AnaplanExpressionType { unknown, text, numeric, boolean, entity }
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<AnaplanExpressionType> implements AnaplanFormulaVisitor<AnaplanExpressionType> {
 
   defaultResult(): AnaplanExpressionType {
+    throw new Error("Shouldn't get an unknown expression type");
+
     return AnaplanExpressionType.unknown;
   }
 
@@ -28,7 +30,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitIfExp(ctx: IfExpContext): AnaplanExpressionType {
-    return this.aggregateResult(this.visit(ctx.THEN()), this.visit(ctx.ELSE()));
+    return this.aggregateResult(this.visit(ctx._thenExpression), this.visit(ctx._elseExpression));
   }
 
   visitBinaryoperationExp(ctx: BinaryoperationExpContext): AnaplanExpressionType {
