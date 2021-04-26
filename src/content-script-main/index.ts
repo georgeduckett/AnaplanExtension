@@ -10,11 +10,6 @@ import {
 	editorWrapperDivClassName,
 	isMonacoNode,
 } from "./EditorWrapper";
-import { CharStreams, CommonTokenStream } from "antlr4ts";
-import { AnaplanFormulaLexer } from "../Anaplan/AnaplanFormulaLexer";
-import { AnaplanFormulaParser } from "../Anaplan/AnaplanFormulaParser";
-import { AnaplanExpressionType, AnaplanFormulaTypeEvaluatorVisitor } from "../Anaplan/AnaplanFormulaTypeEvaluatorVisitor";
-
 async function main() {
 	const settings = JSON.parse(
 		document.head.dataset.hedietMonacoEditorSettings!
@@ -37,12 +32,6 @@ async function main() {
 
 
 
-			const myinput: string = textArea.value as string;
-
-			const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
-			const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-			const myresult = new AnaplanFormulaTypeEvaluatorVisitor().visit(myparser.formula());
-			alert(AnaplanExpressionType[myresult]);
 
 
 

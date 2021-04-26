@@ -1,7 +1,11 @@
 import type { MonacoOptions } from '../settings';
 
-import { editor } from "monaco-editor";
+import { editor, KeyCode } from "monaco-editor";
 import { Monaco } from "../monaco-loader";
+import { CharStreams, CommonTokenStream } from 'antlr4ts';
+import { AnaplanFormulaLexer } from '../Anaplan/AnaplanFormulaLexer';
+import { AnaplanFormulaParser } from '../Anaplan/AnaplanFormulaParser';
+import { AnaplanFormulaTypeEvaluatorVisitor, AnaplanExpressionType } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
 
 export interface MonacoNode extends HTMLDivElement {
 	hedietEditorWrapper: EditorWrapper;
@@ -172,6 +176,15 @@ export class EditorWrapper {
 
 		this.editor.onKeyDown((e) => {
 			// TODO: capture keys like enter to save & stop editing the formula
+
+			if (e.keyCode == KeyCode.Enter) {
+				const myinput: string = textArea.value as string;
+
+				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
+				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+				const myresult = new AnaplanFormulaTypeEvaluatorVisitor().visit(myparser.formula());
+				alert(AnaplanExpressionType[myresult]);
+			}
 		});
 
 		this.editor.onDidContentSizeChange((e) => {
