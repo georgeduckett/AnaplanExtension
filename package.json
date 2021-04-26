@@ -1,44 +1,46 @@
 {
-  "name": "anaplanextension",
-  "version": "1.0.0",
-  "description": "",
-  "main": "contentScript.js",
-  "directories": {
-    "lib": "lib"
-  },
-  "dependencies": {
-    "antlr4": "^4.9.2",
-    "arrive": "^2.4.1",
-    "jquery": "^3.6.0"
-  },
-  "devDependencies": {
-    "antlr4": "^4.9.2",
-    "antlr4-webpack-loader": "^0.1.1",
-    "clean-webpack-plugin": "3.0.0",
-    "copy-webpack-plugin": "5.0.5",
-    "css-loader": "3.2.0",
-    "file-loader": "4.3.0",
-    "fs-extra": "8.1.0",
-    "html-loader": "0.5.5",
-    "html-webpack-plugin": "3.2.0",
-    "style-loader": "1.0.0",
-    "webpack": "4.41.2",
-    "webpack-cli": "3.3.10",
-    "webpack-dev-server": "3.9.0",
-    "write-file-webpack-plugin": "4.5.1"
-  },
-  "scripts": {
-    "build": "node utils/build.js",
-    "start": "node utils/webserver.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/georgeduckett/AnaplanExtension.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/georgeduckett/AnaplanExtension/issues"
-  },
-  "homepage": "https://github.com/georgeduckett/AnaplanExtension#readme"
+	"name": "github-monaco-browser-extension",
+	"private": true,
+	"version": "1.0.0",
+	"author": "Henning Dieterichs <henning.dieterichs@live.de>",
+	"license": "UNLICENSED",
+	"scripts": {
+		"dev": "webpack --watch --mode development --env=use-cdn-for-monaco=true",
+		"dev-without-cdn": "webpack --watch --mode development",
+		"build": "yarn build-js && yarn bundle",
+		"build-js": "webpack --mode production",
+		"bundle": "yarn shx rm -rf ./dist/extension.zip && yarn jszip-cli add -o ./dist/extension.zip -i *.map dist manifest.json logo.drawio.png"
+	},
+	"devDependencies": {
+		"@ffflorian/jszip-cli": "^3.1.0",
+		"@types/chrome": "^0.0.133",
+		"@types/html-webpack-plugin": "^3.2.2",
+		"@types/mini-css-extract-plugin": "^1.2.2",
+		"@types/webpack": "^4.41.6",
+		"clean-webpack-plugin": "^3.0.0",
+		"css-loader": "^5.1.3",
+		"file-loader": "^6.2.0",
+		"fork-ts-checker-webpack-plugin": "^6.2.0",
+		"html-webpack-plugin": "^5.3.1",
+		"mini-css-extract-plugin": "^1.3.3",
+		"monaco-editor-webpack-plugin": "^3.0.1",
+		"prettier": "^2.2.1",
+		"raw-loader": "^4.0.0",
+		"sass": "^1.25.0",
+		"sass-loader": "^11.0.1",
+		"shx": "^0.3.2",
+		"style-loader": "^2.0.0",
+		"ts-loader": "^8.0.18",
+		"ts-node": "^9.1.1",
+		"typescript": "^4.1.3",
+		"webpack": "^5.27.0",
+		"webpack-cli": "^4.5.0"
+	},
+	"dependencies": {
+		"@types/copy-webpack-plugin": "^6.4.0",
+		"copy-webpack-plugin": "^8.0.0",
+		"gemoji": "^6.1.0",
+		"monaco-editor": "^0.23.0",
+		"pin-github-action": "^1.1.3"
+	}
 }

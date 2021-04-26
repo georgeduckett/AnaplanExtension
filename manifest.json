@@ -1,0 +1,32 @@
+{
+	"manifest_version": 2,
+	"name": "Monaco Markdown Editor For GitHub",
+	"version": "0.5.0",
+
+	"description": "This extension brings the famous Monaco editor to GitHub!",
+	"icons": {
+		"128": "logo.drawio.png"
+	},
+
+	"options_ui": {
+		"page": "./dist/options.html",
+		"open_in_tab": true,
+		"chrome_style": true,
+		"browser_style": true
+	},
+
+	"content_scripts": [
+		{
+			"matches": ["https://*.app.anaplan.com/*/anaplan/*"],
+			"js": ["/dist/content-script.js"],
+			"run_at": "document_end"
+		}
+	],
+	"permissions": [
+		"storage",
+		"activeTab",
+		"scripting",
+		"https://*.app.anaplan.com/*/anaplan/*"
+	],
+	"web_accessible_resources": ["dist/*"]
+}
