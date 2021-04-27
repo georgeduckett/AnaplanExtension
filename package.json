@@ -10,7 +10,8 @@
 		"dev-without-cdn": "webpack --watch --mode development",
 		"build": "yarn build-js && yarn bundle",
 		"build-js": "webpack --mode production",
-		"bundle": "yarn shx rm -rf ./dist/extension.zip && yarn jszip-cli add -o ./dist/extension.zip -i *.map dist manifest.json logo.drawio.png"
+		"bundle": "yarn shx rm -rf ./dist/extension.zip && yarn jszip-cli add -o ./dist/extension.zip -i *.map dist manifest.json logo.drawio.png",
+		"bundletest": "yarn shx rm -rf ./dist/extension.zip && yarn shx cp ./src/extensionfiles/*.* ./dist/ && yarn jszip-cli add -o ./dist/extension.zip -i *.map dist"
 	},
 	"devDependencies": {
 		"@ffflorian/jszip-cli": "^3.1.0",

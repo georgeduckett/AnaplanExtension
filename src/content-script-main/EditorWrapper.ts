@@ -183,7 +183,25 @@ export class EditorWrapper {
 				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
 				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
 				const myresult = new AnaplanFormulaTypeEvaluatorVisitor().visit(myparser.formula());
-				alert(AnaplanExpressionType[myresult]);
+				alert("Formula type: " + AnaplanExpressionType[myresult]);
+
+				let moduleLineItems = new Array();
+
+				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
+					for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
+
+						moduleLineItems.push({
+							moduleName: anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i],
+							lineItemLabel: anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j],
+							formula: anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula
+						});
+					}
+				}
+
+				moduleLineItems.forEach(function (li) {
+					alert(li.moduleName + "|" + li.lineItemLabel + ": " + li.formula);
+				});
+
 			}
 		});
 
