@@ -8,10 +8,10 @@
 		"antlr": "antlr4ts -visitor -o src/Anaplan/ src/Anaplan/AnaplanFormula.g4",
 		"dev": "webpack --watch --mode development --env=use-cdn-for-monaco=true",
 		"dev-without-cdn": "webpack --watch --mode development",
-		"build": "yarn build-js && yarn bundle",
+		"build": "yarn build-js && yarn bundle && yarn extract",
 		"build-js": "webpack --mode production",
-		"bundle": "yarn shx rm -rf ./dist/extension.zip && yarn jszip-cli add -o ./dist/extension.zip -i *.map dist manifest.json logo.drawio.png",
-		"bundletest": "yarn shx rm -rf ./dist/extension.zip && yarn shx cp ./src/extensionfiles/*.* ./dist/ && yarn jszip-cli add -o ./dist/extension.zip -i *.map dist"
+		"bundle": "yarn shx rm -rf ./dist/extension.zip && yarn jszip-cli add -o ./dist/extension.zip dist manifest.json logo.drawio.png",
+		"extract": "yarn shx rm -rf ./dist/extension && yarn jszip-cli extract -o ./dist/extension ./dist/extension.zip"
 	},
 	"devDependencies": {
 		"@ffflorian/jszip-cli": "^3.1.0",
