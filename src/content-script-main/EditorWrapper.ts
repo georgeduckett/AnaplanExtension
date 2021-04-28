@@ -6,6 +6,7 @@ import { CharStreams, CommonTokenStream } from 'antlr4ts';
 import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
 import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
 import { AnaplanFormulaTypeEvaluatorVisitor, AnaplanExpressionType } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
+import { AnaplanFormulaMetadataGenerator } from '../Anaplan/AnaplanFormulaMetadataGenerator';
 
 export interface MonacoNode extends HTMLDivElement {
 	hedietEditorWrapper: EditorWrapper;
@@ -178,13 +179,26 @@ export class EditorWrapper {
 			// TODO: capture keys like enter to save & stop editing the formula
 
 			if (e.keyCode == KeyCode.Enter) {
+				let currentModuleId = parseInt(textArea.closest(".managedTab")?.id.substring(1)!);
+				let currentModuleName = "";
+				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
+					if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
+						currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
+					}
+				}
+
+				alert("Current Module: " + currentModuleName);
+
 				const myinput: string = textArea.value as string;
 
 				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
 				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-				const myresult = new AnaplanFormulaTypeEvaluatorVisitor().visit(myparser.formula());
+				const myresult = new AnaplanFormulaTypeEvaluatorVisitor(currentModuleName).visit(myparser.formula());
 				alert("Formula type: " + AnaplanExpressionType[myresult]);
 
+				//const entities = new AnaplanFormulaMetadataGenerator().GetMetaData(myparser.formula());
+				//entities.forEach(element => { alert(element); });
+				/*
 				let moduleLineItems = new Array();
 
 				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
@@ -201,7 +215,7 @@ export class EditorWrapper {
 				moduleLineItems.forEach(function (li) {
 					alert(li.moduleName + "|" + li.lineItemLabel + ": " + li.formula);
 				});
-
+				*/
 			}
 		});
 

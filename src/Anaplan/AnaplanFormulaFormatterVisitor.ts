@@ -151,49 +151,6 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
 
     return result;
   }
-  /*public override string VisitFuncSquareBrackets([NotNull] AnaplanFormulaParser.FuncSquareBracketsContext context)
-          {
-              var sb = new StringBuilder();
-              sb.Append(Visit(context.entity()));
-              sb.Append(context.LSQUARE().GetText());
-  
-              var upToSquareLength = sb.Length;
-  
-              bool addedIndent = false;
-  
-              for (int i = 0; i < context.dimensionmapping().Length; i++)
-              {
-                  if (i != 0) sb.Append(", ");
-                  if (i == 1)
-                  {
-                      sb.Append(AddIndentationString(upToSquareLength));
-                      addedIndent = true;
-                  }
-                  if (i > 1)
-                  {
-                      sb.Append(IndentationString);
-                  }
-  
-                  sb.Append(Visit(context.dimensionmapping()[i]));
-              }
-  
-              sb.Append(context.RSQUARE().GetText());
-  
-              if (addedIndent) sb.Append(RemoveIndentationString(true));
-  
-              return sb.ToString();
-          }*/
-
-
-
-
-
-
-
-
-
-
-
 
   visitDimensionmapping(ctx: DimensionmappingContext): string {
     return `${ctx.WORD().text}${ctx.COLON().text} ${this.visit(ctx.entity())}`;

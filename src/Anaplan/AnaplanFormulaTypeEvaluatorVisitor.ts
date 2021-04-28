@@ -1,11 +1,18 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
+import { getEntityName } from './AnaplanHelpers';
 
 // TODO: Probably remove 'entity' and work out the actual type of it
 export enum AnaplanExpressionType { unknown, text, numeric, boolean, entity }
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<AnaplanExpressionType> implements AnaplanFormulaVisitor<AnaplanExpressionType> {
+  private readonly _moduleName: string;
+
+  constructor(moduleName: string) {
+    super();
+    this._moduleName = moduleName;
+  }
 
   defaultResult(): AnaplanExpressionType {
     throw new Error("Shouldn't get an unknown expression type");
@@ -78,7 +85,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     return this.visit(ctx.signedAtom());
   }
 
-  visitMinusSignedAtomSignedAtom(ctx: MinusSignedAtomContext): AnaplanExpressionType {
+  visitMinusSignedAtom(ctx: MinusSignedAtomContext): AnaplanExpressionType {
     return this.visit(ctx.signedAtom());
   }
   visitFuncAtom(ctx: FuncAtomContext): AnaplanExpressionType {
@@ -89,16 +96,16 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     return this.visit(ctx.atom());
   }
 
-  visitNumberAtom(ctx: NumberAtomContext): AnaplanExpressionType {
-    return AnaplanExpressionType.numeric;
+  visitEntityAtom(ctx: EntityAtomContext): AnaplanExpressionType {
+    return this.visit(ctx.entity());
   }
 
   visitExpressionAtom(ctx: ExpressionAtomContext): AnaplanExpressionType {
     return this.visit(ctx.expression());
   }
 
-  visitEntityAtom(ctx: EntityAtomContext): AnaplanExpressionType {
-    return AnaplanExpressionType.entity;
+  visitNumberAtom(ctx: NumberAtomContext): AnaplanExpressionType {
+    return AnaplanExpressionType.numeric;
   }
 
   visitFuncParameterised(ctx: FuncParameterisedContext): AnaplanExpressionType {
@@ -123,17 +130,18 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitQuotedEntity(ctx: QuotedEntityContext): AnaplanExpressionType {
-    throw new Error("This should never get visited. This is a coding error");
+    let entityName = this._moduleName + "." + getEntityName(ctx);
+    return AnaplanExpressionType.entity; // TODO: Instead of this replace it with the actual type of the entity
 
   }
 
   visitWordsEntity(ctx: WordsEntityContext): AnaplanExpressionType {
-    throw new Error("This should never get visited. This is a coding error");
-
+    let entityName = this._moduleName + "." + getEntityName(ctx);
+    return AnaplanExpressionType.entity;
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): AnaplanExpressionType {
-    throw new Error("This might get visited, but need to work out what to put here");
-
+    let entityName = getEntityName(ctx);
+    return AnaplanExpressionType.entity;
   }
 }
