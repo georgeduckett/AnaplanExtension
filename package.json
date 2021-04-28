@@ -5,7 +5,7 @@
 	"author": "George Duckett <georgeduckett@gmail.com>",
 	"license": "UNLICENSED",
 	"scripts": {
-		"antlr": "antlr4ts -visitor -o src/Anaplan/ src/Anaplan/AnaplanFormula.g4",
+		"antlr": "antlr4ts -visitor -o src/Anaplan/antlrclasses src/Anaplan/AnaplanFormula.g4",
 		"dev": "webpack --watch --mode development --env=use-cdn-for-monaco=true",
 		"dev-without-cdn": "webpack --watch --mode development",
 		"build": "yarn build-js && yarn bundle && yarn extract",

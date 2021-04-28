@@ -1,6 +1,6 @@
-import { AnaplanFormulaVisitor } from './AnaplanFormulaVisitor'
+import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './AnaplanFormulaParser';
+import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
 
 // TODO: Probably remove 'entity' and work out the actual type of it
 export enum AnaplanExpressionType { unknown, text, numeric, boolean, entity }
@@ -9,14 +9,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   defaultResult(): AnaplanExpressionType {
     throw new Error("Shouldn't get an unknown expression type");
-
-    return AnaplanExpressionType.unknown;
   }
 
   aggregateResult(aggregate: AnaplanExpressionType, nextResult: AnaplanExpressionType): AnaplanExpressionType {
     // Ensure both are the same, if they aren't produce an error
     if (aggregate != nextResult) {
-      throw new Error("Tried to combine different expression types.");
+      throw new Error(`Tried to combine different expression types, ${AnaplanExpressionType[aggregate]} and ${AnaplanExpressionType[nextResult]}`);
     }
     return nextResult
   }

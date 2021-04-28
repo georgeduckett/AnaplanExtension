@@ -21,7 +21,7 @@ module.exports = (env: any) => {
 			path: r("./dist"),
 			filename: "[name].js",
 		},
-		devtool: "source-map",
+		devtool: "inline-source-map", // Use inline-source-map 
 		externals: {
 			vscode: "commonjs vscode",
 		},

@@ -3,8 +3,8 @@ import type { MonacoOptions } from '../settings';
 import { editor, KeyCode } from "monaco-editor";
 import { Monaco } from "../monaco-loader";
 import { CharStreams, CommonTokenStream } from 'antlr4ts';
-import { AnaplanFormulaLexer } from '../Anaplan/AnaplanFormulaLexer';
-import { AnaplanFormulaParser } from '../Anaplan/AnaplanFormulaParser';
+import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
+import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
 import { AnaplanFormulaTypeEvaluatorVisitor, AnaplanExpressionType } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
 
 export interface MonacoNode extends HTMLDivElement {
