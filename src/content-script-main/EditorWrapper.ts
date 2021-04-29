@@ -189,6 +189,8 @@ export class EditorWrapper {
 					}
 				}
 
+				let currentLineItemName = currentModuleName + "." + document.getElementsByClassName("formulaEditorRowLabelCell")[0].getAttribute("title");
+
 				let moduleLineItems = new Map<string, LineItemInfo>();
 
 				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
@@ -207,7 +209,10 @@ export class EditorWrapper {
 					const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
 					const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
 					const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, currentModuleName).visit(myparser.formula());
-					alert("Formula type: " + AnaplanExpressionType[myresult]);
+
+					if (myresult != moduleLineItems.get(currentLineItemName)?.DataType) {
+						alert(`Formula evaluates to ${AnaplanExpressionType[myresult]} but the line item type is ${AnaplanExpressionType[moduleLineItems.get(currentLineItemName)!.DataType]}`);
+					}
 				}
 			}
 		});
@@ -269,7 +274,7 @@ export class EditorWrapper {
 		/*
 		this.monacoDiv.style.height = this.fullscreen
 			? ""
-			: `${Math.min(300, Math.max(100, this.editorHeight + 2))}px`;
+			: `${ Math.min(300, Math.max(100, this.editorHeight + 2)) }px`;
 		*/
 		this.previewDiv.className = this.previewVisible
 			? "hediet-preview-container active comment-body markdown-body js-preview-body"
