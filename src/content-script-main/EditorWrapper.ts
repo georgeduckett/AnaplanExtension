@@ -5,8 +5,7 @@ import { Monaco } from "../monaco-loader";
 import { CharStreams, CommonTokenStream } from 'antlr4ts';
 import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
 import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
-import { AnaplanFormulaTypeEvaluatorVisitor, AnaplanExpressionType } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
-import { AnaplanFormulaMetadataGenerator } from '../Anaplan/AnaplanFormulaMetadataGenerator';
+import { AnaplanFormulaTypeEvaluatorVisitor, AnaplanExpressionType, LineItemInfo } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
 
 export interface MonacoNode extends HTMLDivElement {
 	hedietEditorWrapper: EditorWrapper;
@@ -21,15 +20,6 @@ type Theme = "light" | "dark";
 
 export const editorWrapperDivClassName = "hediet-editor-wrapper";
 export const monacoDivClassName = "hediet-monaco-container";
-
-function getGithubTheme(): Theme {
-	try {
-		return (document.body.parentNode as any).dataset.colorMode as any;
-	} catch (e) {
-		console.warn("Could not read github colorMode");
-		return "light";
-	}
-}
 
 export class EditorWrapper {
 	public static wrap(
@@ -58,6 +48,18 @@ export class EditorWrapper {
 
 	private fullscreen = false;
 	private editorHeight: number = 200;
+
+	private dataTypeToAnaplanExpressionType(dataType: string): AnaplanExpressionType {
+		switch (dataType) {
+			case "TEXT": return AnaplanExpressionType.text;
+			case "NUMBER": return AnaplanExpressionType.numeric;
+			case "BOOLEAN": return AnaplanExpressionType.boolean;
+			case "ENTITY": return AnaplanExpressionType.entity;
+			case "TIME_ENTITY": return AnaplanExpressionType.timeEntity;
+			case "DATE": return AnaplanExpressionType.date;
+			default: throw new Error("Unknown data type " + dataType);
+		}
+	}
 
 	private constructor(
 		private readonly textArea: HTMLTextAreaElement,
@@ -187,35 +189,26 @@ export class EditorWrapper {
 					}
 				}
 
-				alert("Current Module: " + currentModuleName);
-
-				const myinput: string = textArea.value as string;
-
-				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
-				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-				const myresult = new AnaplanFormulaTypeEvaluatorVisitor(currentModuleName).visit(myparser.formula());
-				alert("Formula type: " + AnaplanExpressionType[myresult]);
-
-				//const entities = new AnaplanFormulaMetadataGenerator().GetMetaData(myparser.formula());
-				//entities.forEach(element => { alert(element); });
-				/*
-				let moduleLineItems = new Array();
+				let moduleLineItems = new Map<string, LineItemInfo>();
 
 				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
 					for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
-
-						moduleLineItems.push({
-							moduleName: anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i],
-							lineItemLabel: anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j],
-							formula: anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula
-						});
+						var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
+						var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
+						if (dataTypeString != "NONE") {
+							moduleLineItems.set(entityName, new LineItemInfo(entityName, this.dataTypeToAnaplanExpressionType(dataTypeString)));
+						}
 					}
 				}
 
-				moduleLineItems.forEach(function (li) {
-					alert(li.moduleName + "|" + li.lineItemLabel + ": " + li.formula);
-				});
-				*/
+				const myinput: string = textArea.value;
+
+				if (myinput.length != 0) {
+					const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
+					const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+					const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, currentModuleName).visit(myparser.formula());
+					alert("Formula type: " + AnaplanExpressionType[myresult]);
+				}
 			}
 		});
 

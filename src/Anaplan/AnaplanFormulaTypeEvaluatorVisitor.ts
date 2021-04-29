@@ -4,14 +4,25 @@ import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExp
 import { getEntityName } from './AnaplanHelpers';
 
 // TODO: Probably remove 'entity' and work out the actual type of it
-export enum AnaplanExpressionType { unknown, text, numeric, boolean, entity }
+export enum AnaplanExpressionType { unknown, text, numeric, boolean, entity, timeEntity, date }
+
+export class LineItemInfo {
+  public readonly Name: string;
+  public readonly DataType: AnaplanExpressionType;
+  constructor(name: string, dataType: AnaplanExpressionType) {
+    this.Name = name;
+    this.DataType = dataType;
+  }
+}
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<AnaplanExpressionType> implements AnaplanFormulaVisitor<AnaplanExpressionType> {
   private readonly _moduleName: string;
+  private readonly _lineItemInfo: Map<string, LineItemInfo>;
 
-  constructor(moduleName: string) {
+  constructor(lineItemInfo: Map<string, LineItemInfo>, moduleName: string) {
     super();
     this._moduleName = moduleName;
+    this._lineItemInfo = lineItemInfo;
   }
 
   defaultResult(): AnaplanExpressionType {
@@ -129,19 +140,25 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   }
 
-  visitQuotedEntity(ctx: QuotedEntityContext): AnaplanExpressionType {
+  getEntityType(ctx: QuotedEntityContext | WordsEntityContext | DotQualifiedEntityContext): AnaplanExpressionType {
     let entityName = this._moduleName + "." + getEntityName(ctx);
-    return AnaplanExpressionType.entity; // TODO: Instead of this replace it with the actual type of the entity
+    if (!this._lineItemInfo.has(entityName)) {
+      throw new Error("Found unrecognised entity: " + entityName);
 
+    } else {
+      return this._lineItemInfo.get(entityName)!.DataType;
+    }
+  }
+
+  visitQuotedEntity(ctx: QuotedEntityContext): AnaplanExpressionType {
+    return this.getEntityType(ctx);
   }
 
   visitWordsEntity(ctx: WordsEntityContext): AnaplanExpressionType {
-    let entityName = this._moduleName + "." + getEntityName(ctx);
-    return AnaplanExpressionType.entity;
+    return this.getEntityType(ctx);
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): AnaplanExpressionType {
-    let entityName = getEntityName(ctx);
-    return AnaplanExpressionType.entity;
+    return this.getEntityType(ctx);
   }
 }

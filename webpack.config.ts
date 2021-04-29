@@ -73,7 +73,7 @@ module.exports = (env: any) => {
 					{
 						from: "./src/options/index.html",
 						to: "./options.html",
-					},
+					}
 				],
 			}),
 			new CleanWebpackPlugin(),
