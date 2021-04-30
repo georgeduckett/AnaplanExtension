@@ -5,7 +5,8 @@ import { Monaco } from "../monaco-loader";
 import { CharStreams, CommonTokenStream } from 'antlr4ts';
 import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
 import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
-import { AnaplanFormulaTypeEvaluatorVisitor, AnaplanExpressionType, LineItemInfo } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
+import { AnaplanFormulaTypeEvaluatorVisitor, LineItemInfo } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
+import { AnaplanDataTypeStrings } from '../Anaplan/AnaplanHelpers';
 
 export interface MonacoNode extends HTMLDivElement {
 	hedietEditorWrapper: EditorWrapper;
@@ -15,8 +16,6 @@ export function isMonacoNode(n: unknown): n is MonacoNode {
 	const k: keyof MonacoNode = "hedietEditorWrapper";
 	return typeof n === "object" && n !== null && k in n;
 }
-
-type Theme = "light" | "dark";
 
 export const editorWrapperDivClassName = "hediet-editor-wrapper";
 export const monacoDivClassName = "hediet-monaco-container";
@@ -47,19 +46,6 @@ export class EditorWrapper {
 	private readonly editor: editor.IStandaloneCodeEditor;
 
 	private fullscreen = false;
-	private editorHeight: number = 200;
-
-	private dataTypeToAnaplanExpressionType(dataType: string): AnaplanExpressionType {
-		switch (dataType) {
-			case "TEXT": return AnaplanExpressionType.text;
-			case "NUMBER": return AnaplanExpressionType.numeric;
-			case "BOOLEAN": return AnaplanExpressionType.boolean;
-			case "ENTITY": return AnaplanExpressionType.entity;
-			case "TIME_ENTITY": return AnaplanExpressionType.timeEntity;
-			case "DATE": return AnaplanExpressionType.date;
-			default: throw new Error("Unknown data type " + dataType);
-		}
-	}
 
 	private constructor(
 		private readonly textArea: HTMLTextAreaElement,
@@ -197,8 +183,8 @@ export class EditorWrapper {
 					for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
 						var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
 						var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
-						if (dataTypeString != "NONE") {
-							moduleLineItems.set(entityName, new LineItemInfo(entityName, this.dataTypeToAnaplanExpressionType(dataTypeString)));
+						if (dataTypeString != AnaplanDataTypeStrings.NONE) {
+							moduleLineItems.set(entityName, new LineItemInfo(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format));
 						}
 					}
 				}
@@ -209,16 +195,30 @@ export class EditorWrapper {
 					const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
 					const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
 					const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, currentModuleName).visit(myparser.formula());
+					let targetFormat = moduleLineItems.get(currentLineItemName)!.Format;
+					if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.Format.dataType) {
+						alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
+					}
 
-					if (myresult != moduleLineItems.get(currentLineItemName)?.DataType) {
-						alert(`Formula evaluates to ${AnaplanExpressionType[myresult]} but the line item type is ${AnaplanExpressionType[moduleLineItems.get(currentLineItemName)!.DataType]}`);
+					let hierarchyNames = new Map<number, string>();
+
+					for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
+						hierarchyNames.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
+							anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
+					}
+
+
+					if (myresult.dataType === AnaplanDataTypeStrings.ENTITY) {
+						// Ensure the entity type is the same as well
+						if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
+							alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId)}`);
+						}
 					}
 				}
 			}
 		});
 
 		this.editor.onDidContentSizeChange((e) => {
-			this.editorHeight = e.contentHeight;
 			this.applyState();
 		});
 

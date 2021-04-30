@@ -31,3 +31,11 @@ export function getEntityName(ctx: QuotedEntityContext | WordsEntityContext | Do
         return `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`
     }
 }
+
+export class AnaplanDataTypeStrings {
+    static BOOLEAN: string = "BOOLEAN";
+    static TEXT: string = "TEXT";
+    static NUMERIC: string = "NUMERIC";
+    static NONE: string = "NONE";
+    static ENTITY: string = "ENTITY";
+}

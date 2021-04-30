@@ -1,21 +1,18 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
-import { getEntityName } from './AnaplanHelpers';
-
-// TODO: Probably remove 'entity' and work out the actual type of it
-export enum AnaplanExpressionType { unknown, text, numeric, boolean, entity, timeEntity, date }
+import { getEntityName, AnaplanDataTypeStrings } from './AnaplanHelpers';
 
 export class LineItemInfo {
   public readonly Name: string;
-  public readonly DataType: AnaplanExpressionType;
-  constructor(name: string, dataType: AnaplanExpressionType) {
+  public readonly Format: Format;
+  constructor(name: string, dataType: Format) {
     this.Name = name;
-    this.DataType = dataType;
+    this.Format = dataType;
   }
 }
 
-export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<AnaplanExpressionType> implements AnaplanFormulaVisitor<AnaplanExpressionType> {
+export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   private readonly _moduleName: string;
   private readonly _lineItemInfo: Map<string, LineItemInfo>;
 
@@ -25,140 +22,142 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     this._lineItemInfo = lineItemInfo;
   }
 
-  defaultResult(): AnaplanExpressionType {
+  defaultResult(): Format {
     throw new Error("Shouldn't get an unknown expression type");
   }
 
-  aggregateResult(aggregate: AnaplanExpressionType, nextResult: AnaplanExpressionType): AnaplanExpressionType {
+  aggregateResult(aggregate: Format, nextResult: Format): Format {
     // Ensure both are the same, if they aren't produce an error
-    if (aggregate != nextResult) {
-      throw new Error(`Tried to combine different expression types, ${AnaplanExpressionType[aggregate]} and ${AnaplanExpressionType[nextResult]}`);
+    if (aggregate.dataType != nextResult.dataType) { // TODO: compare this properly
+      throw new Error(`Tried to combine different expression types, ${JSON.stringify(aggregate)} and ${JSON.stringify(nextResult)}`);
     }
     return nextResult
   }
 
-  visitFormula(ctx: FormulaContext): AnaplanExpressionType {
+  visitFormula(ctx: FormulaContext): Format {
     return this.visit(ctx.expression());
   }
 
-  visitParenthesisExp(ctx: ParenthesisExpContext): AnaplanExpressionType {
+  visitParenthesisExp(ctx: ParenthesisExpContext): Format {
     return this.visit(ctx.expression());
   }
 
-  visitIfExp(ctx: IfExpContext): AnaplanExpressionType {
+  visitIfExp(ctx: IfExpContext): Format {
     return this.aggregateResult(this.visit(ctx._thenExpression), this.visit(ctx._elseExpression));
   }
 
-  visitBinaryoperationExp(ctx: BinaryoperationExpContext): AnaplanExpressionType {
+  visitBinaryoperationExp(ctx: BinaryoperationExpContext): Format {
     return this.aggregateResult(this.visit(ctx._left), this.visit(ctx._right));
   }
 
-  visitMuldivExp(ctx: MuldivExpContext): AnaplanExpressionType {
+  visitMuldivExp(ctx: MuldivExpContext): Format {
     return this.aggregateResult(this.visit(ctx._left), this.visit(ctx._right));
   }
 
-  visitAddsubtractExp(ctx: AddsubtractExpContext): AnaplanExpressionType {
+  visitAddsubtractExp(ctx: AddsubtractExpContext): Format {
     return this.aggregateResult(this.visit(ctx._left), this.visit(ctx._right));
   }
 
-  visitComparisonExp(ctx: ComparisonExpContext): AnaplanExpressionType {
+  visitComparisonExp(ctx: ComparisonExpContext): Format {
     if (this.visit(ctx._left) != this.visit(ctx._right)) {
       throw new Error("Tried to compare two different types");
     }
-    return AnaplanExpressionType.boolean;
+    return new Format(AnaplanDataTypeStrings.BOOLEAN);
   }
 
-  visitConcatenateExp(ctx: ConcatenateExpContext): AnaplanExpressionType {
-    if (this.visit(ctx._left) != AnaplanExpressionType.text ||
-      this.visit(ctx._right) != AnaplanExpressionType.text) {
+  visitConcatenateExp(ctx: ConcatenateExpContext): Format {
+    let left = this.visit(ctx._left);
+    if (left.dataType != AnaplanDataTypeStrings.TEXT ||
+      this.visit(ctx._right).dataType != AnaplanDataTypeStrings.TEXT) {
       throw new Error("Tried to concatenate something other than text");
     }
-    return AnaplanExpressionType.text;
+    return this.visit(ctx._left);
   }
 
-  visitNotExp(ctx: NotExpContext): AnaplanExpressionType {
-    if (this.visit(ctx.NOT()) != AnaplanExpressionType.boolean) {
+  visitNotExp(ctx: NotExpContext): Format {
+    let format = this.visit(ctx.NOT());
+    if (format.dataType != AnaplanDataTypeStrings.BOOLEAN) {
       throw new Error("Tried to negate something other than a boolean");
 
     }
-    return AnaplanExpressionType.boolean;
+    return format;
   }
 
-  visitStringliteralExp(ctx: StringliteralExpContext): AnaplanExpressionType {
-    return AnaplanExpressionType.text;
+  visitStringliteralExp(ctx: StringliteralExpContext): Format {
+    return new Format(AnaplanDataTypeStrings.TEXT);
   }
 
-  visitAtomExp(ctx: AtomExpContext): AnaplanExpressionType {
+  visitAtomExp(ctx: AtomExpContext): Format {
     return this.visit(ctx.signedAtom());
   }
 
-  visitPlusSignedAtom(ctx: PlusSignedAtomContext): AnaplanExpressionType {
+  visitPlusSignedAtom(ctx: PlusSignedAtomContext): Format {
     return this.visit(ctx.signedAtom());
   }
 
-  visitMinusSignedAtom(ctx: MinusSignedAtomContext): AnaplanExpressionType {
+  visitMinusSignedAtom(ctx: MinusSignedAtomContext): Format {
     return this.visit(ctx.signedAtom());
   }
-  visitFuncAtom(ctx: FuncAtomContext): AnaplanExpressionType {
+  visitFuncAtom(ctx: FuncAtomContext): Format {
     return this.visit(ctx.func_());
   }
 
-  visitAtomAtom(ctx: AtomAtomContext): AnaplanExpressionType {
+  visitAtomAtom(ctx: AtomAtomContext): Format {
     return this.visit(ctx.atom());
   }
 
-  visitEntityAtom(ctx: EntityAtomContext): AnaplanExpressionType {
+  visitEntityAtom(ctx: EntityAtomContext): Format {
     return this.visit(ctx.entity());
   }
 
-  visitExpressionAtom(ctx: ExpressionAtomContext): AnaplanExpressionType {
+  visitExpressionAtom(ctx: ExpressionAtomContext): Format {
     return this.visit(ctx.expression());
   }
 
-  visitNumberAtom(ctx: NumberAtomContext): AnaplanExpressionType {
-    return AnaplanExpressionType.numeric;
+  visitNumberAtom(ctx: NumberAtomContext): Format {
+    return new Format(AnaplanDataTypeStrings.NUMERIC);
   }
 
-  visitFuncParameterised(ctx: FuncParameterisedContext): AnaplanExpressionType {
+  visitFuncParameterised(ctx: FuncParameterisedContext): Format {
     // TODO: This changes based on the function name, for now assume it's the same type as gthe first parameter
     switch (ctx.functionname().text) {
       default: return this.visit(ctx.expression()[0]);
     }
   }
 
-  visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): AnaplanExpressionType {
+  visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
     return this.visit(ctx.entity());
   }
 
-  visitDimensionmapping(ctx: DimensionmappingContext): AnaplanExpressionType {
+  visitDimensionmapping(ctx: DimensionmappingContext): Format {
     throw new Error("This should never get visited. This is a coding error");
 
   }
 
-  visitFunctionname(ctx: FunctionnameContext): AnaplanExpressionType {
+  visitFunctionname(ctx: FunctionnameContext): Format {
     throw new Error("This should never get visited. This is a coding error");
 
   }
 
-  getEntityType(ctx: QuotedEntityContext | WordsEntityContext | DotQualifiedEntityContext): AnaplanExpressionType {
+  getEntityType(ctx: QuotedEntityContext | WordsEntityContext | DotQualifiedEntityContext): Format {
     let entityName = this._moduleName + "." + getEntityName(ctx);
     if (!this._lineItemInfo.has(entityName)) {
       throw new Error("Found unrecognised entity: " + entityName);
 
     } else {
-      return this._lineItemInfo.get(entityName)!.DataType;
+      return this._lineItemInfo.get(entityName)!.Format;
     }
   }
 
-  visitQuotedEntity(ctx: QuotedEntityContext): AnaplanExpressionType {
+  visitQuotedEntity(ctx: QuotedEntityContext): Format {
     return this.getEntityType(ctx);
   }
 
-  visitWordsEntity(ctx: WordsEntityContext): AnaplanExpressionType {
+  visitWordsEntity(ctx: WordsEntityContext): Format {
     return this.getEntityType(ctx);
   }
 
-  visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): AnaplanExpressionType {
+  visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
     return this.getEntityType(ctx);
   }
 }
