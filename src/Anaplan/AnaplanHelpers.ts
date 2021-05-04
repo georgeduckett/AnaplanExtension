@@ -35,7 +35,7 @@ export function getEntityName(ctx: QuotedEntityContext | WordsEntityContext | Do
 export class AnaplanDataTypeStrings {
     static BOOLEAN: string = "BOOLEAN";
     static TEXT: string = "TEXT";
-    static NUMERIC: string = "NUMERIC";
+    static NUMBER: string = "NUMBER";
     static NONE: string = "NONE";
     static ENTITY: string = "ENTITY";
 }

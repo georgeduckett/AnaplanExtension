@@ -117,7 +117,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitNumberAtom(ctx: NumberAtomContext): Format {
-    return new Format(AnaplanDataTypeStrings.NUMERIC);
+    return new Format(AnaplanDataTypeStrings.NUMBER);
   }
 
   visitFuncParameterised(ctx: FuncParameterisedContext): Format {
