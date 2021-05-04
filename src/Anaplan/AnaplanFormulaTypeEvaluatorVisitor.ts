@@ -1,7 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
-import { getEntityName, AnaplanDataTypeStrings } from './AnaplanHelpers';
+import { getEntityName, AnaplanDataTypeStrings, Format } from './AnaplanHelpers';
 
 export class LineItemInfo {
   public readonly Name: string;
@@ -15,11 +15,13 @@ export class LineItemInfo {
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   private readonly _moduleName: string;
   private readonly _lineItemInfo: Map<string, LineItemInfo>;
+  private readonly _hierarchyParents: Map<number, number>;
 
-  constructor(lineItemInfo: Map<string, LineItemInfo>, moduleName: string) {
+  constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyParents: Map<number, number>, moduleName: string) {
     super();
     this._moduleName = moduleName;
     this._lineItemInfo = lineItemInfo;
+    this._hierarchyParents = hierarchyParents;
   }
 
   defaultResult(): Format {
@@ -119,8 +121,17 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitFuncParameterised(ctx: FuncParameterisedContext): Format {
-    // TODO: This changes based on the function name, for now assume it's the same type as gthe first parameter
-    switch (ctx.functionname().text) {
+    // TODO: Somewhere check that the parameters of the function are the correct type
+    switch (ctx.functionname().text.toUpperCase()) {
+      case "PARENT":
+        let entityId = this.visit(ctx.expression()[0]).hierarchyEntityLongId;
+
+        let parentEntityId = this._hierarchyParents.get(entityId);
+
+        let parentFormat = new Format(AnaplanDataTypeStrings.ENTITY);
+        parentFormat.hierarchyEntityLongId = parentEntityId;
+
+        return parentFormat;
       default: return this.visit(ctx.expression()[0]);
     }
   }

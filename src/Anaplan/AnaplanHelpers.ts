@@ -39,3 +39,12 @@ export class AnaplanDataTypeStrings {
     static NONE: string = "NONE";
     static ENTITY: string = "ENTITY";
 }
+
+export class Format {
+    hierarchyEntityLongId: any;
+    entityFormatFilter?: any;
+    selectiveAccessApplied?: boolean;
+    showAll?: boolean;
+    dataType: string;
+    constructor(dataType: string) { this.dataType = dataType; }
+}

@@ -166,7 +166,7 @@ export class EditorWrapper {
 		this.editor.onKeyDown((e) => {
 			// TODO: capture keys like enter to save & stop editing the formula
 
-			if (e.keyCode == KeyCode.Enter) {
+			if (e.keyCode == KeyCode.Enter && textArea.value.length != 0) {
 				let currentModuleId = parseInt(textArea.closest(".managedTab")?.id.substring(1)!);
 				let currentModuleName = "";
 				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
@@ -189,30 +189,30 @@ export class EditorWrapper {
 					}
 				}
 
-				const myinput: string = textArea.value;
+				let hierarchyNames = new Map<number, string>();
+				let hierarchyParents = new Map<number, number>();
 
-				if (myinput.length != 0) {
-					const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(myinput));
-					const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-					const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, currentModuleName).visit(myparser.formula());
-					let targetFormat = moduleLineItems.get(currentLineItemName)!.Format;
-					if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.Format.dataType) {
-						alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
-					}
+				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
+					hierarchyNames.set(
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
+					hierarchyParents.set(
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
+				}
 
-					let hierarchyNames = new Map<number, string>();
+				let targetFormat = moduleLineItems.get(currentLineItemName)!.Format;
 
-					for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
-						hierarchyNames.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
-							anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
-					}
+				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(textArea.value));
+				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+				const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyParents, currentModuleName).visit(myparser.formula());
 
-
-					if (myresult.dataType === AnaplanDataTypeStrings.ENTITY) {
-						// Ensure the entity type is the same as well
-						if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
-							alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId)}`);
-						}
+				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.Format.dataType) {
+					alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
+				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY) {
+					// Ensure the entity type is the same as well
+					if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
+						alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId)}`);
 					}
 				}
 			}

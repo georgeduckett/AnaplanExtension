@@ -11,14 +11,7 @@ declare interface ModelContentCache {
     _modelInfo: ModelInfo;
 }
 
-declare class Format {
-    hierarchyEntityLongId: any;
-    entityFormatFilter?: any;
-    selectiveAccessApplied: boolean;
-    showAll: boolean;
-    dataType: string;
-    constructor(dataType: string) { this.dataType = dataType; }
-}
+
 
 declare interface DashboardsLabelPage {
     start: number;
