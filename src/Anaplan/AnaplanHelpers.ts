@@ -48,6 +48,7 @@ export class AnaplanDataTypeStrings {
     static NUMBER: Format = new Format("NUMBER");
     static NONE: Format = new Format("NONE");
     static ENTITY: Format = new Format("ENTITY");
+    static TIME_ENTITY: Format = new Format("TIME_ENTITY");
     static DATE: Format = new Format("DATE"); // TODO: Maybe separate time formats (day/month/year etc)?
 
     static UNKNOWN: Format = new Format("UNKNOWN");
@@ -108,7 +109,7 @@ export function formatFromFunctionName(functionName: string): Format {
         case "LN": return AnaplanDataTypeStrings.NUMBER;
         case "LOG": return AnaplanDataTypeStrings.NUMBER;
         case "LOWER": return AnaplanDataTypeStrings.TEXT;
-        case "MAILTO": return AnaplanDataTypeStrings.TEXT; //TODO: Should this be TEXT_EMAIL (per documentation), I guess not since the line item data type would be TEXT
+        case "MAILTO": return AnaplanDataTypeStrings.TEXT;
         case "MAKELINK": return AnaplanDataTypeStrings.TEXT;
         case "MDURATION": return AnaplanDataTypeStrings.NUMBER;
         case "MID": return AnaplanDataTypeStrings.TEXT;
@@ -120,7 +121,7 @@ export function formatFromFunctionName(functionName: string): Format {
         case "NPER": return AnaplanDataTypeStrings.NUMBER;
         case "NPV": return AnaplanDataTypeStrings.NUMBER;
         case "OR": return AnaplanDataTypeStrings.BOOLEAN;
-        case "PERIOD": return AnaplanDataTypeStrings.DATE;
+        case "PERIOD": return AnaplanDataTypeStrings.TIME_ENTITY;
         case "PMT": return AnaplanDataTypeStrings.NUMBER;
         case "POST": return AnaplanDataTypeStrings.NUMBER;
         case "POWER": return AnaplanDataTypeStrings.NUMBER;
