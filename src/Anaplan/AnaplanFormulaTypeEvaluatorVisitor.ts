@@ -1,7 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
-import { getEntityName, AnaplanDataTypeStrings, Format } from './AnaplanHelpers';
+import { getEntityName, AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText } from './AnaplanHelpers';
 
 export class LineItemInfo {
   public readonly Name: string;
@@ -16,12 +16,14 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   private readonly _moduleName: string;
   private readonly _lineItemInfo: Map<string, LineItemInfo>;
   private readonly _hierarchyParents: Map<number, number>;
+  private readonly _hierarchyIds: Map<string, number>;
 
-  constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyParents: Map<number, number>, moduleName: string) {
+  constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string) {
     super();
     this._moduleName = moduleName;
     this._lineItemInfo = lineItemInfo;
     this._hierarchyParents = hierarchyParents;
+    this._hierarchyIds = hierarchyIds;
   }
 
   defaultResult(): Format {
@@ -64,13 +66,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if (this.visit(ctx._left) != this.visit(ctx._right)) {
       throw new Error("Tried to compare two different types");
     }
-    return new Format(AnaplanDataTypeStrings.BOOLEAN);
+    return AnaplanDataTypeStrings.BOOLEAN;
   }
 
   visitConcatenateExp(ctx: ConcatenateExpContext): Format {
     let left = this.visit(ctx._left);
-    if (left.dataType != AnaplanDataTypeStrings.TEXT ||
-      this.visit(ctx._right).dataType != AnaplanDataTypeStrings.TEXT) {
+    if (left.dataType != AnaplanDataTypeStrings.TEXT.dataType ||
+      this.visit(ctx._right).dataType != AnaplanDataTypeStrings.TEXT.dataType) {
       throw new Error("Tried to concatenate something other than text");
     }
     return this.visit(ctx._left);
@@ -78,7 +80,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   visitNotExp(ctx: NotExpContext): Format {
     let format = this.visit(ctx.NOT());
-    if (format.dataType != AnaplanDataTypeStrings.BOOLEAN) {
+    if (format.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
       throw new Error("Tried to negate something other than a boolean");
 
     }
@@ -86,7 +88,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitStringliteralExp(ctx: StringliteralExpContext): Format {
-    return new Format(AnaplanDataTypeStrings.TEXT);
+    return AnaplanDataTypeStrings.TEXT;
   }
 
   visitAtomExp(ctx: AtomExpContext): Format {
@@ -117,26 +119,63 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitNumberAtom(ctx: NumberAtomContext): Format {
-    return new Format(AnaplanDataTypeStrings.NUMBER);
+    return AnaplanDataTypeStrings.NUMBER;
   }
 
   visitFuncParameterised(ctx: FuncParameterisedContext): Format {
-    // TODO: Somewhere check that the parameters of the function are the correct type
-    switch (ctx.functionname().text.toUpperCase()) {
+    // TODO: Somewhere check that the parameters of the function are the correct type (or not, since Anaplan does that anyway)
+    let functionName = ctx.functionname().text.toUpperCase();
+    switch (functionName) {
+      case "CURRENTVERSION":
+      case "HALFYEARVALUE":
+      case "LAG":
+      case "LEAD":
+      case "MAX":
+      case "MIN":
+      case "MONTHTODATE":
+      case "MONTHVALUE":
+      case "NEXT":
+      case "NEXTVERSION":
+      case "OFFSET":
+      case "PREVIOUS":
+      case "PREVIOUSVERSION":
+      case "QUARTERVALUE":
+      case "WEEKVALUE":
+      case "YEARVALUE": return this.visit(ctx.expression()[0]);
+      case "FINDITEM":
+      case "ITEM":
+        let itemName = getOriginalText(ctx.expression()[0]);
+        let itemFormat = AnaplanDataTypeStrings.ENTITY;
+        itemFormat.hierarchyEntityLongId = this._hierarchyIds.get(itemName);
+        return itemFormat;
       case "PARENT":
-        let entityId = this.visit(ctx.expression()[0]).hierarchyEntityLongId;
+        let entityId = this.visit(ctx.expression()[0]).hierarchyEntityLongId!;
+
 
         let parentEntityId = this._hierarchyParents.get(entityId);
 
-        let parentFormat = new Format(AnaplanDataTypeStrings.ENTITY);
+        if (parentEntityId === undefined) {
+          // TODO: Report a proper error; the entity we want to get the parent of doesn't have a parent
+          return AnaplanDataTypeStrings.UNKNOWN;
+        }
+
+        let parentFormat = AnaplanDataTypeStrings.ENTITY;
         parentFormat.hierarchyEntityLongId = parentEntityId;
 
         return parentFormat;
-      default: return this.visit(ctx.expression()[0]);
+      default:
+        let format = formatFromFunctionName(functionName);
+
+        if (format.dataType == "UNKNOWN") {
+          console.log('Found unknown function: ' + functionName) // TODO: Use proper error capturing here
+        }
+
+        return format;
     }
   }
 
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
+    // TODO: Check dimension mappings and how they relate to this module's dimensions and the entity's dimensions
     return this.visit(ctx.entity());
   }
 

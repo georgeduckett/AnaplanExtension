@@ -190,12 +190,16 @@ export class EditorWrapper {
 				}
 
 				let hierarchyNames = new Map<number, string>();
+				let hierarchyIds = new Map<string, number>();
 				let hierarchyParents = new Map<number, number>();
 
 				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
 					hierarchyNames.set(
 						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
 						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
+					hierarchyIds.set(
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i]);
 					hierarchyParents.set(
 						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
 						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
@@ -205,14 +209,14 @@ export class EditorWrapper {
 
 				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(textArea.value));
 				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-				const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyParents, currentModuleName).visit(myparser.formula());
+				const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyIds, hierarchyParents, currentModuleName).visit(myparser.formula());
 
 				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.Format.dataType) {
 					alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
-				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY) {
+				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
 					// Ensure the entity type is the same as well
 					if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
-						alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId)}`);
+						alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId!)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId!)}`);
 					}
 				}
 			}
