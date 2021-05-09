@@ -6,6 +6,12 @@ import { getEntityName, getOriginalText, unQuoteEntity } from './AnaplanHelpers'
 
 export class AnaplanFormulaMetadataGenerator extends AbstractParseTreeVisitor<void> implements AnaplanFormulaVisitor<void> {
   private readonly entities = new Array<string>();
+  private readonly _moduleName: string;
+
+  constructor(moduleName: string) {
+    super();
+    this._moduleName = moduleName;
+  }
 
   GetMetaData(tree: ParseTree): Array<string> {
     this.visit(tree);
@@ -17,14 +23,14 @@ export class AnaplanFormulaMetadataGenerator extends AbstractParseTreeVisitor<vo
   aggregateResult(aggregate: void, nextResult: void): void { }
 
   visitQuotedEntity(ctx: QuotedEntityContext): void {
-    this.entities.push(getEntityName(ctx));
+    this.entities.push(getEntityName(this._moduleName, ctx));
   }
 
   visitWordsEntity(ctx: WordsEntityContext): void {
-    this.entities.push(getEntityName(ctx));
+    this.entities.push(getEntityName(this._moduleName, ctx));
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): void {
-    this.entities.push(getEntityName(ctx));
+    this.entities.push(getEntityName(this._moduleName, ctx));
   }
 }

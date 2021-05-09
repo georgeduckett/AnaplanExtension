@@ -1,6 +1,6 @@
 import { ParserRuleContext } from "antlr4ts";
 import { Interval } from "antlr4ts/misc/Interval";
-import { DotQualifiedEntityContext, QuotedEntityContext, WordsEntityContext } from "./antlrclasses/AnaplanFormulaParser";
+import { DotQualifiedEntityContext, QuotedEntityContext, WordsEntityContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
 
 export function getOriginalText(ctx: ParserRuleContext): string {
     if (ctx.start.inputStream != undefined && ctx.stop != undefined) {
@@ -23,14 +23,16 @@ export function unQuoteEntity(entity: string | null): string {
     }
 }
 
-export function getEntityName(ctx: QuotedEntityContext | WordsEntityContext | DotQualifiedEntityContext): string {
+export function getEntityName(currentModuleName: string, ctx: EntityContext): string {
     if (ctx instanceof QuotedEntityContext) {
-        return unQuoteEntity(ctx.QUOTELITERAL().text);
+        return currentModuleName + "." + unQuoteEntity(ctx.QUOTELITERAL().text);
     } else if (ctx instanceof WordsEntityContext) {
-        return getOriginalText(ctx);
-    } else {
+        return currentModuleName + "." + getOriginalText(ctx);
+    } else if (ctx instanceof DotQualifiedEntityContext) {
         return `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`
     }
+    throw new Error("Unknown EntityContext type. Has the grammar file been altered?");
+
 }
 
 export class Format {

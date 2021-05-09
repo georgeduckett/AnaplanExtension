@@ -285,11 +285,11 @@ declare interface LineItemInfo {
     versionSelection: VersionSelection;
     resolvedFormulae?: any;
     formulaScope: string;
-    fullAppliesTo: any[];
+    fullAppliesTo: number[];
     parentLineItemEntityLongId: number;
     resolvedFormulaTargets?: any;
     leafPeriodType: LeafPeriodType2;
-    appliesTo?: any;
+    appliesTo?: number;
     format: Format;
     formula?: any;
     isSummary: boolean;

@@ -2,28 +2,24 @@ import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
 import { getEntityName, AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText } from './AnaplanHelpers';
-
-export class LineItemInfo {
-  public readonly Name: string;
-  public readonly Format: Format;
-  constructor(name: string, dataType: Format) {
-    this.Name = name;
-    this.Format = dataType;
-  }
-}
+import { join } from 'antlr4ts/misc/Utils';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   private readonly _moduleName: string;
+  private readonly _moduleInfo: ModuleInfo;
   private readonly _lineItemInfo: Map<string, LineItemInfo>;
   private readonly _hierarchyParents: Map<number, number>;
   private readonly _hierarchyIds: Map<string, number>;
+  private readonly _currentLineItem: LineItemInfo;
 
-  constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string) {
+  constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, moduleInfo: ModuleInfo, currentLineItem: LineItemInfo) {
     super();
     this._moduleName = moduleName;
     this._lineItemInfo = lineItemInfo;
     this._hierarchyParents = hierarchyParents;
     this._hierarchyIds = hierarchyIds;
+    this._moduleInfo = moduleInfo;
+    this._currentLineItem = currentLineItem;
   }
 
   defaultResult(): Format {
@@ -176,6 +172,20 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
     // TODO: Check dimension mappings and how they relate to this module's dimensions and the entity's dimensions
+
+    let entityName = getEntityName(this._moduleName, ctx.entity());
+
+    let entityDimensions = this._lineItemInfo.get(entityName)!.fullAppliesTo.sort();
+    let currentLineItemDimensions = this._currentLineItem.fullAppliesTo.sort();
+
+    // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
+    let missingEntityDimensions = entityDimensions.filter(e => !currentLineItemDimensions.includes(e));
+
+    if (missingEntityDimensions.length > 0) {
+      alert("Missing dimensions: " + missingEntityDimensions[0]);
+      // TODO: It's not this simple, figure out the proper rules for what's valid
+    }
+
     return this.visit(ctx.entity());
   }
 
@@ -190,12 +200,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   getEntityType(ctx: QuotedEntityContext | WordsEntityContext | DotQualifiedEntityContext): Format {
-    let entityName = this._moduleName + "." + getEntityName(ctx);
+    let entityName = getEntityName(this._moduleName, ctx);
     if (!this._lineItemInfo.has(entityName)) {
       throw new Error("Found unrecognised entity: " + entityName);
 
     } else {
-      return this._lineItemInfo.get(entityName)!.Format;
+      return this._lineItemInfo.get(entityName)!.format;
     }
   }
 

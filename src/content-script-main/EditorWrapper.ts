@@ -5,7 +5,7 @@ import { Monaco } from "../monaco-loader";
 import { CharStreams, CommonTokenStream } from 'antlr4ts';
 import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
 import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
-import { AnaplanFormulaTypeEvaluatorVisitor, LineItemInfo } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
+import { AnaplanFormulaTypeEvaluatorVisitor } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
 import { AnaplanDataTypeStrings } from '../Anaplan/AnaplanHelpers';
 
 export interface MonacoNode extends HTMLDivElement {
@@ -169,9 +169,11 @@ export class EditorWrapper {
 			if (e.keyCode == KeyCode.Enter && textArea.value.length != 0) {
 				let currentModuleId = parseInt(textArea.closest(".managedTab")?.id.substring(1)!);
 				let currentModuleName = "";
+				let currentModuleInfo = undefined;
 				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
 					if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
 						currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
+						currentModuleInfo = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i];
 					}
 				}
 
@@ -184,7 +186,7 @@ export class EditorWrapper {
 						var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
 						var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
 						if (dataTypeString != AnaplanDataTypeStrings.NONE) {
-							moduleLineItems.set(entityName, new LineItemInfo(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format));
+							moduleLineItems.set(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j]);
 						}
 					}
 				}
@@ -205,13 +207,13 @@ export class EditorWrapper {
 						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
 				}
 
-				let targetFormat = moduleLineItems.get(currentLineItemName)!.Format;
+				let targetFormat = moduleLineItems.get(currentLineItemName)!.format;
 
 				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(textArea.value));
 				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-				const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyIds, hierarchyParents, currentModuleName).visit(myparser.formula());
+				const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyIds, hierarchyParents, currentModuleName, currentModuleInfo!, moduleLineItems.get(currentLineItemName)!).visit(myparser.formula());
 
-				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.Format.dataType) {
+				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.format.dataType) {
 					alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
 				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
 					// Ensure the entity type is the same as well
