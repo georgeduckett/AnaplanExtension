@@ -1,6 +1,6 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
+import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
 import { getEntityName, AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText } from './AnaplanHelpers';
 import { join } from 'antlr4ts/misc/Utils';
 
@@ -199,7 +199,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   }
 
-  getEntityType(ctx: QuotedEntityContext | WordsEntityContext | DotQualifiedEntityContext): Format {
+  getEntityType(ctx: EntityContext): Format {
     let entityName = getEntityName(this._moduleName, ctx);
     if (!this._lineItemInfo.has(entityName)) {
       throw new Error("Found unrecognised entity: " + entityName);
@@ -210,14 +210,17 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
+    // TODO: Check entity dimensions here, but not if we're here from a squarebracket thing (since there could be SELECT/SUM/LOOKUP etc)
     return this.getEntityType(ctx);
   }
 
   visitWordsEntity(ctx: WordsEntityContext): Format {
+    // TODO: Check entity dimensions here, but not if we're here from a squarebracket thing (since there could be SELECT/SUM/LOOKUP etc)
     return this.getEntityType(ctx);
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
+    // TODO: Check entity dimensions here, but not if we're here from a squarebracket thing (since there could be SELECT/SUM/LOOKUP etc)
     return this.getEntityType(ctx);
   }
 }
