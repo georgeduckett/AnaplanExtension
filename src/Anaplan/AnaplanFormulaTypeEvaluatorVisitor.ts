@@ -171,19 +171,28 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
-    // TODO: Check dimension mappings and how they relate to this module's dimensions and the entity's dimensions
-
-    let entityName = getEntityName(this._moduleName, ctx.entity());
-
-    let entityDimensions = this._lineItemInfo.get(entityName)!.fullAppliesTo.sort();
-    let currentLineItemDimensions = this._currentLineItem.fullAppliesTo.sort();
-
     // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
-    let missingEntityDimensions = entityDimensions.filter(e => !currentLineItemDimensions.includes(e));
+    let missingEntityDimensions = this.getMissingDimensions(ctx);
+
+    let dimensionMappings = ctx.dimensionmapping();
+    for (let i = 0; i < dimensionMappings.length; i++) {
+      let dimensionMapping = dimensionMappings[i];
+      let selectorType = dimensionMapping.WORD().text;
+      let selector = getEntityName(this._moduleName, dimensionMapping.entity());
+
+      switch (selectorType.toUpperCase()) {
+        case "SELECT": // TODO: Handle this (work out what entity dimension is selected and remove that from the missing list)
+
+        case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
+        default: // It's an aggregate function, so we do the same check as above
+          let lineitem = this._lineItemInfo.get(selector)!;
+          alert("Found mapping for " + selector + ": " + lineitem.format.hierarchyEntityLongId);
+          missingEntityDimensions = missingEntityDimensions.filter(e => e != lineitem.format.hierarchyEntityLongId);
+      }
+    }
 
     if (missingEntityDimensions.length > 0) {
       alert("Missing dimensions: " + missingEntityDimensions[0]);
-      // TODO: It's not this simple, figure out the proper rules for what's valid
     }
 
     return this.visit(ctx.entity());
@@ -209,18 +218,38 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
   }
 
+  getMissingDimensions(ctx: EntityContext) {
+    let entityName = getEntityName(this._moduleName, ctx);
+
+    let entityDimensions = this._lineItemInfo.get(entityName)!.fullAppliesTo.sort();
+    let currentLineItemDimensions = this._currentLineItem.fullAppliesTo.sort();
+
+    // Check the entity and line item dimensions match
+    // TODO: Don't count ones that have a parent top level item, as Anaplan allows that
+    return entityDimensions.filter(e => !currentLineItemDimensions.includes(e));
+  }
+
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
-    // TODO: Check entity dimensions here, but not if we're here from a squarebracket thing (since there could be SELECT/SUM/LOOKUP etc)
+    let missingDimensions = this.getMissingDimensions(ctx);
+    if (missingDimensions.length > 0) {
+      alert("Missing dimension: " + missingDimensions[0]);
+    }
     return this.getEntityType(ctx);
   }
 
   visitWordsEntity(ctx: WordsEntityContext): Format {
-    // TODO: Check entity dimensions here, but not if we're here from a squarebracket thing (since there could be SELECT/SUM/LOOKUP etc)
+    let missingDimensions = this.getMissingDimensions(ctx);
+    if (missingDimensions.length > 0) {
+      alert("Missing dimension: " + missingDimensions[0]);
+    }
     return this.getEntityType(ctx);
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
-    // TODO: Check entity dimensions here, but not if we're here from a squarebracket thing (since there could be SELECT/SUM/LOOKUP etc)
+    let missingDimensions = this.getMissingDimensions(ctx);
+    if (missingDimensions.length > 0) {
+      alert("Missing dimension: " + missingDimensions[0]);
+    }
     return this.getEntityType(ctx);
   }
 }

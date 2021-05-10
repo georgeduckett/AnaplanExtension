@@ -291,7 +291,7 @@ declare interface LineItemInfo {
     leafPeriodType: LeafPeriodType2;
     appliesTo?: number;
     format: Format;
-    formula?: any;
+    formula?: string;
     isSummary: boolean;
 }
 
