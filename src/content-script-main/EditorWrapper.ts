@@ -7,6 +7,9 @@ import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer
 import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
 import { AnaplanFormulaTypeEvaluatorVisitor } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
 import { AnaplanDataTypeStrings } from '../Anaplan/AnaplanHelpers';
+import { FormulaTokensProvider } from '../Monaco/FormulaTokensProvider';
+import { CollectorErrorListener } from '../Anaplan/CollectorErrorListener';
+import { FormulaError } from '../Anaplan/FormulaError';
 
 export interface MonacoNode extends HTMLDivElement {
 	hedietEditorWrapper: EditorWrapper;
@@ -76,7 +79,11 @@ export class EditorWrapper {
 
 		this.editorWrapperDiv.appendChild(this.previewDiv);
 
-		const model = monaco.editor.createModel(textArea.value, "markdown");
+		monaco.languages.register({ id: 'anaplanformula' });
+
+		monaco.languages.setTokensProvider('anaplanformula', new FormulaTokensProvider());
+
+		const model = monaco.editor.createModel(textArea.value, "anaplanformula");
 
 		this.editor = monaco.editor.create(this.monacoDiv, {
 			...settings,
@@ -84,6 +91,61 @@ export class EditorWrapper {
 			automaticLayout: true,
 			minimap: { enabled: false },
 		});
+
+		let editor = this.editor;
+
+
+		editor.onDidChangeModelContent(function (e) {
+			// TODO: debounce?
+			let code = editor.getValue();
+
+
+			const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(code));
+			let errors: FormulaError[] = [];
+			var myListener = new CollectorErrorListener(errors);
+			mylexer.removeErrorListeners();
+			const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+			myparser.removeErrorListeners();
+			myparser.addErrorListener(new CollectorErrorListener(errors))
+			let tree = myparser.formula();
+			let syntaxErrors = errors
+			let monacoErrors = [];
+			for (let e of syntaxErrors) {
+				monacoErrors.push({
+					startLineNumber: e.startLine,
+					startColumn: e.startCol,
+					endLineNumber: e.endLine,
+					endColumn: e.endCol,
+					message: e.message,
+					severity: monaco.MarkerSeverity.Error
+				});
+			};
+			let model = monaco.editor.getModels()[0];
+			monaco.editor.setModelMarkers(model, "owner", monacoErrors);
+		});
+
+		// TODO: Do this as part of the above?
+		const interval = setInterval(() => {
+			if (model.getValue() !== textArea.value) {
+				model.setValue(textArea.value);
+			}
+			if (!document.body.contains(textArea)) {
+				this.dispose();
+			}
+		}, 100);
+		this.disposables.push(() => clearInterval(interval));
+
+		textArea.addEventListener("change", () => {
+			if (model.getValue() !== textArea.value) {
+				model.setValue(textArea.value);
+			}
+		});
+		textArea.addEventListener("input", () => {
+			if (model.getValue() !== textArea.value) {
+				model.setValue(textArea.value);
+			}
+		});
+
 
 		this.editor.addAction({
 			id: "github.submit",
@@ -123,27 +185,6 @@ export class EditorWrapper {
 		this.editor.onDidBlurEditorWidget(() =>
 			this.handleEditorFocusChanged(false)
 		);
-
-		const interval = setInterval(() => {
-			if (model.getValue() !== textArea.value) {
-				model.setValue(textArea.value);
-			}
-			if (!document.body.contains(textArea)) {
-				this.dispose();
-			}
-		}, 100);
-		this.disposables.push(() => clearInterval(interval));
-
-		textArea.addEventListener("change", () => {
-			if (model.getValue() !== textArea.value) {
-				model.setValue(textArea.value);
-			}
-		});
-		textArea.addEventListener("input", () => {
-			if (model.getValue() !== textArea.value) {
-				model.setValue(textArea.value);
-			}
-		});
 
 		this.editor.onDidChangeCursorSelection((e) => {
 			const startOffset = model.getOffsetAt(
@@ -211,12 +252,18 @@ export class EditorWrapper {
 
 				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(textArea.value));
 				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-				const myresult = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyIds, hierarchyParents, currentModuleName, currentModuleInfo!, moduleLineItems.get(currentLineItemName)!).visit(myparser.formula());
+				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyIds, hierarchyParents, currentModuleName, currentModuleInfo!, moduleLineItems.get(currentLineItemName)!);
+				const myresult = formulaEvaluator.visit(myparser.formula());
+
+				formulaEvaluator.formulaErrors.forEach(err => {
+					alert(err.message);
+				});
 
 				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.format.dataType) {
+					// Ensure the data type is the same
 					alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
 				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
-					// Ensure the entity type is the same as well
+					// Ensure the entity types is the same if the data types are entity
 					if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
 						alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId!)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId!)}`);
 					}

@@ -3,6 +3,8 @@ import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
 import { getEntityName, AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText } from './AnaplanHelpers';
 import { join } from 'antlr4ts/misc/Utils';
+import { FormulaError } from './FormulaError';
+import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   private readonly _moduleName: string;
@@ -11,6 +13,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   private readonly _hierarchyParents: Map<number, number>;
   private readonly _hierarchyIds: Map<string, number>;
   private readonly _currentLineItem: LineItemInfo;
+
+  public readonly formulaErrors: Array<FormulaError> = new Array<FormulaError>();
 
   constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, moduleInfo: ModuleInfo, currentLineItem: LineItemInfo) {
     super();
@@ -35,6 +39,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitFormula(ctx: FormulaContext): Format {
+    this.formulaErrors.length = 0;
     return this.visit(ctx.expression());
   }
 
@@ -169,6 +174,11 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         return format;
     }
   }
+  //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
+  // TODO: Sort out recording the semantic errors
+  addFormulaError(ctx: ParserRuleContext, message: string) {
+    //this.formulaErrors.push(new FormulaError(ctx.start.startIndex, (ctx.stop ?? ctx.start).stopIndex + 1 - ctx.start.startIndex, message));
+  }
 
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
     // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
@@ -186,13 +196,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
         default: // It's an aggregate function, so we do the same check as above
           let lineitem = this._lineItemInfo.get(selector)!;
-          alert("Found mapping for " + selector + ": " + lineitem.format.hierarchyEntityLongId);
           missingEntityDimensions = missingEntityDimensions.filter(e => e != lineitem.format.hierarchyEntityLongId);
       }
     }
 
     if (missingEntityDimensions.length > 0) {
-      alert("Missing dimensions: " + missingEntityDimensions[0]);
+      this.addFormulaError(ctx, "Missing dimensions: " + missingEntityDimensions[0]);
     }
 
     return this.visit(ctx.entity());
@@ -232,7 +241,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
     let missingDimensions = this.getMissingDimensions(ctx);
     if (missingDimensions.length > 0) {
-      alert("Missing dimension: " + missingDimensions[0]);
+      this.addFormulaError(ctx, "Missing dimension: " + missingDimensions[0]);
     }
     return this.getEntityType(ctx);
   }
@@ -240,7 +249,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitWordsEntity(ctx: WordsEntityContext): Format {
     let missingDimensions = this.getMissingDimensions(ctx);
     if (missingDimensions.length > 0) {
-      alert("Missing dimension: " + missingDimensions[0]);
+      this.addFormulaError(ctx, "Missing dimension: " + missingDimensions[0]);
     }
     return this.getEntityType(ctx);
   }
@@ -248,7 +257,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
     let missingDimensions = this.getMissingDimensions(ctx);
     if (missingDimensions.length > 0) {
-      alert("Missing dimension: " + missingDimensions[0]);
+      this.addFormulaError(ctx, "Missing dimension: " + missingDimensions[0]);
     }
     return this.getEntityType(ctx);
   }
