@@ -229,7 +229,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   getMissingDimensions(ctx: EntityContext) {
     let entityName = getEntityName(this._moduleName, ctx);
-
+    //TODO: Why do we get .fullappliesto on undefined errors?
     let entityDimensions = this._lineItemInfo.get(entityName)!.fullAppliesTo.sort();
     let currentLineItemDimensions = this._currentLineItem.fullAppliesTo.sort();
 
