@@ -11,16 +11,11 @@ export class CollectorErrorListener implements ANTLRErrorListener<Token> {
     syntaxError(recognizer: Recognizer<any, any>, offendingSymbol: Token | undefined, line: number, charPositionInLine: number, message: string, e: RecognitionException | undefined): void {
         let length = ((offendingSymbol?.stopIndex ?? 0) - (offendingSymbol?.startIndex ?? 0));
         if (length === 0) {
-            //alert('here');
             length = 1;
         }
         else {
             length++;
         }
-
-        //alert(offendingSymbol?.startIndex);
-        //alert(offendingSymbol?.stopIndex);
-        //alert(charPositionInLine);
         this.errors.push(
             new FormulaError(
                 line,
