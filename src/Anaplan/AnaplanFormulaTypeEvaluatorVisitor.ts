@@ -1,7 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
-import { getEntityName, AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText } from './AnaplanHelpers';
+import { getEntityName, AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText, anaplanTimeEntityBaseId } from './AnaplanHelpers';
 import { join } from 'antlr4ts/misc/Utils';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
@@ -11,16 +11,18 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   private readonly _moduleInfo: ModuleInfo;
   private readonly _lineItemInfo: Map<string, LineItemInfo>;
   private readonly _hierarchyParents: Map<number, number>;
+  private readonly _hierarchyNames: Map<number, string>;
   private readonly _hierarchyIds: Map<string, number>;
   private readonly _currentLineItem: LineItemInfo;
 
   public readonly formulaErrors: Array<FormulaError> = new Array<FormulaError>();
 
-  constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, moduleInfo: ModuleInfo, currentLineItem: LineItemInfo) {
+  constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyNames: Map<number, string>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, moduleInfo: ModuleInfo, currentLineItem: LineItemInfo) {
     super();
     this._moduleName = moduleName;
     this._lineItemInfo = lineItemInfo;
     this._hierarchyParents = hierarchyParents;
+    this._hierarchyNames = hierarchyNames;
     this._hierarchyIds = hierarchyIds;
     this._moduleInfo = moduleInfo;
     this._currentLineItem = currentLineItem;
@@ -31,6 +33,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   aggregateResult(aggregate: Format, nextResult: Format): Format {
+    // If one is unknown then use the other one
+    if (aggregate.dataType === AnaplanDataTypeStrings.UNKNOWN.dataType) {
+      return nextResult;
+    }
+    else if (nextResult.dataType === AnaplanDataTypeStrings.UNKNOWN.dataType) {
+      return aggregate;
+    }
     // Ensure both are the same, if they aren't produce an error
     if (aggregate.dataType != nextResult.dataType) { // TODO: compare this properly
       throw new Error(`Tried to combine different expression types, ${JSON.stringify(aggregate)} and ${JSON.stringify(nextResult)}`);
@@ -175,9 +184,14 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
   }
   //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
-  // TODO: Sort out recording the semantic errors
   addFormulaError(ctx: ParserRuleContext, message: string) {
-    //this.formulaErrors.push(new FormulaError(ctx.start.startIndex, (ctx.stop ?? ctx.start).stopIndex + 1 - ctx.start.startIndex, message));
+    this.formulaErrors.push(new FormulaError(
+      ctx.start.line,
+      ctx.stop?.line ?? ctx.start.line,
+      ctx.start.charPositionInLine + 1,
+      (ctx.stop?.charPositionInLine ?? ctx.start.charPositionInLine) + 1,
+      message,
+      "2"));
   }
 
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
@@ -196,15 +210,25 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
         default: // It's an aggregate function, so we do the same check as above
           let lineitem = this._lineItemInfo.get(selector)!;
-          missingEntityDimensions = missingEntityDimensions.filter(e => e != lineitem.format.hierarchyEntityLongId);
+
+
+          missingEntityDimensions = missingEntityDimensions.filter(e => e != this.getLineItemEntityId(lineitem));
       }
     }
 
     if (missingEntityDimensions.length > 0) {
-      this.addFormulaError(ctx, "Missing dimensions: " + missingEntityDimensions[0]);
+      this.addMissingDimensionsFormulaError(ctx, missingEntityDimensions);
     }
 
     return this.visit(ctx.entity());
+  }
+
+  getLineItemEntityId(lineItem: LineItemInfo): number {
+    return lineItem.format.hierarchyEntityLongId ?? (anaplanTimeEntityBaseId + lineItem.format.periodType.entityIndex);
+  }
+
+  addMissingDimensionsFormulaError(ctx: EntityContext, missingEntityIds: number[]) { // TODO: Show all, not just the first one
+    this.addFormulaError(ctx, "Missing dimensions: " + (this._hierarchyNames.get(missingEntityIds[0]) ?? missingEntityIds[0]));
   }
 
   visitDimensionmapping(ctx: DimensionmappingContext): Format {
@@ -220,7 +244,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   getEntityType(ctx: EntityContext): Format {
     let entityName = getEntityName(this._moduleName, ctx);
     if (!this._lineItemInfo.has(entityName)) {
-      throw new Error("Found unrecognised entity: " + entityName);
+      return AnaplanDataTypeStrings.UNKNOWN; // Unrecognised entity, so we don't know
 
     } else {
       return this._lineItemInfo.get(entityName)!.format;
@@ -229,35 +253,46 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   getMissingDimensions(ctx: EntityContext) {
     let entityName = getEntityName(this._moduleName, ctx);
-    //TODO: Why do we get .fullappliesto on undefined errors?
-    let entityDimensions = this._lineItemInfo.get(entityName)!.fullAppliesTo.sort();
+    let entityDimensions = this._lineItemInfo.get(entityName)?.fullAppliesTo?.sort();
+
+    if (entityDimensions === undefined) {
+      return [];
+    }
+
     let currentLineItemDimensions = this._currentLineItem.fullAppliesTo.sort();
 
     // Check the entity and line item dimensions match
     // TODO: Don't count ones that have a parent top level item, as Anaplan allows that
-    return entityDimensions.filter(e => !currentLineItemDimensions.includes(e));
+    return currentLineItemDimensions.filter(e => !entityDimensions!.includes(e));
   }
 
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
     let missingDimensions = this.getMissingDimensions(ctx);
     if (missingDimensions.length > 0) {
-      this.addFormulaError(ctx, "Missing dimension: " + missingDimensions[0]);
+      this.addMissingDimensionsFormulaError(ctx, missingDimensions);
     }
     return this.getEntityType(ctx);
   }
 
   visitWordsEntity(ctx: WordsEntityContext): Format {
-    let missingDimensions = this.getMissingDimensions(ctx);
-    if (missingDimensions.length > 0) {
-      this.addFormulaError(ctx, "Missing dimension: " + missingDimensions[0]);
+    if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
+      // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
+      let missingDimensions = this.getMissingDimensions(ctx);
+      if (missingDimensions.length > 0) {
+        alert('here');
+        this.addMissingDimensionsFormulaError(ctx, missingDimensions);
+      }
     }
     return this.getEntityType(ctx);
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
-    let missingDimensions = this.getMissingDimensions(ctx);
-    if (missingDimensions.length > 0) {
-      this.addFormulaError(ctx, "Missing dimension: " + missingDimensions[0]);
+    if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
+      // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
+      let missingDimensions = this.getMissingDimensions(ctx);
+      if (missingDimensions.length > 0) {
+        this.addMissingDimensionsFormulaError(ctx, missingDimensions);
+      }
     }
     return this.getEntityType(ctx);
   }

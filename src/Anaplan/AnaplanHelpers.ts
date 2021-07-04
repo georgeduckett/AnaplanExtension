@@ -1,6 +1,6 @@
 import { ParserRuleContext } from "antlr4ts";
 import { Interval } from "antlr4ts/misc/Interval";
-import { DotQualifiedEntityContext, QuotedEntityContext, WordsEntityContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
+import { DotQualifiedEntityContext, QuotedEntityContext, WordsEntityContext, EntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
 
 export function getOriginalText(ctx: ParserRuleContext): string {
     if (ctx.start.inputStream != undefined && ctx.stop != undefined) {
@@ -30,10 +30,15 @@ export function getEntityName(currentModuleName: string, ctx: EntityContext): st
         return currentModuleName + "." + getOriginalText(ctx);
     } else if (ctx instanceof DotQualifiedEntityContext) {
         return `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`
+    } else if (ctx instanceof FuncSquareBracketsContext) {
+        return getEntityName(currentModuleName, ctx.entity());
     }
-    throw new Error("Unknown EntityContext type. Has the grammar file been altered?");
+
+    throw new Error("Unknown EntityContext type. Has the grammar file been altered?     " + ctx.text);
 
 }
+
+export const anaplanTimeEntityBaseId: number = 20000000000;
 
 export class Format {
     hierarchyEntityLongId?: number;

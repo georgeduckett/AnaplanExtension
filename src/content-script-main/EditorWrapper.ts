@@ -6,7 +6,7 @@ import { CharStreams, CommonTokenStream } from 'antlr4ts';
 import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
 import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
 import { AnaplanFormulaTypeEvaluatorVisitor } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
-import { AnaplanDataTypeStrings } from '../Anaplan/AnaplanHelpers';
+import { AnaplanDataTypeStrings, anaplanTimeEntityBaseId } from '../Anaplan/AnaplanHelpers';
 import { FormulaTokensProvider } from '../Monaco/FormulaTokensProvider';
 import { CollectorErrorListener } from '../Anaplan/CollectorErrorListener';
 import { FormulaError } from '../Anaplan/FormulaError';
@@ -94,34 +94,125 @@ export class EditorWrapper {
 
 		let editor = this.editor;
 
-
+		let handle: any;
 		editor.onDidChangeModelContent(function (e) {
-			// TODO: debounce?
-			let code = editor.getValue();
 
 
-			const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(code));
-			let errors: FormulaError[] = [];
-			var myListener = new CollectorErrorListener(errors);
-			mylexer.removeErrorListeners();
-			const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-			myparser.removeErrorListeners();
-			myparser.addErrorListener(new CollectorErrorListener(errors))
-			let tree = myparser.formula();
-			let syntaxErrors = errors
-			let monacoErrors = [];
-			for (let e of syntaxErrors) {
-				monacoErrors.push({
-					startLineNumber: e.startLine,
-					startColumn: e.startCol,
-					endLineNumber: e.endLine,
-					endColumn: e.endCol,
-					message: e.message,
-					severity: monaco.MarkerSeverity.Error
-				});
-			};
-			let model = monaco.editor.getModels()[0];
-			monaco.editor.setModelMarkers(model, "owner", monacoErrors);
+			clearTimeout(handle);
+
+			handle = setTimeout(() => {
+
+				let code = editor.getValue();
+
+				if (code.length === 0) {
+					return;
+				}
+
+				let currentModuleId = parseInt(textArea.closest(".managedTab")?.id.substring(1)!);
+				let currentModuleName = "";
+				let currentModuleInfo = undefined;
+				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
+					if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
+						currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
+						currentModuleInfo = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i];
+					}
+				}
+
+				let currentLineItemName = currentModuleName + "." + document.getElementsByClassName("formulaEditorRowLabelCell")[0].getAttribute("title");
+
+				let moduleLineItems = new Map<string, LineItemInfo>();
+
+				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
+					for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
+						var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
+						var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
+						if (dataTypeString != AnaplanDataTypeStrings.NONE) {
+							moduleLineItems.set(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j]);
+
+							if (dataTypeString === AnaplanDataTypeStrings.TIME_ENTITY) {
+
+							}
+						}
+					}
+				}
+
+				let hierarchyNames = new Map<number, string>();
+				let hierarchyIds = new Map<string, number>();
+				let hierarchyParents = new Map<number, number>();
+
+				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
+					hierarchyNames.set(
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
+					hierarchyIds.set(
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i]);
+					hierarchyParents.set(
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
+						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
+				}
+
+				// Add in the special time dimensions
+				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {
+					hierarchyNames.set(anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
+						'Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel);
+					hierarchyIds.set('Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel,
+						anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex);
+				}
+
+				let targetFormat = moduleLineItems.get(currentLineItemName)!.format;
+
+
+
+				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(code));
+				let errors: FormulaError[] = [];
+				var myListener = new CollectorErrorListener(errors);
+				mylexer.removeErrorListeners();
+				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+				myparser.removeErrorListeners();
+				myparser.addErrorListener(new CollectorErrorListener(errors));
+
+
+
+
+
+				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyNames, hierarchyIds, hierarchyParents, currentModuleName, currentModuleInfo!, moduleLineItems.get(currentLineItemName)!);
+				const myresult = formulaEvaluator.visit(myparser.formula());
+
+				// TODO: Make these alerts into proper editor errors
+				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.format.dataType) {
+					// Ensure the data type is the same
+					alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
+				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
+					// Ensure the entity types is the same if the data types are entity
+					if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
+						alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId!)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId!)}`);
+					}
+				}
+				let monacoErrors = [];
+				for (let e of errors) {
+					monacoErrors.push({
+						startLineNumber: e.startLine,
+						startColumn: e.startCol,
+						endLineNumber: e.endLine,
+						endColumn: e.endCol,
+						message: e.message,
+						severity: monaco.MarkerSeverity.Error
+					});
+				};
+				for (let e of formulaEvaluator.formulaErrors) {
+					monacoErrors.push({
+						startLineNumber: e.startLine,
+						startColumn: e.startCol,
+						endLineNumber: e.endLine,
+						endColumn: e.endCol,
+						message: e.message,
+						severity: monaco.MarkerSeverity.Error
+					});
+				};
+				let model = monaco.editor.getModels()[0];
+				monaco.editor.setModelMarkers(model, "owner", monacoErrors);
+			}, 250);
 		});
 
 		// TODO: Do this as part of the above?
@@ -208,66 +299,7 @@ export class EditorWrapper {
 			// TODO: capture keys like enter to save & stop editing the formula
 
 			if (e.keyCode == KeyCode.Enter && textArea.value.length != 0) {
-				let currentModuleId = parseInt(textArea.closest(".managedTab")?.id.substring(1)!);
-				let currentModuleName = "";
-				let currentModuleInfo = undefined;
-				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
-					if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
-						currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
-						currentModuleInfo = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i];
-					}
-				}
 
-				let currentLineItemName = currentModuleName + "." + document.getElementsByClassName("formulaEditorRowLabelCell")[0].getAttribute("title");
-
-				let moduleLineItems = new Map<string, LineItemInfo>();
-
-				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
-					for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
-						var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
-						var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
-						if (dataTypeString != AnaplanDataTypeStrings.NONE) {
-							moduleLineItems.set(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j]);
-						}
-					}
-				}
-
-				let hierarchyNames = new Map<number, string>();
-				let hierarchyIds = new Map<string, number>();
-				let hierarchyParents = new Map<number, number>();
-
-				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
-					hierarchyNames.set(
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
-					hierarchyIds.set(
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i]);
-					hierarchyParents.set(
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
-				}
-
-				let targetFormat = moduleLineItems.get(currentLineItemName)!.format;
-
-				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(textArea.value));
-				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyIds, hierarchyParents, currentModuleName, currentModuleInfo!, moduleLineItems.get(currentLineItemName)!);
-				const myresult = formulaEvaluator.visit(myparser.formula());
-
-				formulaEvaluator.formulaErrors.forEach(err => {
-					alert(err.message);
-				});
-
-				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.format.dataType) {
-					// Ensure the data type is the same
-					alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
-				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
-					// Ensure the entity types is the same if the data types are entity
-					if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
-						alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId!)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId!)}`);
-					}
-				}
 			}
 		});
 
