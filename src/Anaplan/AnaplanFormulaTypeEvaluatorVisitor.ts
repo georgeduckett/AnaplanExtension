@@ -210,8 +210,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
         default: // It's an aggregate function, so we do the same check as above
           let lineitem = this._lineItemInfo.get(selector)!;
-
-
+          // TODO: Instead of just looking at the dimensions of the selector, look at what dimensions the selector has too
           missingEntityDimensions = missingEntityDimensions.filter(e => e != this.getLineItemEntityId(lineitem));
       }
     }
@@ -279,7 +278,6 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this.getMissingDimensions(ctx);
       if (missingDimensions.length > 0) {
-        alert('here');
         this.addMissingDimensionsFormulaError(ctx, missingDimensions);
       }
     }
