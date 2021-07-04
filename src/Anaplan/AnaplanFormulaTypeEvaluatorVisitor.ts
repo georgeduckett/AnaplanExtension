@@ -205,12 +205,16 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       let selector = getEntityName(this._moduleName, dimensionMapping.entity());
 
       switch (selectorType.toUpperCase()) {
-        case "SELECT": // TODO: Handle this (work out what entity dimension is selected and remove that from the missing list)
+        case "SELECT": // TODO: Handle this (work out what entity dimension is selected and remove that from the source dimensions)
 
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
-        default: // It's an aggregate function, so we do the same check as above
+
+        default: // It's an aggregate function, so we do the same check as above (see below, or do we!)
+          // TODO: Compare source and dest dimensions, rather than just looking at what's missing from one of them (either the source or dest)
+          // If a sum remove the selector's entity type from the destination, (maybe checking one of it's dimensions matches the source)
+          // if a lookup remove the selector's entity type from the source, (maybe checking on of it's dimensions matches the destination)
           let lineitem = this._lineItemInfo.get(selector)!;
-          // TODO: Instead of just looking at the dimensions of the selector, look at what dimensions the selector has too
+          // TODO: Instead of just looking at the dimensions of the selector, look at what dimensions the selector has too, possibly we change the getMissingDimensions thing to do the opposite of what it does now for aggregate functions, but keep as is for lookups
           missingEntityDimensions = missingEntityDimensions.filter(e => e != this.getLineItemEntityId(lineitem));
       }
     }
