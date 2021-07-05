@@ -118,8 +118,7 @@ export class EditorWrapper {
 					}
 				}
 
-				// FIlter out elemetns with a parent that has class name "dijitHidden"
-				let currentLineItemName = currentModuleName + "." + document.getElementsByClassName("formulaEditorRowLabelCell")[0].getAttribute("title");
+				let currentLineItemName = currentModuleName + "." + document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title");
 
 				let moduleLineItems = new Map<string, LineItemInfo>();
 
