@@ -10,6 +10,7 @@ import { AnaplanDataTypeStrings, anaplanTimeEntityBaseId } from '../Anaplan/Anap
 import { FormulaTokensProvider } from '../Monaco/FormulaTokensProvider';
 import { CollectorErrorListener } from '../Anaplan/CollectorErrorListener';
 import { FormulaError } from '../Anaplan/FormulaError';
+import { AnaplanMetaData } from '../Anaplan/AnaplanMetaData';
 
 export interface MonacoNode extends HTMLDivElement {
 	hedietEditorWrapper: EditorWrapper;
@@ -203,7 +204,8 @@ export class EditorWrapper {
 				let targetFormat = moduleLineItems.get(currentLineItemName)!.format;
 
 
-				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, subsetParentDimensionId, hierarchyNames, hierarchyIds, hierarchyParents, currentModuleName, currentModuleInfo!, moduleLineItems.get(currentLineItemName)!);
+				let anaplanMetaData = new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, hierarchyNames, hierarchyIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
+				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(anaplanMetaData);
 				const myresult = formulaEvaluator.visit(myparser.formula());
 
 				// TODO: Make these alerts into proper editor errors

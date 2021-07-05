@@ -1,33 +1,20 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
-import { getEntityName, AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText, anaplanTimeEntityBaseId } from './AnaplanHelpers';
+import { AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText, anaplanTimeEntityBaseId } from './AnaplanHelpers';
 import { join } from 'antlr4ts/misc/Utils';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
+import { AnaplanMetaData } from './AnaplanMetaData';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
-  private readonly _moduleName: string;
-  private readonly _moduleInfo: ModuleInfo;
-  private readonly _lineItemInfo: Map<string, LineItemInfo>;
-  private readonly _hierarchyParents: Map<number, number>;
-  private readonly _hierarchyNames: Map<number, string>;
-  private readonly _hierarchyIds: Map<string, number>;
-  private readonly _currentLineItem: LineItemInfo;
-  private readonly _subsetInfo: Map<number, SubsetInfo>;
+  private readonly _anaplanMetaData: AnaplanMetaData;
 
   public readonly formulaErrors: Array<FormulaError> = new Array<FormulaError>();
 
-  constructor(lineItemInfo: Map<string, LineItemInfo>, subsetInfo: Map<number, SubsetInfo>, hierarchyNames: Map<number, string>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, moduleInfo: ModuleInfo, currentLineItem: LineItemInfo) {
+  constructor(anaplanMetaData: AnaplanMetaData) {
     super();
-    this._moduleName = moduleName;
-    this._subsetInfo = subsetInfo;
-    this._lineItemInfo = lineItemInfo;
-    this._hierarchyParents = hierarchyParents;
-    this._hierarchyNames = hierarchyNames;
-    this._hierarchyIds = hierarchyIds;
-    this._moduleInfo = moduleInfo;
-    this._currentLineItem = currentLineItem;
+    this._anaplanMetaData = anaplanMetaData;
   }
 
   defaultResult(): Format {
@@ -158,13 +145,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       case "ITEM":
         let itemName = getOriginalText(ctx.expression()[0]);
         let itemFormat = AnaplanDataTypeStrings.ENTITY;
-        itemFormat.hierarchyEntityLongId = this._hierarchyIds.get(itemName);
+        itemFormat.hierarchyEntityLongId = this._anaplanMetaData.getEntityIdFromName(itemName);
         return itemFormat;
       case "PARENT":
         let entityId = this.visit(ctx.expression()[0]).hierarchyEntityLongId!;
 
 
-        let parentEntityId = this._hierarchyParents.get(entityId);
+        let parentEntityId = this._anaplanMetaData.getEntityParentId(entityId);
 
         if (parentEntityId === undefined) {
           // TODO: Report a proper error; the entity we want to get the parent of doesn't have a parent
@@ -196,19 +183,14 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       "2"));
   }
 
-  // Gets the entity id for non-subset entities, or the entity of the hierarchy they're a subset of for subset ids
-  getSubsetNormalisedEntityId(entityId: number): number {
-    return this._subsetInfo.get(entityId)?.topLevelMainHierarchyEntityLongId ?? entityId;
-  }
-
   areCompatibleDimensions(entityIdA: number, entityIdB: number) {
     // If the subset normalised values are the same, then that's a match
-    if (this.getSubsetNormalisedEntityId(entityIdA) === this.getSubsetNormalisedEntityId(entityIdB)) {
+    if (this._anaplanMetaData.getSubsetNormalisedEntityId(entityIdA) === this._anaplanMetaData.getSubsetNormalisedEntityId(entityIdB)) {
       return true;
     }
 
-    let entityAModules = this._subsetInfo.get(entityIdA)?.applicableModuleEntityLongIds;
-    let entityBModules = this._subsetInfo.get(entityIdA)?.applicableModuleEntityLongIds;
+    let entityAModules = this._anaplanMetaData.getSubsetModules(entityIdA);
+    let entityBModules = this._anaplanMetaData.getSubsetModules(entityIdA);
 
     if (entityAModules != undefined && entityBModules != undefined) {
       // If there's an intersection of modules used for these line item subsets, then that's ok
@@ -222,7 +204,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
 
     let sourceEntityMappings = this.getEntityDimensions(ctx);
-    let targetEntityMappings = this._currentLineItem.fullAppliesTo.sort();
+    let targetEntityMappings = this._anaplanMetaData.getCurrentItemFullAppliesTo();
 
     let extraSourceEntityMappings = sourceEntityMappings.slice();
     for (let i = 0; i < targetEntityMappings.length; i++) {
@@ -242,8 +224,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     for (let i = 0; i < dimensionMappings.length; i++) {
       let dimensionMapping = dimensionMappings[i];
       let selectorType = dimensionMapping.WORD().text;
-      let selector = getEntityName(this._moduleName, dimensionMapping.entity());
-      let lineitem = this._lineItemInfo.get(selector)!;
+      let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
+      let lineitem = this._anaplanMetaData.getLineItemInfoFromEntityName(selector)!;
       var lineItemEntityId = this.getLineItemEntityId(lineitem);
 
       switch (selectorType.toUpperCase()) {
@@ -264,12 +246,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     return this.visit(ctx.entity());
   }
 
-  getLineItemEntityId(lineItem: LineItemInfo): number { // TODO: What's going on with this time entity base id + entity index thing
+  getLineItemEntityId(lineItem: LineItemInfo): number { // We assume that if it's not a hierarchy entity, then it's a time entity
     return lineItem.format.hierarchyEntityLongId ?? (anaplanTimeEntityBaseId + lineItem.format.periodType.entityIndex);
   }
 
-  addMissingDimensionsFormulaError(ctx: EntityContext, missingEntityIds: number[]) { // TODO: Show all, not just the first one
-    this.addFormulaError(ctx, "Missing dimensions: " + (missingEntityIds.map(e => this._hierarchyNames.get(e) ?? e).join(', ')));
+  addMissingDimensionsFormulaError(ctx: EntityContext, missingEntityIds: number[]) {
+    this.addFormulaError(ctx, "Missing dimensions: " + (missingEntityIds.map(this._anaplanMetaData.getEntityNameFromId).join(', ')));
   }
 
   visitDimensionmapping(ctx: DimensionmappingContext): Format {
@@ -283,17 +265,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   getEntityType(ctx: EntityContext): Format {
-    let entityName = getEntityName(this._moduleName, ctx);
-    if (!this._lineItemInfo.has(entityName)) {
-      return AnaplanDataTypeStrings.UNKNOWN; // Unrecognised entity, so we don't know
-
-    } else {
-      return this._lineItemInfo.get(entityName)!.format;
-    }
+    let entityName = this._anaplanMetaData.getEntityName(ctx);
+    return this._anaplanMetaData.getLineItemInfoFromEntityName(entityName)?.format ?? AnaplanDataTypeStrings.UNKNOWN;
   }
   getEntityDimensions(ctx: EntityContext): number[] {
-    let entityName = getEntityName(this._moduleName, ctx);
-    let entityDimensions = this._lineItemInfo.get(entityName)?.fullAppliesTo?.sort();
+    let entityName = this._anaplanMetaData.getEntityName(ctx);
+    let entityDimensions = this._anaplanMetaData.getLineItemInfoFromEntityName(entityName)?.fullAppliesTo?.sort();
 
     if (entityDimensions === undefined) {
       return [];
@@ -303,7 +280,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   getMissingDimensions(ctx: EntityContext) {
     let entityDimensions = this.getEntityDimensions(ctx);
 
-    let currentLineItemDimensions = this._currentLineItem.fullAppliesTo.sort();
+    let currentLineItemDimensions = this._anaplanMetaData.getCurrentItemFullAppliesTo();
 
     // Check the entity and line item dimensions match
     // TODO: Don't count ones that have a parent top level item, as Anaplan allows that
