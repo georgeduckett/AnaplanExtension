@@ -118,6 +118,7 @@ export class EditorWrapper {
 					}
 				}
 
+				// FIlter out elemetns with a parent that has class name "dijitHidden"
 				let currentLineItemName = currentModuleName + "." + document.getElementsByClassName("formulaEditorRowLabelCell")[0].getAttribute("title");
 
 				let moduleLineItems = new Map<string, LineItemInfo>();
@@ -152,6 +153,24 @@ export class EditorWrapper {
 						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
 				}
 
+				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
+					hierarchyNames.set(
+						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i],
+						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i]);
+					hierarchyIds.set(
+						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i],
+						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i]);
+				}
+
+				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0].length; i++) {
+					hierarchyNames.set(
+						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i],
+						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]);
+					hierarchyIds.set(
+						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
+						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]);
+				}
+
 				// Add in the special time dimensions
 				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {
 					hierarchyNames.set(anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
@@ -160,13 +179,21 @@ export class EditorWrapper {
 						anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex);
 				}
 
-				let targetFormat = moduleLineItems.get(currentLineItemName)!.format;
+				let subsetParentDimensionId = new Map<number, SubsetInfo>();
+				// Regular subsets (of hierarchies)
+				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos.length; i++) {
+					subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].entityLongId,
+						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i]);
+				}
 
-
+				// Line item subsets (of measures)
+				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos.length; i++) {
+					subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i].entityLongId,
+						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i]);
+				}
 
 				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(code));
 				let errors: FormulaError[] = [];
-				var myListener = new CollectorErrorListener(errors);
 				mylexer.removeErrorListeners();
 				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
 				myparser.removeErrorListeners();
@@ -174,9 +201,10 @@ export class EditorWrapper {
 
 
 
+				let targetFormat = moduleLineItems.get(currentLineItemName)!.format;
 
 
-				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, hierarchyNames, hierarchyIds, hierarchyParents, currentModuleName, currentModuleInfo!, moduleLineItems.get(currentLineItemName)!);
+				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(moduleLineItems, subsetParentDimensionId, hierarchyNames, hierarchyIds, hierarchyParents, currentModuleName, currentModuleInfo!, moduleLineItems.get(currentLineItemName)!);
 				const myresult = formulaEvaluator.visit(myparser.formula());
 
 				// TODO: Make these alerts into proper editor errors
