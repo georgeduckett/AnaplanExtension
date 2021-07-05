@@ -152,8 +152,15 @@ declare interface HierarchySubsetsLabelPage {
     periodType?: any;
 }
 
+declare interface SubsetInfo {
+    entityLongId: number;
+    parentHierarchyEntityLongId: number;
+    topLevelMainHierarchyEntityLongId: number;
+    applicableModuleEntityLongIds: number[]; // Applicable to line item subsets only
+}
+
 declare interface HierarchySubsetsInfo {
-    hierarchySubsetInfos: any[];
+    hierarchySubsetInfos: SubsetInfo[];
     hierarchySubsetsLabelPage: HierarchySubsetsLabelPage;
 }
 
@@ -251,7 +258,7 @@ declare interface LineItemSubsetsLabelPage {
 }
 
 declare interface LineItemSubsetsInfo {
-    lineItemSubsetInfos: any[];
+    lineItemSubsetInfos: SubsetInfo[];
     lineItemSubsetsLabelPage: LineItemSubsetsLabelPage;
 }
 

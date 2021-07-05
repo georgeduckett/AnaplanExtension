@@ -14,12 +14,14 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   private readonly _hierarchyNames: Map<number, string>;
   private readonly _hierarchyIds: Map<string, number>;
   private readonly _currentLineItem: LineItemInfo;
+  private readonly _subsetInfo: Map<number, SubsetInfo>;
 
   public readonly formulaErrors: Array<FormulaError> = new Array<FormulaError>();
 
-  constructor(lineItemInfo: Map<string, LineItemInfo>, hierarchyNames: Map<number, string>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, moduleInfo: ModuleInfo, currentLineItem: LineItemInfo) {
+  constructor(lineItemInfo: Map<string, LineItemInfo>, subsetInfo: Map<number, SubsetInfo>, hierarchyNames: Map<number, string>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, moduleInfo: ModuleInfo, currentLineItem: LineItemInfo) {
     super();
     this._moduleName = moduleName;
+    this._subsetInfo = subsetInfo;
     this._lineItemInfo = lineItemInfo;
     this._hierarchyParents = hierarchyParents;
     this._hierarchyNames = hierarchyNames;
@@ -194,44 +196,80 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       "2"));
   }
 
+  // Gets the entity id for non-subset entities, or the entity of the hierarchy they're a subset of for subset ids
+  getSubsetNormalisedEntityId(entityId: number): number {
+    return this._subsetInfo.get(entityId)?.topLevelMainHierarchyEntityLongId ?? entityId;
+  }
+
+  areCompatibleDimensions(entityIdA: number, entityIdB: number) {
+    // If the subset normalised values are the same, then that's a match
+    if (this.getSubsetNormalisedEntityId(entityIdA) === this.getSubsetNormalisedEntityId(entityIdB)) {
+      return true;
+    }
+
+    let entityAModules = this._subsetInfo.get(entityIdA)?.applicableModuleEntityLongIds;
+    let entityBModules = this._subsetInfo.get(entityIdA)?.applicableModuleEntityLongIds;
+
+    if (entityAModules != undefined && entityBModules != undefined) {
+      // If there's an intersection of modules used for these line item subsets, then that's ok
+      return entityAModules.filter(value => entityBModules!.includes(value)).length != 0;
+    }
+
+    return false;
+  }
+
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
     // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
-    let missingEntityDimensions = this.getMissingDimensions(ctx);
+
+    let sourceEntityMappings = this.getEntityDimensions(ctx);
+    let targetEntityMappings = this._currentLineItem.fullAppliesTo.sort();
+
+    let extraSourceEntityMappings = sourceEntityMappings.slice();
+    for (let i = 0; i < targetEntityMappings.length; i++) {
+      extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, targetEntityMappings[i]));
+    }
+
+    let extraTargetEntityMappings = targetEntityMappings.slice();
+    for (let i = 0; i < sourceEntityMappings.length; i++) {
+      extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, sourceEntityMappings[i]));
+    }
+
+    // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
+    extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 121000000021);
+    extraTargetEntityMappings = extraTargetEntityMappings.filter(e => e != 121000000021);
 
     let dimensionMappings = ctx.dimensionmapping();
     for (let i = 0; i < dimensionMappings.length; i++) {
       let dimensionMapping = dimensionMappings[i];
       let selectorType = dimensionMapping.WORD().text;
       let selector = getEntityName(this._moduleName, dimensionMapping.entity());
+      let lineitem = this._lineItemInfo.get(selector)!;
+      var lineItemEntityId = this.getLineItemEntityId(lineitem);
 
       switch (selectorType.toUpperCase()) {
         case "SELECT": // TODO: Handle this (work out what entity dimension is selected and remove that from the source dimensions)
 
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
-
-        default: // It's an aggregate function, so we do the same check as above (see below, or do we!)
-          // TODO: Compare source and dest dimensions, rather than just looking at what's missing from one of them (either the source or dest)
-          // If a sum remove the selector's entity type from the destination, (maybe checking one of it's dimensions matches the source)
-          // if a lookup remove the selector's entity type from the source, (maybe checking on of it's dimensions matches the destination)
-          let lineitem = this._lineItemInfo.get(selector)!;
-          // TODO: Instead of just looking at the dimensions of the selector, look at what dimensions the selector has too, possibly we change the getMissingDimensions thing to do the opposite of what it does now for aggregate functions, but keep as is for lookups
-          missingEntityDimensions = missingEntityDimensions.filter(e => e != this.getLineItemEntityId(lineitem));
+          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, lineItemEntityId));
+          break;
+        default: // If it's an aggregation we check the target entity mappings
+          extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, lineItemEntityId));
       }
     }
 
-    if (missingEntityDimensions.length > 0) {
-      this.addMissingDimensionsFormulaError(ctx, missingEntityDimensions);
+    if (extraSourceEntityMappings.length != 0 && extraTargetEntityMappings.length != 0) {
+      this.addMissingDimensionsFormulaError(ctx, extraSourceEntityMappings);
     }
 
     return this.visit(ctx.entity());
   }
 
-  getLineItemEntityId(lineItem: LineItemInfo): number {
+  getLineItemEntityId(lineItem: LineItemInfo): number { // TODO: What's going on with this time entity base id + entity index thing
     return lineItem.format.hierarchyEntityLongId ?? (anaplanTimeEntityBaseId + lineItem.format.periodType.entityIndex);
   }
 
   addMissingDimensionsFormulaError(ctx: EntityContext, missingEntityIds: number[]) { // TODO: Show all, not just the first one
-    this.addFormulaError(ctx, "Missing dimensions: " + (this._hierarchyNames.get(missingEntityIds[0]) ?? missingEntityIds[0]));
+    this.addFormulaError(ctx, "Missing dimensions: " + (missingEntityIds.map(e => this._hierarchyNames.get(e) ?? e).join(', ')));
   }
 
   visitDimensionmapping(ctx: DimensionmappingContext): Format {
@@ -253,20 +291,23 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       return this._lineItemInfo.get(entityName)!.format;
     }
   }
-
-  getMissingDimensions(ctx: EntityContext) {
+  getEntityDimensions(ctx: EntityContext): number[] {
     let entityName = getEntityName(this._moduleName, ctx);
     let entityDimensions = this._lineItemInfo.get(entityName)?.fullAppliesTo?.sort();
 
     if (entityDimensions === undefined) {
       return [];
     }
+    return entityDimensions;
+  }
+  getMissingDimensions(ctx: EntityContext) {
+    let entityDimensions = this.getEntityDimensions(ctx);
 
     let currentLineItemDimensions = this._currentLineItem.fullAppliesTo.sort();
 
     // Check the entity and line item dimensions match
     // TODO: Don't count ones that have a parent top level item, as Anaplan allows that
-    return currentLineItemDimensions.filter(e => !entityDimensions!.includes(e));
+    return entityDimensions.filter(e => !currentLineItemDimensions!.includes(e));
   }
 
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
