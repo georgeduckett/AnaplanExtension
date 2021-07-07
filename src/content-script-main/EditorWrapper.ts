@@ -208,6 +208,8 @@ export class EditorWrapper {
 				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(anaplanMetaData);
 				const myresult = formulaEvaluator.visit(myparser.formula());
 
+				// TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
+
 				// TODO: Make these alerts into proper editor errors
 				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.format.dataType) {
 					// Ensure the data type is the same
