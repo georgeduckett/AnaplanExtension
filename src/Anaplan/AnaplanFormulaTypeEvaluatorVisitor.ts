@@ -251,7 +251,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   addMissingDimensionsFormulaError(ctx: EntityContext, missingEntityIds: number[]) {
-    this.addFormulaError(ctx, "Missing dimensions: " + (missingEntityIds.map(this._anaplanMetaData.getEntityNameFromId).join(', ')));
+    this.addFormulaError(ctx, "Missing dimensions: " + (missingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')));
   }
 
   visitDimensionmapping(ctx: DimensionmappingContext): Format {
