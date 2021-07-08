@@ -111,11 +111,9 @@ export class EditorWrapper {
 
 				let currentModuleId = parseInt(textArea.closest(".managedTab")?.id.substring(1)!);
 				let currentModuleName = "";
-				let currentModuleInfo = undefined;
 				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
 					if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
 						currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
-						currentModuleInfo = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i];
 					}
 				}
 
