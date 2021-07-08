@@ -40,6 +40,9 @@ export class AnaplanMetaData {
     getCurrentItemFullAppliesTo(): number[] {
         return this._currentLineItem.fullAppliesTo.sort();
     }
+    getCurrentItem(): LineItemInfo {
+        return this._currentLineItem;
+    }
 
     getLineItemInfoFromEntityName(entityName: string): LineItemInfo | undefined {
         return this._lineItemInfo.get(entityName);

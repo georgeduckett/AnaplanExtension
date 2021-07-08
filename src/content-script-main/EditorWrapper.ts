@@ -56,7 +56,7 @@ export class EditorWrapper {
 		monaco: Monaco,
 		settings: MonacoOptions,
 	) {
-		this.editorRoot = textArea.parentNode as HTMLElement;
+		this.editorRoot = this.textArea.parentNode as HTMLElement;
 
 		this.prepareTextArea();
 
@@ -84,7 +84,7 @@ export class EditorWrapper {
 
 		monaco.languages.setTokensProvider('anaplanformula', new FormulaTokensProvider());
 
-		const model = monaco.editor.createModel(textArea.value, "anaplanformula");
+		const model = monaco.editor.createModel(this.textArea.value, "anaplanformula");
 
 		this.editor = monaco.editor.create(this.monacoDiv, {
 			...settings,
@@ -109,87 +109,11 @@ export class EditorWrapper {
 					return;
 				}
 
-				let currentModuleId = parseInt(textArea.closest(".managedTab")?.id.substring(1)!);
-				let currentModuleName = "";
-				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
-					if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
-						currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
-					}
-				}
+				let anaplanMetaData = getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!));
 
-				let currentLineItemName = currentModuleName + "." + document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title");
+				let targetFormat = anaplanMetaData.getCurrentItem().format;
 
-				let moduleLineItems = new Map<string, LineItemInfo>();
-
-				for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
-					for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
-						var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
-						var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
-						if (dataTypeString != AnaplanDataTypeStrings.NONE) {
-							moduleLineItems.set(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j]);
-
-							if (dataTypeString === AnaplanDataTypeStrings.TIME_ENTITY) {
-
-							}
-						}
-					}
-				}
-
-				let hierarchyNames = new Map<number, string>();
-				let hierarchyIds = new Map<string, number>();
-				let hierarchyParents = new Map<number, number>();
-
-				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
-					hierarchyNames.set(
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
-					hierarchyIds.set(
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i]);
-					hierarchyParents.set(
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
-						anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
-				}
-
-				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
-					hierarchyNames.set(
-						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i],
-						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i]);
-					hierarchyIds.set(
-						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i],
-						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i]);
-				}
-
-				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0].length; i++) {
-					hierarchyNames.set(
-						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i],
-						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]);
-					hierarchyIds.set(
-						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
-						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]);
-				}
-
-				// Add in the special time dimensions
-				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {
-					hierarchyNames.set(anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
-						'Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel);
-					hierarchyIds.set('Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel,
-						anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex);
-				}
-
-				let subsetParentDimensionId = new Map<number, SubsetInfo>();
-				// Regular subsets (of hierarchies)
-				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos.length; i++) {
-					subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].entityLongId,
-						anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i]);
-				}
-
-				// Line item subsets (of measures)
-				for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos.length; i++) {
-					subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i].entityLongId,
-						anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i]);
-				}
-
+				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(anaplanMetaData);
 				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(code));
 				let errors: FormulaError[] = [];
 				mylexer.removeErrorListeners();
@@ -197,13 +121,6 @@ export class EditorWrapper {
 				myparser.removeErrorListeners();
 				myparser.addErrorListener(new CollectorErrorListener(errors));
 
-
-
-				let targetFormat = moduleLineItems.get(currentLineItemName)!.format;
-
-
-				let anaplanMetaData = new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, hierarchyNames, hierarchyIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
-				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(anaplanMetaData);
 				const myresult = formulaEvaluator.visit(myparser.formula());
 
 				// TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
@@ -214,7 +131,7 @@ export class EditorWrapper {
 				let monacoErrors = [];
 				let lines = code.split('\n');
 				// Add the errors with the whole formula if needed
-				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.format.dataType) {
+				if (myresult.dataType != anaplanMetaData.getCurrentItem().format.dataType) {
 					// Ensure the data type is the same
 					monacoErrors.push({
 						startLineNumber: 1,
@@ -232,7 +149,7 @@ export class EditorWrapper {
 							startColumn: 1,
 							endLineNumber: lines.length,
 							endColumn: lines[lines.length - 1].length,
-							message: `Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId!)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId!)}`,
+							message: `Formula evaluates to ${anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId!)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
 							severity: monaco.MarkerSeverity.Error
 						});
 					}
@@ -264,23 +181,23 @@ export class EditorWrapper {
 
 		// TODO: Do this as part of the above?
 		const interval = setInterval(() => {
-			if (model.getValue() !== textArea.value) {
-				model.setValue(textArea.value);
+			if (model.getValue() !== this.textArea.value) {
+				model.setValue(this.textArea.value);
 			}
-			if (!document.body.contains(textArea)) {
+			if (!document.body.contains(this.textArea)) {
 				this.dispose();
 			}
 		}, 100);
 		this.disposables.push(() => clearInterval(interval));
 
-		textArea.addEventListener("change", () => {
-			if (model.getValue() !== textArea.value) {
-				model.setValue(textArea.value);
+		this.textArea.addEventListener("change", () => {
+			if (model.getValue() !== this.textArea.value) {
+				model.setValue(this.textArea.value);
 			}
 		});
-		textArea.addEventListener("input", () => {
-			if (model.getValue() !== textArea.value) {
-				model.setValue(textArea.value);
+		this.textArea.addEventListener("input", () => {
+			if (model.getValue() !== this.textArea.value) {
+				model.setValue(this.textArea.value);
 			}
 		});
 
@@ -294,7 +211,7 @@ export class EditorWrapper {
 					code: "Enter",
 					ctrlKey: true,
 				});
-				textArea.dispatchEvent(ctrlEnterEvent);
+				this.textArea.dispatchEvent(ctrlEnterEvent);
 			},
 			keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
 		});
@@ -329,8 +246,8 @@ export class EditorWrapper {
 				e.selection.getStartPosition()
 			);
 			const endOffset = model.getOffsetAt(e.selection.getEndPosition());
-			textArea.selectionStart = startOffset;
-			textArea.selectionEnd = endOffset;
+			this.textArea.selectionStart = startOffset;
+			this.textArea.selectionEnd = endOffset;
 		});
 
 		model.onDidChangeContent((e) => {
@@ -338,14 +255,14 @@ export class EditorWrapper {
 				this.editor.trigger("editor", "hideSuggestWidget", undefined);
 			}
 			const value = model.getValue();
-			textArea.value = value;
-			textArea.dispatchEvent(new Event("input"));
+			this.textArea.value = value;
+			this.textArea.dispatchEvent(new Event("input"));
 		});
 
 		this.editor.onKeyDown((e) => {
 			// TODO: capture keys like enter to save & stop editing the formula
 
-			if (e.keyCode == KeyCode.Enter && textArea.value.length != 0) {
+			if (e.keyCode == KeyCode.Enter && this.textArea.value.length != 0) {
 
 			}
 		});
@@ -423,3 +340,88 @@ export class EditorWrapper {
 		}
 	}
 }
+function getAnaplanMetaData(currentModuleId: number) {
+	let currentModuleName = "";
+	for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
+		if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
+			currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
+		}
+	}
+
+	let currentLineItemName = currentModuleName + "." + document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title");
+
+	let moduleLineItems = new Map<string, LineItemInfo>();
+
+	for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
+		for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
+			var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
+			var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
+			if (dataTypeString != AnaplanDataTypeStrings.NONE) {
+				moduleLineItems.set(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j]);
+
+				if (dataTypeString === AnaplanDataTypeStrings.TIME_ENTITY) {
+
+				}
+			}
+		}
+	}
+
+	let hierarchyNames = new Map<number, string>();
+	let hierarchyIds = new Map<string, number>();
+	let hierarchyParents = new Map<number, number>();
+
+	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
+		hierarchyNames.set(
+			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
+			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
+		hierarchyIds.set(
+			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
+			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i]);
+		hierarchyParents.set(
+			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
+			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
+	}
+
+	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
+		hierarchyNames.set(
+			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i],
+			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i]);
+		hierarchyIds.set(
+			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i],
+			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i]);
+	}
+
+	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0].length; i++) {
+		hierarchyNames.set(
+			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i],
+			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]);
+		hierarchyIds.set(
+			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
+			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]);
+	}
+
+	// Add in the special time dimensions
+	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {
+		hierarchyNames.set(anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
+			'Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel);
+		hierarchyIds.set('Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel,
+			anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex);
+	}
+
+	let subsetParentDimensionId = new Map<number, SubsetInfo>();
+	// Regular subsets (of hierarchies)
+	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos.length; i++) {
+		subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].entityLongId,
+			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i]);
+	}
+
+	// Line item subsets (of measures)
+	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos.length; i++) {
+		subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i].entityLongId,
+			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i]);
+	}
+
+
+	return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, hierarchyNames, hierarchyIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
+}
+
