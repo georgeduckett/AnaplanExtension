@@ -210,17 +210,35 @@ export class EditorWrapper {
 
 				// TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
 
-				// TODO: Make these alerts into proper editor errors
+				// TODO: https://microsoft.github.io/monaco-editor/playground.html#extending-language-services-hover-provider-example
+				// Hover over entities to get their dimensions
+
+				let monacoErrors = [];
+				let lines = code.split('\n');
+				// Add the errors with the whole formula if needed
 				if (myresult.dataType != moduleLineItems.get(currentLineItemName)?.format.dataType) {
 					// Ensure the data type is the same
-					alert(`Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`);
+					monacoErrors.push({
+						startLineNumber: 1,
+						startColumn: 1,
+						endLineNumber: lines.length,
+						endColumn: lines[lines.length - 1].length,
+						message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
+						severity: monaco.MarkerSeverity.Error
+					});
 				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
 					// Ensure the entity types is the same if the data types are entity
 					if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
-						alert(`Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId!)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId!)}`);
+						monacoErrors.push({
+							startLineNumber: 1,
+							startColumn: 1,
+							endLineNumber: lines.length,
+							endColumn: lines[lines.length - 1].length,
+							message: `Formula evaluates to ${hierarchyNames.get(myresult.hierarchyEntityLongId!)} but the line item type is ${hierarchyNames.get(targetFormat.hierarchyEntityLongId!)}`,
+							severity: monaco.MarkerSeverity.Error
+						});
 					}
 				}
-				let monacoErrors = [];
 				for (let e of errors) {
 					monacoErrors.push({
 						startLineNumber: e.startLine,
