@@ -283,6 +283,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let currentLineItemDimensions = this._anaplanMetaData.getCurrentItemFullAppliesTo();
 
     // Check the entity and line item dimensions match
+
     // TODO: Don't count ones that have a parent top level item, as Anaplan allows that
     return entityDimensions.filter(e => !currentLineItemDimensions!.includes(e));
   }

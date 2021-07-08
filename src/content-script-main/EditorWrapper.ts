@@ -103,6 +103,8 @@ export class EditorWrapper {
 
 			handle = setTimeout(() => {
 
+				let model = monaco.editor.getModels()[0];
+
 				let code = editor.getValue();
 
 				if (code.length === 0) {
@@ -136,8 +138,8 @@ export class EditorWrapper {
 					monacoErrors.push({
 						startLineNumber: 1,
 						startColumn: 1,
-						endLineNumber: lines.length,
-						endColumn: lines[lines.length - 1].length,
+						endLineNumber: model.getLineCount(),
+						endColumn: model.getLineMaxColumn(model.getLineCount()),
 						message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
 						severity: monaco.MarkerSeverity.Error
 					});
@@ -147,8 +149,8 @@ export class EditorWrapper {
 						monacoErrors.push({
 							startLineNumber: 1,
 							startColumn: 1,
-							endLineNumber: lines.length,
-							endColumn: lines[lines.length - 1].length,
+							endLineNumber: model.getLineCount(),
+							endColumn: model.getLineMaxColumn(model.getLineCount()),
 							message: `Formula evaluates to ${anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId!)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
 							severity: monaco.MarkerSeverity.Error
 						});
@@ -174,7 +176,6 @@ export class EditorWrapper {
 						severity: monaco.MarkerSeverity.Error
 					});
 				};
-				let model = monaco.editor.getModels()[0];
 				monaco.editor.setModelMarkers(model, "owner", monacoErrors);
 			}, 250);
 		});
