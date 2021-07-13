@@ -11,7 +11,18 @@ declare interface ModelContentCache {
     _modelInfo: ModelInfo;
 }
 
+declare interface PeriodType {
+    entityIndex: number;
+}
 
+declare interface Format {
+    hierarchyEntityLongId?: number;
+    entityFormatFilter?: any;
+    selectiveAccessApplied?: boolean;
+    showAll?: boolean;
+    dataType: string;
+    periodType: PeriodType;
+}
 
 declare interface DashboardsLabelPage {
     start: number;

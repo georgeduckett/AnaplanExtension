@@ -5,17 +5,30 @@ __webpack_public_path__ = document.head.dataset
 import type { MonacoOptions } from "../settings";
 
 import { loadMonaco } from "../monaco-loader";
+import { FormulaTokensProvider } from '../Monaco/FormulaTokensProvider';
 import {
 	EditorWrapper,
 	editorWrapperDivClassName,
 	isMonacoNode,
 } from "./EditorWrapper";
+import { FormulaHoverProvider } from "../Monaco/FormulaHoverProvider";
+
+export let hoverProvider: FormulaHoverProvider;
+
 async function main() {
 	const settings = JSON.parse(
 		document.head.dataset.hedietMonacoEditorSettings!
 	) as MonacoOptions;
 
 	const monaco = await loadMonaco();
+
+	hoverProvider = new FormulaHoverProvider();
+
+	monaco.languages.register({ id: 'anaplanformula' });
+
+	monaco.languages.setTokensProvider('anaplanformula', new FormulaTokensProvider());
+
+	monaco.languages.registerHoverProvider('anaplanformula', hoverProvider);
 
 	function updateDocument() {
 		for (const textArea of [
@@ -28,19 +41,6 @@ async function main() {
 				monaco,
 				settings
 			);
-
-
-
-
-
-
-
-
-
-
-
-
-
 		}
 
 		// Github seems to copy dom nodes around.

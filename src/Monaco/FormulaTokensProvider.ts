@@ -1,8 +1,14 @@
 /// <reference path="../../node_modules/monaco-editor/monaco.d.ts" />
 import { CharStreams } from 'antlr4ts/CharStreams';
 import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
+import { AnaplanMetaData } from '../Anaplan/AnaplanMetaData';
 import ILineTokens = monaco.languages.ILineTokens;
 import IToken = monaco.languages.IToken;
+import { CommonTokenStream, ParserRuleContext } from 'antlr4ts';
+import { AnaplanFormulaParser, EntityContext } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
+import { ParseTree } from 'antlr4ts/tree/ParseTree';
+import { TerminalNode } from 'antlr4ts/tree/TerminalNode';
+import { RuleContext } from 'antlr4ts/RuleContext';
 
 export class FormulaState implements monaco.languages.IState {
     clone(): monaco.languages.IState {
@@ -24,7 +30,6 @@ export class FormulaTokensProvider implements monaco.languages.TokensProvider {
         // So far we ignore the state, which is not great for performance reasons
         return tokensForLine(line);
     }
-
 }
 
 const EOF = -1;
