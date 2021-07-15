@@ -35,17 +35,33 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
             }
 
             if (previousTree instanceof EntityContext) {
+                let entityName = this._anaplanMetaData!.getEntityName(previousTree).replace(new RegExp("'", 'g'), ""); // TODO: Maybe properly remove qualifying quotes (look at entity chidren this node has, if any)
                 // Look up the dimensions of this entity
-                let lineItemInfo = this._anaplanMetaData!.getLineItemInfoFromEntityName(this._anaplanMetaData!.getEntityName(previousTree).replace(new RegExp("'", 'g'), "")); // TODO: Maybe properly remove qualifying quotes (look at entity chidren this node has, if any)
-
-                let dimensions = lineItemInfo?.fullAppliesTo.map(this._anaplanMetaData!.getEntityNameFromId, this._anaplanMetaData).sort().join(', ');
+                let lineItemInfo = this._anaplanMetaData!.getLineItemInfoFromEntityName(entityName);
 
                 if (lineItemInfo != undefined) {
+                    let dimensions = lineItemInfo?.fullAppliesTo.map(this._anaplanMetaData!.getEntityNameFromId, this._anaplanMetaData).sort().join(', ');
+                    let dataTypeDisplayString = lineItemInfo.format.dataType;
+
+                    if (dataTypeDisplayString === "ENTITY") {
+                        dataTypeDisplayString = this._anaplanMetaData?.getEntityNameFromId(lineItemInfo.format.hierarchyEntityLongId!)!;
+                    } else {
+                        dataTypeDisplayString = dataTypeDisplayString.toLowerCase().replace(/\b\S/g, t => t.toUpperCase());
+                    }
                     return {
                         range: new monaco.Range(previousTree.start.line, previousTree.start.charPositionInLine + 1, previousTree.stop!.line, previousTree.stop!.charPositionInLine! + previousTree.stop!.text!.length + 1),
                         contents: [
                             { value: "Dimensions: " + dimensions },
-                            { value: "Type: " + lineItemInfo.format.dataType } // TODO: Declare format properly, display properly (show what entity if any, number format etc)
+                            { value: "Type: " + dataTypeDisplayString }
+                        ]
+                    }
+                }
+                else if (previousTree.parent?.children![0].text === "SELECT") { // TODO: May need similar logic when working out missing dimensions
+                    // This is a select, so the entity name is actually just the first part, without quotes
+                    return {
+                        range: new monaco.Range(previousTree.start.line, previousTree.start.charPositionInLine + 1, previousTree.stop!.line, previousTree.stop!.charPositionInLine! + previousTree.stop!.text!.length + 1),
+                        contents: [
+                            { value: "Type: " + entityName.substring(0, entityName.indexOf('.')) }
                         ]
                     }
                 }
