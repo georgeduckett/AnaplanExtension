@@ -28,6 +28,14 @@ export class AnaplanMetaData {
         return this._hierarchyParents.get(entityId);
     }
 
+    entityIsAncestorOfEntity(possibleAncestorEntity: number, possibleDescendantEntity: number | undefined) {
+        while (true) {
+            if (possibleAncestorEntity === possibleDescendantEntity) return true;
+            if (possibleDescendantEntity === undefined) return false;
+            possibleDescendantEntity = this.getEntityParentId(possibleDescendantEntity);
+        }
+    }
+
     // Gets the entity id for non-subset entities, or the entity of the hierarchy they're a subset of for subset ids
     getSubsetNormalisedEntityId(entityId: number): number {
         return this._subsetInfo.get(entityId)?.topLevelMainHierarchyEntityLongId ?? entityId;

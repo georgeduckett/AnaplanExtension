@@ -189,6 +189,15 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       return true;
     }
 
+    // If one is a parent of the other (not sure which way round, or both) then that's ok (B is parent of A I think)
+    if (this._anaplanMetaData.entityIsAncestorOfEntity(
+      this._anaplanMetaData.getSubsetNormalisedEntityId(entityIdB),
+      this._anaplanMetaData.getSubsetNormalisedEntityId(entityIdA))) {
+      return true;
+    }
+
+
+    // Handle list subsets
     let entityAModules = this._anaplanMetaData.getSubsetModules(entityIdA);
     let entityBModules = this._anaplanMetaData.getSubsetModules(entityIdA);
 
@@ -229,8 +238,10 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       var lineItemEntityId = this.getLineItemEntityId(lineitem);
 
       switch (selectorType.toUpperCase()) {
-        case "SELECT": // TODO: Handle this (work out what entity dimension is selected and remove that from the source dimensions)
-
+        case "SELECT":
+          let entityName = selector.replace(new RegExp("'", 'g'), "");
+          entityName = entityName.substring(0, entityName.indexOf('.'));
+          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, this._anaplanMetaData.getEntityIdFromName(entityName)!));
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
           extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, lineItemEntityId));
           break;
@@ -278,14 +289,18 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     return entityDimensions;
   }
   getMissingDimensions(ctx: EntityContext) {
-    let entityDimensions = this.getEntityDimensions(ctx);
-
+    // TODO: Encapsulate this into a function taking source/target dimensions and returning extra source dimensions (and extra target dimensions maybe?)
     let currentLineItemDimensions = this._anaplanMetaData.getCurrentItemFullAppliesTo();
+    let extraEntityDimensions = this.getEntityDimensions(ctx);
 
-    // Check the entity and line item dimensions match
+    for (let i = 0; i < currentLineItemDimensions.length; i++) {
+      extraEntityDimensions = extraEntityDimensions.filter(e => !this.areCompatibleDimensions(e, currentLineItemDimensions[i]));
+    }
 
-    // TODO: Don't count ones that have a parent top level item, as Anaplan allows that
-    return entityDimensions.filter(e => !currentLineItemDimensions!.includes(e));
+    // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
+    extraEntityDimensions = extraEntityDimensions.filter(e => e != 121000000021);
+
+    return extraEntityDimensions;
   }
 
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
