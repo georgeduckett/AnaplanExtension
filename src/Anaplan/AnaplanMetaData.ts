@@ -1,4 +1,4 @@
-import { unQuoteEntity, getOriginalText } from "./AnaplanHelpers";
+import { unQuoteEntity, getOriginalText, AnaplanDataTypeStrings, Format, anaplanTimeEntityBaseId } from "./AnaplanHelpers";
 import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from "./antlrclasses/AnaplanFormulaParser";
 
 export class AnaplanMetaData {
@@ -20,12 +20,30 @@ export class AnaplanMetaData {
         this._currentLineItem = currentLineItem;
     }
 
+    getEntityType(ctx: EntityContext): Format {
+        let entityName = this.getEntityName(ctx);
+        return this.getLineItemInfoFromEntityName(entityName)?.format ?? AnaplanDataTypeStrings.UNKNOWN;
+    }
+    getEntityDimensions(ctx: EntityContext): number[] {
+        let entityName = this.getEntityName(ctx);
+        let entityDimensions = this.getLineItemInfoFromEntityName(entityName)?.fullAppliesTo?.sort();
+
+        if (entityDimensions === undefined) {
+            return [];
+        }
+        return entityDimensions;
+    }
+
     getEntityIdFromName(entityName: string): number | undefined {
         return this._hierarchyIds.get(entityName);
     }
 
     getEntityParentId(entityId: number): number | undefined {
         return this._hierarchyParents.get(entityId);
+    }
+
+    getLineItemEntityId(lineItem: LineItemInfo): number { // We assume that if it's not a hierarchy entity, then it's a time entity
+        return lineItem.format.hierarchyEntityLongId ?? (anaplanTimeEntityBaseId + lineItem.format.periodType.entityIndex);
     }
 
     entityIsAncestorOfEntity(possibleAncestorEntity: number, possibleDescendantEntity: number | undefined) {
@@ -72,5 +90,49 @@ export class AnaplanMetaData {
         }
 
         throw new Error("Unknown EntityContext type. Has the grammar file been altered?     " + ctx.text);
+    }
+
+    areCompatibleDimensions(entityIdA: number, entityIdB: number) {
+        // If the subset normalised values are the same, then that's a match
+        if (this.getSubsetNormalisedEntityId(entityIdA) === this.getSubsetNormalisedEntityId(entityIdB)) {
+            return true;
+        }
+
+        // If one is a parent of the other (not sure which way round, or both) then that's ok (B is parent of A I think)
+        if (this.entityIsAncestorOfEntity(
+            this.getSubsetNormalisedEntityId(entityIdB),
+            this.getSubsetNormalisedEntityId(entityIdA))) {
+            return true;
+        }
+
+
+        // Handle list subsets
+        let entityAModules = this.getSubsetModules(entityIdA);
+        let entityBModules = this.getSubsetModules(entityIdA);
+
+        if (entityAModules != undefined && entityBModules != undefined) {
+            // If there's an intersection of modules used for these line item subsets, then that's ok
+            return entityAModules.filter(value => entityBModules!.includes(value)).length != 0;
+        }
+
+        return false;
+    }
+
+    getMissingDimensions(sourceDimensions: number[], targetDimensions: number[]) {
+        let extraSourceEntityMappings = sourceDimensions.slice();
+        for (let i = 0; i < targetDimensions.length; i++) {
+            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, targetDimensions[i]));
+        }
+
+        let extraTargetEntityMappings = targetDimensions.slice();
+        for (let i = 0; i < sourceDimensions.length; i++) {
+            extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, sourceDimensions[i]));
+        }
+
+        // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
+        extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 121000000021);
+        extraTargetEntityMappings = extraTargetEntityMappings.filter(e => e != 121000000021);
+
+        return { extraSourceEntityMappings, extraTargetEntityMappings };
     }
 }

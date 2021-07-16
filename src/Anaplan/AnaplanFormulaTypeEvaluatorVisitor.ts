@@ -1,8 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
-import { AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText, anaplanTimeEntityBaseId } from './AnaplanHelpers';
-import { join } from 'antlr4ts/misc/Utils';
+import { AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData } from './AnaplanMetaData';
@@ -172,80 +171,11 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         return format;
     }
   }
-  //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
-  addFormulaError(ctx: ParserRuleContext, message: string) {
-    this.formulaErrors.push(new FormulaError(
-      ctx.start.line,
-      ctx.stop?.line ?? ctx.start.line,
-      ctx.start.charPositionInLine + 1,
-      (ctx.stop?.charPositionInLine ?? ctx.start.charPositionInLine) + 1,
-      message,
-      "2"));
-  }
-
-  areCompatibleDimensions(entityIdA: number, entityIdB: number) {
-    // If the subset normalised values are the same, then that's a match
-    if (this._anaplanMetaData.getSubsetNormalisedEntityId(entityIdA) === this._anaplanMetaData.getSubsetNormalisedEntityId(entityIdB)) {
-      return true;
-    }
-
-    // If one is a parent of the other (not sure which way round, or both) then that's ok (B is parent of A I think)
-    if (this._anaplanMetaData.entityIsAncestorOfEntity(
-      this._anaplanMetaData.getSubsetNormalisedEntityId(entityIdB),
-      this._anaplanMetaData.getSubsetNormalisedEntityId(entityIdA))) {
-      return true;
-    }
-
-
-    // Handle list subsets
-    let entityAModules = this._anaplanMetaData.getSubsetModules(entityIdA);
-    let entityBModules = this._anaplanMetaData.getSubsetModules(entityIdA);
-
-    if (entityAModules != undefined && entityBModules != undefined) {
-      // If there's an intersection of modules used for these line item subsets, then that's ok
-      return entityAModules.filter(value => entityBModules!.includes(value)).length != 0;
-    }
-
-    return false;
-  }
-  /*
-    getMissingDimensions(ctx: EntityContext) {
-      // TODO: Encapsulate this into a function taking source/target dimensions and returning extra source dimensions (and extra target dimensions maybe?)
-      let extraEntityDimensions = this.getEntityDimensions(ctx);
-      let currentLineItemDimensions = this._anaplanMetaData.getCurrentItemFullAppliesTo();
-  
-      for (let i = 0; i < currentLineItemDimensions.length; i++) {
-        extraEntityDimensions = extraEntityDimensions.filter(e => !this.areCompatibleDimensions(e, currentLineItemDimensions[i]));
-      }
-  
-      // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
-      extraEntityDimensions = extraEntityDimensions.filter(e => e != 121000000021);
-  
-      return extraEntityDimensions;
-    }*/
-
-  getMissingDimensions(sourceDimensions: number[], targetDimensions: number[]) {
-    let extraSourceEntityMappings = sourceDimensions.slice();
-    for (let i = 0; i < targetDimensions.length; i++) {
-      extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, targetDimensions[i]));
-    }
-
-    let extraTargetEntityMappings = targetDimensions.slice();
-    for (let i = 0; i < sourceDimensions.length; i++) {
-      extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, sourceDimensions[i]));
-    }
-
-    // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
-    extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 121000000021);
-    extraTargetEntityMappings = extraTargetEntityMappings.filter(e => e != 121000000021);
-
-    return { extraSourceEntityMappings, extraTargetEntityMappings };
-  }
 
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
     // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
     let { extraSourceEntityMappings, extraTargetEntityMappings } =
-      this.getMissingDimensions(this.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
+      this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
 
     let dimensionMappings = ctx.dimensionmapping();
     for (let i = 0; i < dimensionMappings.length; i++) {
@@ -253,18 +183,18 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       let selectorType = dimensionMapping.WORD().text;
       let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
       let lineitem = this._anaplanMetaData.getLineItemInfoFromEntityName(selector)!;
-      var lineItemEntityId = this.getLineItemEntityId(lineitem);
+      var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
 
       switch (selectorType.toUpperCase()) {
         case "SELECT":
           let entityName = selector.replace(new RegExp("'", 'g'), "");
           entityName = entityName.substring(0, entityName.indexOf('.'));
-          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, this._anaplanMetaData.getEntityIdFromName(entityName)!));
+          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, this._anaplanMetaData.getEntityIdFromName(entityName)!));
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
-          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, lineItemEntityId));
+          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           break;
         default: // If it's an aggregation we check the target entity mappings
-          extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, lineItemEntityId));
+          extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
       }
     }
 
@@ -275,14 +205,6 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     return this.visit(ctx.entity());
   }
 
-  getLineItemEntityId(lineItem: LineItemInfo): number { // We assume that if it's not a hierarchy entity, then it's a time entity
-    return lineItem.format.hierarchyEntityLongId ?? (anaplanTimeEntityBaseId + lineItem.format.periodType.entityIndex);
-  }
-
-  addMissingDimensionsFormulaError(ctx: EntityContext, missingEntityIds: number[]) {
-    this.addFormulaError(ctx, "Missing dimensions: " + (missingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')));
-  }
-
   visitDimensionmapping(ctx: DimensionmappingContext): Format {
     throw new Error("This should never get visited. This is a coding error");
   }
@@ -291,47 +213,48 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     throw new Error("This should never get visited. This is a coding error");
   }
 
-  getEntityType(ctx: EntityContext): Format {
-    let entityName = this._anaplanMetaData.getEntityName(ctx);
-    return this._anaplanMetaData.getLineItemInfoFromEntityName(entityName)?.format ?? AnaplanDataTypeStrings.UNKNOWN;
-  }
-  getEntityDimensions(ctx: EntityContext): number[] {
-    let entityName = this._anaplanMetaData.getEntityName(ctx);
-    let entityDimensions = this._anaplanMetaData.getLineItemInfoFromEntityName(entityName)?.fullAppliesTo?.sort();
-
-    if (entityDimensions === undefined) {
-      return [];
-    }
-    return entityDimensions;
-  }
-
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
-    let missingDimensions = this.getMissingDimensions(this.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
+    let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
     if (missingDimensions.length > 0) {
       this.addMissingDimensionsFormulaError(ctx, missingDimensions);
     }
-    return this.getEntityType(ctx);
+    return this._anaplanMetaData.getEntityType(ctx);
   }
 
   visitWordsEntity(ctx: WordsEntityContext): Format {
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
-      let missingDimensions = this.getMissingDimensions(this.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
+      let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
       if (missingDimensions.length > 0) {
         this.addMissingDimensionsFormulaError(ctx, missingDimensions);
       }
     }
-    return this.getEntityType(ctx);
+    return this._anaplanMetaData.getEntityType(ctx);
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
-      let missingDimensions = this.getMissingDimensions(this.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
+      let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
       if (missingDimensions.length > 0) {
         this.addMissingDimensionsFormulaError(ctx, missingDimensions);
       }
     }
-    return this.getEntityType(ctx);
+    return this._anaplanMetaData.getEntityType(ctx);
+  }
+
+
+  addMissingDimensionsFormulaError(ctx: EntityContext, missingEntityIds: number[]) {
+    this.addFormulaError(ctx, "Missing dimensions: " + (missingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')));
+  }
+  //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
+  addFormulaError(ctx: ParserRuleContext, message: string) {
+    this.formulaErrors.push(new FormulaError(
+      ctx.start.line,
+      ctx.stop?.line ?? ctx.start.line,
+      ctx.start.charPositionInLine + 1,
+      (ctx.stop?.charPositionInLine ?? ctx.start.charPositionInLine) + 1,
+      message,
+      "2"));
   }
 }
