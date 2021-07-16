@@ -208,26 +208,44 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
     return false;
   }
+  /*
+    getMissingDimensions(ctx: EntityContext) {
+      // TODO: Encapsulate this into a function taking source/target dimensions and returning extra source dimensions (and extra target dimensions maybe?)
+      let extraEntityDimensions = this.getEntityDimensions(ctx);
+      let currentLineItemDimensions = this._anaplanMetaData.getCurrentItemFullAppliesTo();
+  
+      for (let i = 0; i < currentLineItemDimensions.length; i++) {
+        extraEntityDimensions = extraEntityDimensions.filter(e => !this.areCompatibleDimensions(e, currentLineItemDimensions[i]));
+      }
+  
+      // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
+      extraEntityDimensions = extraEntityDimensions.filter(e => e != 121000000021);
+  
+      return extraEntityDimensions;
+    }*/
 
-  visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
-    // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
-
-    let sourceEntityMappings = this.getEntityDimensions(ctx);
-    let targetEntityMappings = this._anaplanMetaData.getCurrentItemFullAppliesTo();
-
-    let extraSourceEntityMappings = sourceEntityMappings.slice();
-    for (let i = 0; i < targetEntityMappings.length; i++) {
-      extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, targetEntityMappings[i]));
+  getMissingDimensions(sourceDimensions: number[], targetDimensions: number[]) {
+    let extraSourceEntityMappings = sourceDimensions.slice();
+    for (let i = 0; i < targetDimensions.length; i++) {
+      extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, targetDimensions[i]));
     }
 
-    let extraTargetEntityMappings = targetEntityMappings.slice();
-    for (let i = 0; i < sourceEntityMappings.length; i++) {
-      extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, sourceEntityMappings[i]));
+    let extraTargetEntityMappings = targetDimensions.slice();
+    for (let i = 0; i < sourceDimensions.length; i++) {
+      extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, sourceDimensions[i]));
     }
 
     // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
     extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 121000000021);
     extraTargetEntityMappings = extraTargetEntityMappings.filter(e => e != 121000000021);
+
+    return { extraSourceEntityMappings, extraTargetEntityMappings };
+  }
+
+  visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
+    // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
+    let { extraSourceEntityMappings, extraTargetEntityMappings } =
+      this.getMissingDimensions(this.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
 
     let dimensionMappings = ctx.dimensionmapping();
     for (let i = 0; i < dimensionMappings.length; i++) {
@@ -267,12 +285,10 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   visitDimensionmapping(ctx: DimensionmappingContext): Format {
     throw new Error("This should never get visited. This is a coding error");
-
   }
 
   visitFunctionname(ctx: FunctionnameContext): Format {
     throw new Error("This should never get visited. This is a coding error");
-
   }
 
   getEntityType(ctx: EntityContext): Format {
@@ -288,23 +304,9 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
     return entityDimensions;
   }
-  getMissingDimensions(ctx: EntityContext) {
-    // TODO: Encapsulate this into a function taking source/target dimensions and returning extra source dimensions (and extra target dimensions maybe?)
-    let currentLineItemDimensions = this._anaplanMetaData.getCurrentItemFullAppliesTo();
-    let extraEntityDimensions = this.getEntityDimensions(ctx);
-
-    for (let i = 0; i < currentLineItemDimensions.length; i++) {
-      extraEntityDimensions = extraEntityDimensions.filter(e => !this.areCompatibleDimensions(e, currentLineItemDimensions[i]));
-    }
-
-    // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
-    extraEntityDimensions = extraEntityDimensions.filter(e => e != 121000000021);
-
-    return extraEntityDimensions;
-  }
 
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
-    let missingDimensions = this.getMissingDimensions(ctx);
+    let missingDimensions = this.getMissingDimensions(this.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
     if (missingDimensions.length > 0) {
       this.addMissingDimensionsFormulaError(ctx, missingDimensions);
     }
@@ -314,7 +316,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitWordsEntity(ctx: WordsEntityContext): Format {
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
-      let missingDimensions = this.getMissingDimensions(ctx);
+      let missingDimensions = this.getMissingDimensions(this.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
       if (missingDimensions.length > 0) {
         this.addMissingDimensionsFormulaError(ctx, missingDimensions);
       }
@@ -325,7 +327,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
-      let missingDimensions = this.getMissingDimensions(ctx);
+      let missingDimensions = this.getMissingDimensions(this.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo()).extraSourceEntityMappings;
       if (missingDimensions.length > 0) {
         this.addMissingDimensionsFormulaError(ctx, missingDimensions);
       }
