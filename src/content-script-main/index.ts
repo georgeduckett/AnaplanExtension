@@ -76,3 +76,6 @@ async function main() {
 }
 
 main();
+
+// TODO: If we're using the new editor, capture the (one of several) call to https://eu1a.app.anaplan.com/eu-core50153/anaplan/jsonrpc to get result.modelInfo and set that to anaplan
+// Use https://stackoverflow.com/questions/6831916/is-it-possible-to-monitor-http-traffic-in-chrome-using-an-extension/67390377#67390377 to capture the web request

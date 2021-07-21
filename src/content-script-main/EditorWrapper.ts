@@ -2,13 +2,7 @@ import type { MonacoOptions } from '../settings';
 
 import { editor, KeyCode } from "monaco-editor";
 import { Monaco } from "../monaco-loader";
-import { CharStreams, CommonTokenStream } from 'antlr4ts';
-import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
-import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
-import { AnaplanFormulaTypeEvaluatorVisitor } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
-import { AnaplanDataTypeStrings, anaplanTimeEntityBaseId, getAnaplanMetaData, setEditorErrors } from '../Anaplan/AnaplanHelpers';
-import { CollectorErrorListener } from '../Anaplan/CollectorErrorListener';
-import { FormulaError } from '../Anaplan/FormulaError';
+import { getAnaplanMetaData, setEditorErrors } from '../Anaplan/AnaplanHelpers';
 import { hoverProvider } from '.';
 
 export interface MonacoNode extends HTMLDivElement {

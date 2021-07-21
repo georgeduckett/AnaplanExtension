@@ -15,7 +15,8 @@
 	"content_scripts": [
 		{
 			"matches": [
-				"https://*.app.anaplan.com/*/anaplan/*"
+				"https://*.app.anaplan.com/*/anaplan/*",
+				"https://*.app.anaplan.com/a/modeling/*"
 			],
 			"js": [
 				"/dist/content-script.js"
@@ -27,7 +28,8 @@
 		"storage",
 		"activeTab",
 		"scripting",
-		"https://*.app.anaplan.com/*/anaplan/*"
+		"https://*.app.anaplan.com/*/anaplan/*",
+		"https://*.app.anaplan.com/a/modeling/*"
 	],
 	"web_accessible_resources": [
 		"dist/*"
