@@ -6,10 +6,9 @@ import { CharStreams, CommonTokenStream } from 'antlr4ts';
 import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
 import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
 import { AnaplanFormulaTypeEvaluatorVisitor } from '../Anaplan/AnaplanFormulaTypeEvaluatorVisitor';
-import { AnaplanDataTypeStrings, anaplanTimeEntityBaseId } from '../Anaplan/AnaplanHelpers';
+import { AnaplanDataTypeStrings, anaplanTimeEntityBaseId, getAnaplanMetaData, setEditorErrors } from '../Anaplan/AnaplanHelpers';
 import { CollectorErrorListener } from '../Anaplan/CollectorErrorListener';
 import { FormulaError } from '../Anaplan/FormulaError';
-import { AnaplanMetaData } from '../Anaplan/AnaplanMetaData';
 import { hoverProvider } from '.';
 
 export interface MonacoNode extends HTMLDivElement {
@@ -98,82 +97,7 @@ export class EditorWrapper {
 			clearTimeout(handle);
 
 			handle = setTimeout(() => {
-
-				let model = monaco.editor.getModels()[0];
-
-				let code = editor.getValue();
-
-				if (code.length === 0) {
-					return;
-				}
-
-				let anaplanMetaData = getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!));
-
-				hoverProvider.updateMetaData(anaplanMetaData);
-
-				let targetFormat = anaplanMetaData.getCurrentItem().format;
-
-				let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(anaplanMetaData);
-				const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(code));
-				let errors: FormulaError[] = [];
-				mylexer.removeErrorListeners();
-				const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-				myparser.removeErrorListeners();
-				myparser.addErrorListener(new CollectorErrorListener(errors));
-
-				const myresult = formulaEvaluator.visit(myparser.formula());
-
-				// TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
-
-				// TODO: https://microsoft.github.io/monaco-editor/playground.html#extending-language-services-hover-provider-example
-				// Hover over entities to get their dimensions
-
-				let monacoErrors = [];
-				// Add the errors with the whole formula if needed
-				if (myresult.dataType != anaplanMetaData.getCurrentItem().format.dataType) {
-					// Ensure the data type is the same
-					monacoErrors.push({
-						startLineNumber: 1,
-						startColumn: 1,
-						endLineNumber: model.getLineCount(),
-						endColumn: model.getLineMaxColumn(model.getLineCount()),
-						message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
-						severity: monaco.MarkerSeverity.Error
-					});
-				} else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
-					// Ensure the entity types is the same if the data types are entity
-					if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
-						monacoErrors.push({
-							startLineNumber: 1,
-							startColumn: 1,
-							endLineNumber: model.getLineCount(),
-							endColumn: model.getLineMaxColumn(model.getLineCount()),
-							message: `Formula evaluates to ${anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId!)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
-							severity: monaco.MarkerSeverity.Error
-						});
-					}
-				}
-				for (let e of errors) {
-					monacoErrors.push({
-						startLineNumber: e.startLine,
-						startColumn: e.startCol,
-						endLineNumber: e.endLine,
-						endColumn: e.endCol,
-						message: e.message,
-						severity: monaco.MarkerSeverity.Error
-					});
-				};
-				for (let e of formulaEvaluator.formulaErrors) {
-					monacoErrors.push({
-						startLineNumber: e.startLine,
-						startColumn: e.startCol,
-						endLineNumber: e.endLine,
-						endColumn: e.endCol,
-						message: e.message,
-						severity: monaco.MarkerSeverity.Error
-					});
-				};
-				monaco.editor.setModelMarkers(model, "owner", monacoErrors);
+				setEditorErrors(editor, parseInt(textArea.closest(".managedTab")?.id.substring(1)!));
 			}, 250);
 		});
 
@@ -338,94 +262,3 @@ export class EditorWrapper {
 		}
 	}
 }
-function getAnaplanMetaData(currentModuleId: number) {
-	let currentModuleName = "";
-	for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
-		if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
-			currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
-		}
-	}
-
-	let currentLineItemName = currentModuleName + "." + document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title");
-
-	let moduleLineItems = new Map<string, LineItemInfo>();
-
-	for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
-		for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
-			var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
-			var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
-			if (dataTypeString != AnaplanDataTypeStrings.NONE.dataType) {
-				moduleLineItems.set(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j]);
-
-				if (dataTypeString === AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
-
-				}
-			}
-		}
-	}
-
-	let entityNames = new Map<number, string>();
-	let entityIds = new Map<string, number>();
-	let hierarchyParents = new Map<number, number>();
-
-	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
-		entityNames.set(
-			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
-			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
-		entityIds.set(
-			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
-			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i]);
-		hierarchyParents.set(
-			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
-			anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
-	}
-
-	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
-		entityNames.set(
-			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i],
-			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i]);
-		entityIds.set(
-			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i],
-			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i]);
-	}
-
-	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0].length; i++) {
-		entityNames.set(
-			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i],
-			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]);
-		entityIds.set(
-			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
-			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]);
-	}
-
-	// Add in the special time dimensions
-	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {
-		entityNames.set(anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
-			'Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel);
-		entityIds.set('Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel,
-			anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex);
-	}
-
-	// Add in special entity names
-	entityNames.set(20000000020, 'Version');
-	entityIds.set('Version', 20000000020);
-
-
-
-	let subsetParentDimensionId = new Map<number, SubsetInfo>();
-	// Regular subsets (of hierarchies)
-	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos.length; i++) {
-		subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].entityLongId,
-			anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i]);
-	}
-
-	// Line item subsets (of measures)
-	for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos.length; i++) {
-		subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i].entityLongId,
-			anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i]);
-	}
-
-
-	return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
-}
-
