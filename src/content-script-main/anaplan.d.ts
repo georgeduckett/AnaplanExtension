@@ -7,7 +7,7 @@ declare interface Data {
     ModelContentCache: ModelContentCache
 }
 declare interface ModelContentCache {
-    getModuleInfo(a: number): ModuleInfo
+    //getModuleInfo(a: number): ModuleInfo // We don't use this, and don't want to have to replicate it
     _modelInfo: ModelInfo;
 }
 

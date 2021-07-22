@@ -77,5 +77,31 @@ async function main() {
 
 main();
 
-// TODO: If we're using the new editor, capture the (one of several) call to https://eu1a.app.anaplan.com/eu-core50153/anaplan/jsonrpc to get result.modelInfo and set that to anaplan
-// Use https://stackoverflow.com/questions/6831916/is-it-possible-to-monitor-http-traffic-in-chrome-using-an-extension/67390377#67390377 to capture the web request
+const XHR = XMLHttpRequest.prototype
+
+const send = XHR.send
+XHR.send = function (body?: Document | BodyInit | null | undefined): void {
+
+	if (body?.toString().includes('"fetchAllModelSummaries":true')) {
+		this.addEventListener('load', function () {
+			try {
+				if (this.responseType != 'blob') {
+					let responseBody
+					if (this.responseType === '' || this.responseType === 'text') {
+						responseBody = JSON.parse(this.responseText)
+					} else {
+						responseBody = this.response
+					}
+
+					if (this.responseText.includes("modelInfo") && !this.responseText.includes('"modelInfo": null')) {
+						anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
+					}
+				}
+			} catch (err) {
+				console.debug("Error reading or processing response.", err)
+			}
+		});
+	}
+
+	return send.apply(this, [body]);
+}
