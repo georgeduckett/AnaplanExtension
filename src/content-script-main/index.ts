@@ -15,14 +15,14 @@ import { FormulaHoverProvider } from "../Monaco/FormulaHoverProvider";
 
 export let hoverProvider: FormulaHoverProvider;
 
+hoverProvider = new FormulaHoverProvider();
+
 async function main() {
 	const settings = JSON.parse(
 		document.head.dataset.hedietMonacoEditorSettings!
 	) as MonacoOptions;
 
 	const monaco = await loadMonaco();
-
-	hoverProvider = new FormulaHoverProvider();
 
 	monaco.languages.register({ id: 'anaplanformula' });
 
@@ -42,6 +42,8 @@ async function main() {
 				settings
 			);
 		}
+
+
 
 		// Github seems to copy dom nodes around.
 		// Github also copies the monaco editor which leads to problems.
@@ -104,4 +106,20 @@ XHR.send = function (body?: Document | BodyInit | null | undefined): void {
 	}
 
 	return send.apply(this, [body]);
+}
+
+
+let monacoChecker = setInterval(monacoCheck, 500);
+function monacoCheck() {
+	let monacoInited = false;
+	try {
+		if (monaco.languages.registerHoverProvider !== undefined) {
+			monacoInited = true;
+		}
+	} catch { }
+	if (monacoInited) {
+		clearInterval(monacoChecker);
+		console.log('Register hover');
+		monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
+	}
 }
