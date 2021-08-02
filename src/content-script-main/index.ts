@@ -97,7 +97,7 @@ XHR.send = function (body?: Document | BodyInit | null | undefined): void {
 					}
 
 					if (this.responseText.includes("modelInfo") && !this.responseText.includes('"modelInfo": null')) {
-						anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
+						(parent as any).parent.anaplan = (parent as any).anaplan = anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
 					}
 				}
 			} catch (err) {
@@ -144,7 +144,7 @@ function monacoCheck() {
 		(window as any).anaplan = (parent as any).anaplan;
 		hoverProvider.updateMetaData(getAnaplanMetaData(currentModuleName, currentLineItemName));
 
-		//monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
+		monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 		console.log('Registered hover');
 	}
 }
