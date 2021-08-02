@@ -23,7 +23,7 @@ export class EditorWrapper {
 		monaco: Monaco,
 		settings: MonacoOptions,
 	) {
-		hoverProvider.updateMetaData(getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!)));
+		hoverProvider.updateMetaData(getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!));
 		if (textArea.hedietEditorWrapper) {
 			return textArea.hedietEditorWrapper;
 		}
@@ -91,7 +91,7 @@ export class EditorWrapper {
 			clearTimeout(handle);
 
 			handle = setTimeout(() => {
-				setEditorErrors(editor, parseInt(textArea.closest(".managedTab")?.id.substring(1)!));
+				setEditorErrors(editor, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!);
 			}, 250);
 		});
 

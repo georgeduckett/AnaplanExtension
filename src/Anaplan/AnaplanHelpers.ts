@@ -157,15 +157,29 @@ export function formatFromFunctionName(functionName: string): Format {
     }
 }
 
-export function getAnaplanMetaData(currentModuleId: number) {
+export function getAnaplanMetaData(currentModule: string | number, lineItemName: string) {
     let currentModuleName = "";
-    for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
-        if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
-            currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]
+    let currentModuleId = 0;
+
+    if (typeof currentModule === "string") {
+        currentModuleName = currentModule;
+        for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
+            if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] === currentModuleName) {
+                currentModuleId = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i];
+            }
+        }
+    }
+    else if (typeof currentModule === "number") {
+        currentModuleId = currentModule;
+        for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
+            if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
+                currentModuleName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i];
+            }
         }
     }
 
-    let currentLineItemName = currentModuleName + "." + document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title");
+
+    let currentLineItemName = currentModuleName + "." + lineItemName;
 
     let moduleLineItems = new Map<string, LineItemInfo>();
 
@@ -247,7 +261,7 @@ export function getAnaplanMetaData(currentModuleId: number) {
 
     return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
 }
-export function setEditorErrors(editor: editor.IStandaloneCodeEditor, currentModuleId: number) {
+export function setEditorErrors(editor: editor.IStandaloneCodeEditor, currentModuleId: number, lineItemName: string) {
     let model = monaco.editor.getModels()[0];
 
     let code = editor.getValue();
@@ -256,7 +270,7 @@ export function setEditorErrors(editor: editor.IStandaloneCodeEditor, currentMod
         return;
     }
 
-    let anaplanMetaData = getAnaplanMetaData(currentModuleId);
+    let anaplanMetaData = getAnaplanMetaData(currentModuleId, lineItemName);
 
     hoverProvider.updateMetaData(anaplanMetaData);
 

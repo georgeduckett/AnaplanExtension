@@ -4,7 +4,7 @@ __webpack_public_path__ = document.head.dataset
 
 import type { MonacoOptions } from "../settings";
 
-import { loadMonaco } from "../monaco-loader";
+import { loadMonaco, Monaco } from "../monaco-loader";
 import { FormulaTokensProvider } from '../Monaco/FormulaTokensProvider';
 import {
 	EditorWrapper,
@@ -12,6 +12,7 @@ import {
 	isMonacoNode,
 } from "./EditorWrapper";
 import { FormulaHoverProvider } from "../Monaco/FormulaHoverProvider";
+import { getAnaplanMetaData } from "../Anaplan/AnaplanHelpers";
 
 export let hoverProvider: FormulaHoverProvider;
 
@@ -77,7 +78,7 @@ async function main() {
 	updateDocument();
 }
 
-main();
+//main();
 
 const XHR = XMLHttpRequest.prototype
 
@@ -108,18 +109,42 @@ XHR.send = function (body?: Document | BodyInit | null | undefined): void {
 	return send.apply(this, [body]);
 }
 
+function getMonaco(): Monaco | undefined {
+	return (window as any).monaco;
+}
 
+// Problem is that this code won't run in the context of the first iFrame because I think it was created dynamically.
+// Solution is to use <all_urls> in the manifest, however that's not ideal, as we don't really want to inject it everywhere.
+// TODO: Look at better soltions to the <all_urls> issue.
 let monacoChecker = setInterval(monacoCheck, 500);
 function monacoCheck() {
 	let monacoInited = false;
 	try {
-		if (monaco.languages.registerHoverProvider !== undefined) {
-			monacoInited = true;
+		if (getMonaco() !== undefined) {
+			if ((window as any).monaco.languages.getEncodedLanguageId('anaplanguage') != 0) {
+				console.log('Found anaplanguage');
+				monacoInited = true;
+			}
 		}
-	} catch { }
+	} catch (ex) {
+		console.log('Error checking for Monaco editor: ' + ex);
+	}
 	if (monacoInited) {
+		console.log('Monaco initialised');
 		clearInterval(monacoChecker);
-		console.log('Register hover');
-		monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
+
+
+		let headerText = document.querySelectorAll(".formula-editor__header")[0].innerHTML.split('—').map(s => s.trim());
+
+		let currentModuleName = headerText[0];
+		let currentLineItemName = headerText[1];
+
+
+		// anaplan not defined because we're in the context of the iFrame. We need to access (copy) the anaplan variable into the current anaplan variable within this iFrame
+		(window as any).anaplan = (parent as any).anaplan;
+		hoverProvider.updateMetaData(getAnaplanMetaData(currentModuleName, currentLineItemName));
+
+		//monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
+		console.log('Registered hover');
 	}
 }
