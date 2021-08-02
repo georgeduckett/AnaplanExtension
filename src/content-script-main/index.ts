@@ -130,6 +130,46 @@ function monacoCheck() {
 		console.log('Error checking for Monaco editor: ' + ex);
 	}
 	if (monacoInited) {
+		// inject the following into the styles:
+		/*
+				.formula-editor__body {
+					overflow: visible !important;
+				}
+				
+				.formula-editor__text-area {
+					overflow: visible !important;
+				}
+				
+				.formula-editor__monaco-wrapper {
+					overflow: visible !important;
+				}
+		*/
+
+
+		function injectHoverStyles() {
+			console.log('test');
+			window.document.querySelectorAll('.formula-editor__body').forEach(el => {
+				console.log('test2');
+				(el as any).style.overflow = 'visible';
+			})
+		}
+		let timeout: NodeJS.Timeout | undefined = undefined;
+		const mutationObserver = new MutationObserver(() => {
+			console.log('test3'); // TODO: Why doesn't this work?
+			if (!timeout) {
+				timeout = setTimeout(() => {
+					injectHoverStyles();
+					timeout = undefined;
+				}, 50);
+			}
+		});
+
+		mutationObserver.observe(window.document.body, {
+			subtree: true,
+			childList: true,
+		});
+
+
 		console.log('Monaco initialised');
 		clearInterval(monacoChecker);
 
@@ -145,6 +185,8 @@ function monacoCheck() {
 		hoverProvider.updateMetaData(getAnaplanMetaData(currentModuleName, currentLineItemName));
 
 		monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
+
+
 		console.log('Registered hover');
 	}
 }
