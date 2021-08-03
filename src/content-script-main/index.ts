@@ -76,8 +76,6 @@ async function main() {
 }
 
 if (/https:\/\/.*\.app\.anaplan\.com\/.*\/anaplan\/(?!framework\.jsp).*/.test(window.location.href)) {
-	console.log('here');
-	console.log(window.location.href);
 	main();
 }
 else {
