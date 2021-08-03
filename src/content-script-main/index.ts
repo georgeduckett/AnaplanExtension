@@ -24,7 +24,7 @@ async function main() {
 	) as MonacoOptions;
 
 	const monaco = await loadMonaco();
-	console.log('monaco loaded manually');
+	console.debug('monaco loaded manually');
 
 	monaco.languages.register({ id: 'anaplanformula' });
 	monaco.languages.setTokensProvider('anaplanformula', new FormulaTokensProvider());
@@ -37,7 +37,7 @@ async function main() {
 				"formulaEditorText"
 			) as any),
 		]) {
-			console.log('Created editor wrapper for TextArea.formulaEditorText')
+			console.debug('Created editor wrapper for TextArea.formulaEditorText')
 			EditorWrapper.wrap(
 				textArea,
 				monaco,
@@ -105,7 +105,7 @@ else {
 						}
 					}
 				} catch (err) {
-					console.debug("Error reading or processing response.", err)
+					console.error("Error reading or processing response.", err)
 				}
 			});
 		}
@@ -119,16 +119,16 @@ else {
 		try {
 			if ((window as any).monaco !== undefined) {
 				if ((window as any).monaco.languages.getEncodedLanguageId('anaplanguage') != 0) {
-					console.log('Found anaplanguage');
+					console.debug('Found anaplanguage');
 					monacoInited = true;
 				}
 			}
 		} catch (ex) {
-			console.log('Error checking for Monaco editor: ' + ex);
+			console.debug('Error checking for Monaco editor: ' + ex);
 		}
 		if (monacoInited) {
 			clearInterval(monacoChecker);
-			console.log('Monaco initialised by anaplan page');
+			console.debug('Monaco initialised by anaplan page');
 
 			let headerText = document.querySelectorAll(".formula-editor__header")[0].innerHTML.split('—').map(s => s.trim());
 
@@ -142,8 +142,7 @@ else {
 
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 
-
-			console.log('Registered hover to existing monaco editor');
+			console.debug('Registered hover to existing monaco editor');
 		}
 	}
 

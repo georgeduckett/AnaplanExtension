@@ -165,7 +165,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         let format = formatFromFunctionName(functionName);
 
         if (format.dataType == "UNKNOWN") {
-          console.log('Found unknown function: ' + functionName) // TODO: Use proper error capturing here
+          console.warn('Found unknown function: ' + functionName) // TODO: Use proper error capturing here
         }
 
         return format;
