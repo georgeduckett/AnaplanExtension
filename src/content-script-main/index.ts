@@ -79,6 +79,10 @@ if (/https:\/\/.*\.app\.anaplan\.com\/.*\/anaplan\/(?!framework\.jsp).*/.test(wi
 	main();
 }
 else {
+	// Problem is that this code won't run in the context of the first iFrame because it was created dynamically.
+	// Solution is to use <all_urls> in the manifest, however that's not ideal, as we don't really want to inject it everywhere.
+	// TODO: Look at better solutions to the <all_urls> issue.
+
 	const XHR = XMLHttpRequest.prototype
 
 	const send = XHR.send
@@ -109,9 +113,6 @@ else {
 		return send.apply(this, [body]);
 	}
 
-	// Problem is that this code won't run in the context of the first iFrame because I think it was created dynamically.
-	// Solution is to use <all_urls> in the manifest, however that's not ideal, as we don't really want to inject it everywhere.
-	// TODO: Look at better soltions to the <all_urls> issue.
 	let monacoChecker = setInterval(monacoCheck, 500);
 	function monacoCheck() {
 		let monacoInited = false;
