@@ -13,7 +13,7 @@ import {
 	isMonacoNode,
 } from "./EditorWrapper";
 import { FormulaHoverProvider } from "../Monaco/FormulaHoverProvider";
-import { getAnaplanMetaData } from "../Anaplan/AnaplanHelpers";
+import { getAnaplanMetaData, setModelErrors } from "../Anaplan/AnaplanHelpers";
 
 export let hoverProvider: FormulaHoverProvider;
 
@@ -143,14 +143,22 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 
-			// TODO: Use the below to update the errors (don't forget to set the current module name and line item new; don't use the variables above)
-			/*model.onDidChangeContent(function (e) {
-				clearTimeout(handle);
+			let handle: any;
+			let model = monaco.editor.getModels()[0];
 
+			// TODO: Use the below to update the errors (don't forget to set the current module name and line item new; don't use the variables above)
+			model.onDidChangeContent(function (e) {
+				clearTimeout(handle);
+				// TODO: Test this
 				handle = setTimeout(() => {
-					setModelErrors(model, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!);
+					let headerText = document.querySelectorAll(".formula-editor__header")[0].innerHTML.split('—').map(s => s.trim());
+
+					let currentModuleName = headerText[0];
+					let currentLineItemName = headerText[1];
+					let metadata = getAnaplanMetaData(currentModuleName, currentLineItemName);
+					setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
 				}, 250);
-			});*/
+			});
 
 			console.debug('Registered hover to existing monaco editor');
 		}
