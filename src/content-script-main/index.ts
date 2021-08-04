@@ -143,6 +143,15 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 
+			// TODO: Use the below to update the errors (don't forget to set the current module name and line item new; don't use the variables above)
+			/*model.onDidChangeContent(function (e) {
+				clearTimeout(handle);
+
+				handle = setTimeout(() => {
+					setModelErrors(model, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!);
+				}, 250);
+			});*/
+
 			console.debug('Registered hover to existing monaco editor');
 		}
 	}
