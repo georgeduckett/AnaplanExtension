@@ -1,11 +1,10 @@
 import { CharStreams, CommonTokenStream, ParserRuleContext } from "antlr4ts";
 import { Interval } from "antlr4ts/misc/Interval";
-import { editor } from "monaco-editor";
 import { hoverProvider } from "../content-script-main";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { AnaplanMetaData } from "./AnaplanMetaData";
 import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
-import { DotQualifiedEntityContext, QuotedEntityContext, WordsEntityContext, EntityContext, FuncSquareBracketsContext, AnaplanFormulaParser } from './antlrclasses/AnaplanFormulaParser';
+import { AnaplanFormulaParser } from './antlrclasses/AnaplanFormulaParser';
 import { CollectorErrorListener } from "./CollectorErrorListener";
 import { FormulaError } from "./FormulaError";
 
@@ -261,10 +260,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
     return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
 }
-export function setEditorErrors(editor: editor.IStandaloneCodeEditor, currentModuleId: number, lineItemName: string) {
-    let model = monaco.editor.getModels()[0];
-
-    let code = editor.getValue();
+export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId: number, lineItemName: string) {
+    let code = model.getValue();
 
     if (code.length === 0) {
         return;
@@ -287,9 +284,6 @@ export function setEditorErrors(editor: editor.IStandaloneCodeEditor, currentMod
     const myresult = formulaEvaluator.visit(myparser.formula());
 
     // TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
-
-    // TODO: https://microsoft.github.io/monaco-editor/playground.html#extending-language-services-hover-provider-example
-    // Hover over entities to get their dimensions
 
     let monacoErrors = [];
     // Add the errors with the whole formula if needed

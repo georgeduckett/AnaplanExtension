@@ -4,7 +4,8 @@ __webpack_public_path__ = document.head.dataset
 
 import type { MonacoOptions } from "../settings";
 
-import { loadMonaco, Monaco } from "../monaco-loader";
+import { loadMonaco } from "../monaco-loader";
+
 import { FormulaTokensProvider } from '../Monaco/FormulaTokensProvider';
 import {
 	EditorWrapper,
@@ -75,10 +76,10 @@ async function main() {
 	updateDocument();
 }
 
-if (/https:\/\/.*\.app\.anaplan\.com\/.*\/anaplan\/(?!framework\.jsp).*/.test(window.location.href)) {
+if (!window.location.href.includes("embedded") && /https:\/\/.*\.app\.anaplan\.com\/.*\/anaplan\/framework\.jsp.*/.test(window.location.href)) {
 	main();
 }
-else {
+else if (window.location.hostname.includes('app.anaplan.com')) {
 	// Problem is that this code won't run in the context of the first iFrame because it was created dynamically.
 	// Solution is to use <all_urls> in the manifest, however that's not ideal, as we don't really want to inject it everywhere.
 	// TODO: Look at better solutions to the <all_urls> issue.

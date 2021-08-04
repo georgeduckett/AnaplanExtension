@@ -2,7 +2,7 @@ import type { MonacoOptions } from '../settings';
 
 import { editor, KeyCode } from "monaco-editor";
 import { Monaco } from "../monaco-loader";
-import { getAnaplanMetaData, setEditorErrors } from '../Anaplan/AnaplanHelpers';
+import { getAnaplanMetaData, setModelErrors } from '../Anaplan/AnaplanHelpers';
 import { hoverProvider } from '.';
 
 export interface MonacoNode extends HTMLDivElement {
@@ -84,14 +84,13 @@ export class EditorWrapper {
 			minimap: { enabled: false },
 		});
 
-		let editor = this.editor;
-
 		let handle: any;
-		editor.onDidChangeModelContent(function (e) {
+
+		model.onDidChangeContent(function (e) {
 			clearTimeout(handle);
 
 			handle = setTimeout(() => {
-				setEditorErrors(editor, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!);
+				setModelErrors(model, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!);
 			}, 250);
 		});
 
