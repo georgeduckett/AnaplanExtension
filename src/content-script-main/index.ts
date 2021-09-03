@@ -84,6 +84,15 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 	// Solution is to use <all_urls> in the manifest, however that's not ideal, as we don't really want to inject it everywhere.
 	// TODO: Look at better solutions to the <all_urls> issue.
 
+
+	window.addEventListener('message', event => {
+		if (event.data.data != undefined && event.data.data.ModelContentCache != undefined) {
+			console.log('set anaplan from event.data on  using ' + window.location.href + ' message from ' + event.origin);
+			window.anaplan = event.data;
+			console.log(window.anaplan);
+		}
+	});
+
 	const XHR = XMLHttpRequest.prototype
 
 	const send = XHR.send
@@ -102,11 +111,18 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 						if (this.responseText.includes("modelInfo") && !this.responseText.includes('"modelInfo": null')) {
 							// Set the local anaplan variable, but also that of the parent, and the parent's parent
-							(parent as any).parent.anaplan = (parent as any).anaplan = anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
+							// This works as long as the url is consistent (for eu customers change us1a to eu1a) if this is an issue look at using the commented code below, however that still needs proper testing
+							try {
+								(parent as any).parent.anaplan = (parent as any).anaplan = anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
+							} catch (err) {
+								anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
+								parent.postMessage(anaplan, 'https://us1a.app.anaplan.com');
+							}
 						}
 					}
 				} catch (err) {
-					console.error("Error reading or processing response.", err)
+					console.error("Error reading or processing response.");
+					console.error(err);
 				}
 			});
 		}
@@ -137,8 +153,9 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			let currentLineItemName = headerText[1];
 
 
-			// anaplan not defined because we're in the context of the iFrame. We need to access (copy) the anaplan variable into the current anaplan variable within this iFrame
-			(window as any).anaplan = (parent as any).anaplan;
+			// anaplan not defined because we're in the context of the iFrame. We need to access (copy) the anaplan variable into the current anaplan variable within this iFrame if we can
+			// TODO: Not sure we need this line as we've set the anaplan variable using a postMessage
+			//(window as any).anaplan = (parent as any).anaplan;
 			hoverProvider.updateMetaData(getAnaplanMetaData(currentModuleName, currentLineItemName));
 
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
@@ -155,6 +172,10 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 					let currentModuleName = headerText[0];
 					let currentLineItemName = headerText[1];
+
+					console.log(currentModuleName);
+					console.log(currentLineItemName);
+
 					let metadata = getAnaplanMetaData(currentModuleName, currentLineItemName);
 					setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
 				}, 250);
