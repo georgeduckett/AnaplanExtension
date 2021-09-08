@@ -96,7 +96,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 	const XHR = XMLHttpRequest.prototype
 
 	const send = XHR.send
-	XHR.send = function (body?: Document | BodyInit | null | undefined): void {
+	XHR.send = function (body?: any): void {
 
 		if (body?.toString().includes('"fetchAllModelSummaries":true')) {
 			this.addEventListener('load', function () {
