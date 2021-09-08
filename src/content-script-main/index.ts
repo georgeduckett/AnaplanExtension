@@ -87,7 +87,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 	window.addEventListener('message', event => {
 		if (event.data.data != undefined && event.data.data.ModelContentCache != undefined) {
-			console.log('set anaplan from event.data on  using ' + window.location.href + ' message from ' + event.origin);
+			console.log('set anaplan from event.data using ' + window.location.href + ' message from ' + event.origin);
 			window.anaplan = event.data;
 			console.log(window.anaplan);
 		}
@@ -184,27 +184,21 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			console.debug('Registered hover to existing monaco editor');
 		}
 	}
+}
 
-	window.addEventListener("load", function (event) {
-		function injectHoverStyles() {
+let formulaTimeout: NodeJS.Timeout | undefined = undefined;
+const mutationObserver = new MutationObserver(() => {
+	if (!formulaTimeout) {
+		formulaTimeout = setTimeout(() => {
 			window.document.querySelectorAll('.formula-editor__body, .formula-editor__text-area, .formula-editor__monaco-wrapper').forEach(el => {
 				(el as any).style.overflow = 'visible';
-			})
-		}
-		let timeout: NodeJS.Timeout | undefined = undefined;
-		const mutationObserver = new MutationObserver(() => {
-			if (!timeout) {
-				timeout = setTimeout(() => {
-					injectHoverStyles();
-					timeout = undefined;
-				}, 50);
-			}
-		});
+			});
+			formulaTimeout = undefined;
+		}, 50);
+	}
+});
 
-		mutationObserver.observe(window.document.body, {
-			subtree: true,
-			childList: true,
-		});
-
-	}, false);
-}
+mutationObserver.observe(document.body, {
+	subtree: true,
+	childList: true,
+});
