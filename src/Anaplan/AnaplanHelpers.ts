@@ -161,6 +161,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     let currentModuleId = 0;
 
     if (typeof currentModule === "string") {
+        console.log('get by string');
         currentModuleName = currentModule;
         for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
             if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] === currentModuleName) {
@@ -169,6 +170,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         }
     }
     else if (typeof currentModule === "number") {
+        console.log('get by number');
         currentModuleId = currentModule;
         for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
             if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
@@ -177,6 +179,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         }
     }
 
+    console.log('currentModule: ' + currentModule);
 
     let currentLineItemName = currentModuleName + "." + lineItemName;
 
