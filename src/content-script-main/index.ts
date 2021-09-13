@@ -88,8 +88,12 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 	window.addEventListener('message', event => {
 		if (event.data.data != undefined && event.data.data.ModelContentCache != undefined) {
 			console.log('set anaplan from event.data using ' + window.location.href + ' message from ' + event.origin);
-			window.anaplan = event.data;
-			console.log(window.anaplan);
+			if (window.anaplan === undefined) {
+				window.anaplan = event.data;
+			}
+			else {
+				console.log('window.anaplan already defined');
+			}
 		}
 	});
 
@@ -111,13 +115,27 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 						if (this.responseText.includes("modelInfo") && !this.responseText.includes('"modelInfo": null')) {
 							// Set the local anaplan variable, but also that of the parent, and the parent's parent
-							// This works as long as the url is consistent (for eu customers change us1a to eu1a) if this is an issue look at using the commented code below, however that still needs proper testing
 							try {
-								(parent as any).parent.anaplan = (parent as any).anaplan = anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
-							} catch (err) {
-								anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
-								parent.postMessage(anaplan, 'https://us1a.app.anaplan.com');
-							}
+								if (anaplan === undefined) {
+									anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } }
+								}
+							} catch (err) { }
+							try {
+								if ((parent as any).anaplan === undefined) {
+									(parent as any).anaplan = anaplan;
+								}
+							} catch (err) { }
+							try {
+								if ((parent as any).parent.anaplan === undefined) {
+									(parent as any).parent.anaplan = anaplan;
+								}
+							} catch (err) { }
+
+							// If that didn't work, then post that message to us1a since that's the url of the parent window, while we may be on eu1a
+							let anaplanPostMessage = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } }; // TODO: Don't assign this, and figure out a way of sending the already existing anaplan object
+							//let anaplanPostMessage = JSON.parse(JSON.stringify(anaplan));
+
+							parent.postMessage(anaplanPostMessage, 'https://us1a.app.anaplan.com');
 						}
 					}
 				} catch (err) {
@@ -152,6 +170,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			let currentModuleName = headerText[0];
 			let currentLineItemName = headerText[1];
 
+			console.log('currentModuleName: ' + currentModuleName)
 
 			// anaplan not defined because we're in the context of the iFrame. We need to access (copy) the anaplan variable into the current anaplan variable within this iFrame if we can
 			// TODO: Not sure we need this line as we've set the anaplan variable using a postMessage
