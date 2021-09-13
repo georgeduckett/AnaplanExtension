@@ -191,10 +191,6 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 					let currentModuleName = headerText[0];
 					let currentLineItemName = headerText[1];
-
-					console.log(currentModuleName);
-					console.log(currentLineItemName);
-
 					let metadata = getAnaplanMetaData(currentModuleName, currentLineItemName);
 					setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
 				}, 250);

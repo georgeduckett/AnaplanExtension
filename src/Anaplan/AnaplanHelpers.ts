@@ -1,4 +1,4 @@
-import { CharStreams, CommonTokenStream, ParserRuleContext } from "antlr4ts";
+import { CharStreams, CommonTokenStream, ConsoleErrorListener, ParserRuleContext } from "antlr4ts";
 import { Interval } from "antlr4ts/misc/Interval";
 import { hoverProvider } from "../content-script-main";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
@@ -161,7 +161,6 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     let currentModuleId = 0;
 
     if (typeof currentModule === "string") {
-        console.log('get by string');
         currentModuleName = currentModule;
         for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
             if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] === currentModuleName) {
@@ -170,7 +169,6 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         }
     }
     else if (typeof currentModule === "number") {
-        console.log('get by number');
         currentModuleId = currentModule;
         for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
             if (anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i] === currentModuleId) {
@@ -178,8 +176,6 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             }
         }
     }
-
-    console.log('currentModule: ' + currentModule);
 
     let currentLineItemName = currentModuleName + "." + lineItemName;
 
@@ -202,6 +198,15 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     let entityNames = new Map<number, string>();
     let entityIds = new Map<string, number>();
     let hierarchyParents = new Map<number, number>();
+
+    for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
+        entityNames.set(
+            anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i],
+            anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]);
+        entityIds.set(
+            anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i],
+            anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i]);
+    }
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
         entityNames.set(

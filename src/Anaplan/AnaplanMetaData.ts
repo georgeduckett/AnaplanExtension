@@ -5,18 +5,18 @@ export class AnaplanMetaData {
     private readonly _moduleName: string;
     private readonly _lineItemInfo: Map<string, LineItemInfo>;
     private readonly _hierarchyParents: Map<number, number>;
-    private readonly _hierarchyNames: Map<number, string>;
-    private readonly _hierarchyIds: Map<string, number>;
+    private readonly _entityNames: Map<number, string>;
+    private readonly _entityIds: Map<string, number>;
     private readonly _currentLineItem: LineItemInfo;
     private readonly _subsetInfo: Map<number, SubsetInfo>;
 
-    constructor(lineItemInfo: Map<string, LineItemInfo>, subsetInfo: Map<number, SubsetInfo>, hierarchyNames: Map<number, string>, hierarchyIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, currentLineItem: LineItemInfo) {
+    constructor(lineItemInfo: Map<string, LineItemInfo>, subsetInfo: Map<number, SubsetInfo>, entityNames: Map<number, string>, entityIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, currentLineItem: LineItemInfo) {
         this._moduleName = moduleName;
         this._subsetInfo = subsetInfo;
         this._lineItemInfo = lineItemInfo;
         this._hierarchyParents = hierarchyParents;
-        this._hierarchyNames = hierarchyNames;
-        this._hierarchyIds = hierarchyIds;
+        this._entityNames = entityNames;
+        this._entityIds = entityIds;
         this._currentLineItem = currentLineItem;
     }
 
@@ -35,7 +35,7 @@ export class AnaplanMetaData {
     }
 
     getEntityIdFromName(entityName: string): number | undefined {
-        return this._hierarchyIds.get(entityName);
+        return this._entityIds.get(entityName);
     }
 
     getEntityParentId(entityId: number): number | undefined {
@@ -75,7 +75,7 @@ export class AnaplanMetaData {
     }
 
     getEntityNameFromId(entityId: number): string {
-        return this._hierarchyNames.get(entityId) ?? entityId.toString();
+        return this._entityNames.get(entityId) ?? entityId.toString();
     }
 
     getEntityName(ctx: EntityContext): string {
