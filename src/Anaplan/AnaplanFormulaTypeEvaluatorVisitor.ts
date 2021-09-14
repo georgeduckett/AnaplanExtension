@@ -298,8 +298,17 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
 
   addMissingDimensionsFormulaError(ctx: EntityContext, sourceMissingEntityIds: number[], targetMissingEntityIds: number[]) {
-    this.addFormulaError(ctx, "Missing mappings from " + (sourceMissingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')) +
-      " to " + (targetMissingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')) + ".");
+    let sourceMissingEntityIdsString = (sourceMissingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', '));
+    let targetMissingEntityIdsString = (targetMissingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', '));
+
+    if (sourceMissingEntityIdsString === "") {
+      sourceMissingEntityIdsString = "<None>";
+    }
+    if (targetMissingEntityIdsString === "") {
+      targetMissingEntityIdsString = "<None>";
+    }
+
+    this.addFormulaError(ctx, "Missing mappings from " + sourceMissingEntityIdsString + " to " + targetMissingEntityIdsString + ".");
   }
   //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
   addFormulaError(ctx: ParserRuleContext, message: string) {

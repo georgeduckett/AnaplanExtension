@@ -43,6 +43,10 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
 
                 if (lineItemInfo != undefined) {
                     let dimensions = lineItemInfo?.fullAppliesTo.map(this._anaplanMetaData!.getEntityNameFromId, this._anaplanMetaData).sort().join(', ');
+                    if (dimensions === "") {
+                        dimensions = "\\<None>";
+                    }
+
                     let dataTypeDisplayString = lineItemInfo.format.dataType;
 
                     if (dataTypeDisplayString === "ENTITY") {
