@@ -17,7 +17,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   defaultResult(): Format {
-    throw new Error("Shouldn't get an unknown expression type");
+    throw new Error("Shouldn't get an unknown expression type; this is a coding error");
   }
 
   aggregateResult(aggregate: Format, nextResult: Format): Format {
@@ -45,42 +45,88 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitIfExp(ctx: IfExpContext): Format {
-    return this.aggregateResult(this.visit(ctx._thenExpression), this.visit(ctx._elseExpression));
+    var thenExpressionResult = this.visit(ctx._thenExpression);
+    var elseExpressionResult = this.visit(ctx._elseExpression);
+
+    if (thenExpressionResult.dataType != elseExpressionResult.dataType) { // TODO: compare this properly
+      this.addFormulaError(ctx, `Data types for each result must be the same. 'Then' is ${thenExpressionResult.dataType}, 'Else' is ${elseExpressionResult.dataType}.`);
+      return AnaplanDataTypeStrings.UNKNOWN;
+    }
+
+    return this.aggregateResult(thenExpressionResult, elseExpressionResult);
   }
 
   visitBinaryoperationExp(ctx: BinaryoperationExpContext): Format {
-    return this.aggregateResult(this.visit(ctx._left), this.visit(ctx._right));
+    let leftResult = this.visit(ctx._left);
+    let rightResult = this.visit(ctx._right);
+
+    if (leftResult.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
+      this.addFormulaError(ctx._left, `Expected a Boolean, but found ${leftResult.dataType}.`);
+    }
+
+    if (rightResult.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
+      this.addFormulaError(ctx._right, `Expected a Boolean, but found ${rightResult.dataType}.`);
+    }
+
+    return AnaplanDataTypeStrings.BOOLEAN;
   }
 
   visitMuldivExp(ctx: MuldivExpContext): Format {
-    return this.aggregateResult(this.visit(ctx._left), this.visit(ctx._right));
+    let leftResult = this.visit(ctx._left);
+    let rightResult = this.visit(ctx._right);
+
+    if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
+      this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
+    }
+
+    if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
+      this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
+    }
+    return AnaplanDataTypeStrings.NUMBER;
   }
 
   visitAddsubtractExp(ctx: AddsubtractExpContext): Format {
-    return this.aggregateResult(this.visit(ctx._left), this.visit(ctx._right));
+    let leftResult = this.visit(ctx._left);
+    let rightResult = this.visit(ctx._right);
+
+    if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
+      this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
+    }
+
+    if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
+      this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
+    }
+    return AnaplanDataTypeStrings.NUMBER;
   }
 
   visitComparisonExp(ctx: ComparisonExpContext): Format {
-    if (this.visit(ctx._left) != this.visit(ctx._right)) {
-      throw new Error("Tried to compare two different types");
+    let leftResult = this.visit(ctx._left);
+    let rightResult = this.visit(ctx._right);
+
+    if (leftResult != rightResult) {
+      this.addFormulaError(ctx, `Data types for the comparison must be the same. Found ${leftResult.dataType} on the left and ${rightResult.dataType} on the right.`);
     }
     return AnaplanDataTypeStrings.BOOLEAN;
   }
 
   visitConcatenateExp(ctx: ConcatenateExpContext): Format {
-    let left = this.visit(ctx._left);
-    if (left.dataType != AnaplanDataTypeStrings.TEXT.dataType ||
-      this.visit(ctx._right).dataType != AnaplanDataTypeStrings.TEXT.dataType) {
-      throw new Error("Tried to concatenate something other than text");
+    let leftResult = this.visit(ctx._left);
+    let rightResult = this.visit(ctx._right);
+
+    if (leftResult.dataType != AnaplanDataTypeStrings.TEXT.dataType) {
+      this.addFormulaError(ctx._left, `Expected Text, but found ${leftResult.dataType}.`);
     }
-    return this.visit(ctx._left);
+
+    if (rightResult.dataType != AnaplanDataTypeStrings.TEXT.dataType) {
+      this.addFormulaError(ctx._right, `Expected Text, but found ${rightResult.dataType}.`);
+    }
+    return AnaplanDataTypeStrings.TEXT;
   }
 
   visitNotExp(ctx: NotExpContext): Format {
     let format = this.visit(ctx.NOT());
     if (format.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
-      throw new Error("Tried to negate something other than a boolean");
-
+      this.addFormulaError(ctx, `Expected a Boolean, but found ${format.dataType}.`);
     }
     return format;
   }
@@ -165,7 +211,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         let format = formatFromFunctionName(functionName);
 
         if (format.dataType == "UNKNOWN") {
-          console.warn('Found unknown function: ' + functionName) // TODO: Use proper error capturing here
+          this.addFormulaError(ctx.functionname(), `Unknown function ${functionName}.`);
         }
 
         return format;
@@ -245,8 +291,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
 
   addMissingDimensionsFormulaError(ctx: EntityContext, sourceMissingEntityIds: number[], targetMissingEntityIds: number[]) {
-    this.addFormulaError(ctx, "Missing mappings from: " + (sourceMissingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')) +
-      " to " + (targetMissingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')));
+    this.addFormulaError(ctx, "Missing mappings from " + (sourceMissingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')) +
+      " to " + (targetMissingEntityIds.map(this._anaplanMetaData.getEntityNameFromId, this._anaplanMetaData).join(', ')) + ".");
   }
   //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
   addFormulaError(ctx: ParserRuleContext, message: string) {
