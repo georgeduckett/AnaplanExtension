@@ -297,8 +297,9 @@ export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId:
         // TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
 
         // Add the errors with the whole formula if needed
-        if (myresult.dataType != anaplanMetaData.getCurrentItem().format.dataType) {
-            // Ensure the data type is the same
+        if (myresult.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
+            myresult.dataType != anaplanMetaData.getCurrentItem().format.dataType) {
+            // Ensure the data type is the same if we did actually work out what it is
             monacoErrors.push({
                 startLineNumber: 1,
                 startColumn: 1,
