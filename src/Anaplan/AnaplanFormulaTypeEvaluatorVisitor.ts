@@ -103,7 +103,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let leftResult = this.visit(ctx._left);
     let rightResult = this.visit(ctx._right);
 
-    if (leftResult != rightResult) {
+    if (leftResult.dataType != rightResult.dataType) {
       this.addFormulaError(ctx, `Data types for the comparison must be the same. Found ${leftResult.dataType} on the left and ${rightResult.dataType} on the right.`);
     }
     return AnaplanDataTypeStrings.BOOLEAN;
@@ -189,9 +189,15 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       case "FINDITEM":
       case "ITEM":
         let itemName = getOriginalText(ctx.expression()[0]);
-        let itemFormat = AnaplanDataTypeStrings.ENTITY;
-        itemFormat.hierarchyEntityLongId = this._anaplanMetaData.getEntityIdFromName(itemName);
-        return itemFormat;
+        if (itemName === "Time") {
+          return AnaplanDataTypeStrings.TIME_ENTITY;
+        }
+        else {
+          let itemFormat = AnaplanDataTypeStrings.ENTITY;
+          itemFormat.hierarchyEntityLongId = this._anaplanMetaData.getEntityIdFromName(itemName);
+
+          return itemFormat;
+        }
       case "PARENT":
         let entityId = this.visit(ctx.expression()[0]).hierarchyEntityLongId!;
 
@@ -262,7 +268,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   // TODO: Handle unrecognised entities
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
     let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
-    if (missingDimensions.extraTargetEntityMappings.length > 0) {
+    if (missingDimensions.extraSourceEntityMappings.length != 0 && missingDimensions.extraTargetEntityMappings.length != 0) {
       this.addMissingDimensionsFormulaError(ctx, missingDimensions.extraSourceEntityMappings, missingDimensions.extraTargetEntityMappings);
     }
     return this._anaplanMetaData.getEntityType(ctx);
@@ -272,7 +278,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
-      if (missingDimensions.extraTargetEntityMappings.length > 0) {
+      if (missingDimensions.extraSourceEntityMappings.length != 0 && missingDimensions.extraTargetEntityMappings.length != 0) {
         this.addMissingDimensionsFormulaError(ctx, missingDimensions.extraSourceEntityMappings, missingDimensions.extraTargetEntityMappings);
       }
     }
@@ -283,7 +289,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
-      if (missingDimensions.extraTargetEntityMappings.length > 0) {
+      if (missingDimensions.extraSourceEntityMappings.length != 0 && missingDimensions.extraTargetEntityMappings.length != 0) {
         this.addMissingDimensionsFormulaError(ctx, missingDimensions.extraSourceEntityMappings, missingDimensions.extraTargetEntityMappings);
       }
     }
