@@ -13,7 +13,9 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
 
     provideHover(model: monaco.editor.ITextModel, position: monaco.Position, token: monaco.CancellationToken): monaco.languages.ProviderResult<monaco.languages.Hover> {
         const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(model.getValue()));
+        mylexer.removeErrorListeners();
         const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+        myparser.removeErrorListeners();
 
         let foundTree = this.parseTreeFromPosition(myparser.formula(), position.column, position.lineNumber);
 

@@ -285,39 +285,44 @@ export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId:
     const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(code));
     let errors: FormulaError[] = [];
     mylexer.removeErrorListeners();
+    // TODO: add error listener to mylexer?
     const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
     myparser.removeErrorListeners();
     myparser.addErrorListener(new CollectorErrorListener(errors));
 
-    const myresult = formulaEvaluator.visit(myparser.formula());
-
-    // TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
-
     let monacoErrors = [];
-    // Add the errors with the whole formula if needed
-    if (myresult.dataType != anaplanMetaData.getCurrentItem().format.dataType) {
-        // Ensure the data type is the same
-        monacoErrors.push({
-            startLineNumber: 1,
-            startColumn: 1,
-            endLineNumber: model.getLineCount(),
-            endColumn: model.getLineMaxColumn(model.getLineCount()),
-            message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
-            severity: monaco.MarkerSeverity.Error
-        });
-    } else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
-        // Ensure the entity types is the same if the data types are entity
-        if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
+
+    try {
+        const myresult = formulaEvaluator.visit(myparser.formula());
+        // TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
+
+        // Add the errors with the whole formula if needed
+        if (myresult.dataType != anaplanMetaData.getCurrentItem().format.dataType) {
+            // Ensure the data type is the same
             monacoErrors.push({
                 startLineNumber: 1,
                 startColumn: 1,
                 endLineNumber: model.getLineCount(),
                 endColumn: model.getLineMaxColumn(model.getLineCount()),
-                message: `Formula evaluates to ${anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId!)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
+                message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
                 severity: monaco.MarkerSeverity.Error
             });
+        } else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
+            // Ensure the entity types is the same if the data types are entity
+            if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
+                monacoErrors.push({
+                    startLineNumber: 1,
+                    startColumn: 1,
+                    endLineNumber: model.getLineCount(),
+                    endColumn: model.getLineMaxColumn(model.getLineCount()),
+                    message: `Formula evaluates to ${anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId!)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
+                    severity: monaco.MarkerSeverity.Error
+                });
+            }
         }
     }
+    catch { } // There was an error parsing the formula, but that should be ok since we pick up the errors as part of the parsing
+
     for (let e of errors) {
         monacoErrors.push({
             startLineNumber: e.startLine,
