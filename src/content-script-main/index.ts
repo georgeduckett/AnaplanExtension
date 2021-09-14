@@ -191,10 +191,23 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 				model.onDidChangeContent(function (e) {
 					clearTimeout(handle);
 					handle = setTimeout(() => {
-						let headerText = document.querySelectorAll(".formula-editor__header")[0].innerHTML.split('—').map(s => s.trim());
+						let headerElement = document.querySelectorAll(".formula-editor__header")[0];
 
-						let currentModuleName = headerText[0];
-						let currentLineItemName = headerText[1];
+						let headerText = "";
+
+						if (headerElement.innerHTML.startsWith("<button")) {
+							headerText = headerElement.children[0].children[0].innerHTML;
+						}
+						else {
+							headerText = headerElement.innerHTML;
+						}
+
+						let currentModuleName = headerText.split('—').map(s => s.trim())[0];
+						let currentLineItemName = headerText.split('—').map(s => s.trim())[1];
+
+						console.debug('Current module name: ' + currentModuleName)
+						console.debug('Current line item name: ' + currentLineItemName)
+
 						let metadata = getAnaplanMetaData(currentModuleName, currentLineItemName);
 						setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
 					}, 250);
