@@ -259,6 +259,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     throw new Error("This should never get visited. This is a coding error");
   }
 
+  // TODO: Handle unrecognised entities
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
     let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
     if (missingDimensions.extraTargetEntityMappings.length > 0) {

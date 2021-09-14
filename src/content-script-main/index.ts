@@ -134,8 +134,12 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 							// If that didn't work, then post that message to us1a since that's the url of the parent window, while we may be on eu1a
 							let anaplanPostMessage = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } }; // TODO: Don't assign this, and figure out a way of sending the already existing anaplan object
 							//let anaplanPostMessage = JSON.parse(JSON.stringify(anaplan));
-
-							parent.postMessage(anaplanPostMessage, 'https://us1a.app.anaplan.com');
+							try {
+								parent.postMessage(anaplanPostMessage, 'https://us1a.app.anaplan.com');
+							}
+							catch (err) {
+								console.debug(err);
+							}
 						}
 					}
 				} catch (err) {
@@ -170,8 +174,6 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			let currentModuleName = headerText[0];
 			let currentLineItemName = headerText[1];
 
-			console.log('currentModuleName: ' + currentModuleName)
-
 			// anaplan not defined because we're in the context of the iFrame. We need to access (copy) the anaplan variable into the current anaplan variable within this iFrame if we can
 			// TODO: Not sure we need this line as we've set the anaplan variable using a postMessage
 			//(window as any).anaplan = (parent as any).anaplan;
@@ -179,24 +181,25 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 
-			let handle: any;
-			let model = monaco.editor.getModels()[0];
+			let models = monaco.editor.getModels();
+			onCreateModel(models[0]);
 
-			// TODO: Use the below to update the errors (don't forget to set the current module name and line item new; don't use the variables above)
-			model.onDidChangeContent(function (e) {
-				clearTimeout(handle);
-				// TODO: Test this
-				handle = setTimeout(() => {
-					let headerText = document.querySelectorAll(".formula-editor__header")[0].innerHTML.split('—').map(s => s.trim());
+			monaco.editor.onDidCreateModel(onCreateModel);
 
-					let currentModuleName = headerText[0];
-					let currentLineItemName = headerText[1];
-					let metadata = getAnaplanMetaData(currentModuleName, currentLineItemName);
-					setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
-				}, 250);
-			});
+			function onCreateModel(model: monaco.editor.ITextModel) {
+				let handle: any;
+				model.onDidChangeContent(function (e) {
+					clearTimeout(handle);
+					handle = setTimeout(() => {
+						let headerText = document.querySelectorAll(".formula-editor__header")[0].innerHTML.split('—').map(s => s.trim());
 
-			console.debug('Registered hover to existing monaco editor');
+						let currentModuleName = headerText[0];
+						let currentLineItemName = headerText[1];
+						let metadata = getAnaplanMetaData(currentModuleName, currentLineItemName);
+						setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
+					}, 250);
+				});
+			}
 		}
 	}
 }
