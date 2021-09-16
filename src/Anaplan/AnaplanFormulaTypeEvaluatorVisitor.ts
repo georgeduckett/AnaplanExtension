@@ -308,7 +308,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       targetMissingEntityIdsString = "<None>";
     }
 
-    this.addFormulaError(ctx, "Missing mappings from " + sourceMissingEntityIdsString + " to " + targetMissingEntityIdsString + ".");
+    this.addFormulaError(ctx, "Missing mappings from " + targetMissingEntityIdsString + " to " + sourceMissingEntityIdsString + ".");
   }
   //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
   addFormulaError(ctx: ParserRuleContext, message: string) {
