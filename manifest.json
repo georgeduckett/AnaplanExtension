@@ -1,5 +1,5 @@
 {
-	"manifest_version": 2,
+	"manifest_version": 3,
 	"name": "Anaplan Extension by George Duckett",
 	"version": "0.5.0",
 	"description": "This extension enhances Anaplan in several ways, notably using the Monaco editor for formulas and providing several quick checks for validitity of formulas",
@@ -9,7 +9,6 @@
 	"options_ui": {
 		"page": "./dist/options.html",
 		"open_in_tab": true,
-		"chrome_style": true,
 		"browser_style": true
 	},
 	"content_scripts": [
@@ -27,11 +26,20 @@
 	"permissions": [
 		"storage",
 		"activeTab",
-		"scripting",
+		"scripting"
+	],
+	"host_permissions": [
 		"https://*.app.anaplan.com/*/anaplan/*",
 		"https://*.app.anaplan.com/a/modeling/*"
 	],
 	"web_accessible_resources": [
-		"dist/*"
+		{
+			"resources": [
+				"dist/*"
+			],
+			"matches": [
+				"<all_urls>"
+			]
+		}
 	]
 }
