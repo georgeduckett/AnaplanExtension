@@ -62,7 +62,7 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
                         ]
                     }
                 }
-                else if (previousTree.parent?.children![0].text === "SELECT") { // TODO: May need similar logic when working out missing dimensions
+                else if (previousTree.parent?.children![0].text === "SELECT") {
                     // This is a select, so the entity name is actually just the first part, without quotes
                     return {
                         range: new monaco.Range(previousTree.start.line, previousTree.start.charPositionInLine + 1, previousTree.stop!.line, previousTree.stop!.charPositionInLine! + previousTree.stop!.text!.length + 1),
