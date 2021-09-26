@@ -205,7 +205,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         let parentEntityId = this._anaplanMetaData.getEntityParentId(entityId);
 
         if (parentEntityId === undefined) {
-          // TODO: Report a proper error; the entity we want to get the parent of doesn't have a parent
+          this.addFormulaError(ctx.functionname(), `There is no parent of entity ${this._anaplanMetaData.getEntityNameFromId(entityId)}.`);
           return AnaplanDataTypeStrings.UNKNOWN;
         }
 
