@@ -3,11 +3,18 @@ grammar AnaplanFormula;
 formula: expression EOF;
 
 expression:
-	signedAtom																						# atomExp
-	| STRINGLITERAL																					# stringliteralExp
-	| NOT expression																				# notExp
-	| left = expression AMPERSAND right = expression												# concatenateExp
-	| left = expression op = (EQUALS | NOTEQUALS | LT | GT) right = expression						# comparisonExp
+	signedAtom											# atomExp
+	| STRINGLITERAL										# stringliteralExp
+	| NOT expression									# notExp
+	| left = expression AMPERSAND right = expression	# concatenateExp
+	| left = expression op = (
+		EQUALS
+		| NOTEQUALS
+		| GTEQUALS
+		| LTEQUALS
+		| LT
+		| GT
+	) right = expression																			# comparisonExp
 	| left = expression op = (PLUS | MINUS) right = expression										# addsubtractExp
 	| left = expression op = (TIMES | DIV) right = expression										# muldivExp
 	| left = expression BINARYOPERATOR right = expression											# binaryoperationExp
@@ -83,6 +90,8 @@ DIV: '/';
 COLON: ':';
 EQUALS: '=';
 NOTEQUALS: LT GT;
+GTEQUALS: GT EQUALS;
+LTEQUALS: LT EQUALS;
 LT: '<';
 GT: '>';
 AMPERSAND: '&';
