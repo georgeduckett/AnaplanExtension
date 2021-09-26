@@ -174,9 +174,6 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			let currentModuleName = headerText[0];
 			let currentLineItemName = headerText[1];
 
-			// anaplan not defined because we're in the context of the iFrame. We need to access (copy) the anaplan variable into the current anaplan variable within this iFrame if we can
-			// TODO: Not sure we need this line as we've set the anaplan variable using a postMessage
-			//(window as any).anaplan = (parent as any).anaplan;
 			hoverProvider.updateMetaData(getAnaplanMetaData(currentModuleName, currentLineItemName));
 
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
