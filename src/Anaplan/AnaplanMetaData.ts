@@ -34,6 +34,11 @@ export class AnaplanMetaData {
         return entityDimensions;
     }
 
+    isKnownEntity(ctx: EntityContext): boolean {
+        let entityName = this.getEntityName(ctx);
+        return this.getLineItemInfoFromEntityName(entityName) != undefined;
+    }
+
     getEntityIdFromName(entityName: string): number | undefined {
         return this._entityIds.get(entityName);
     }

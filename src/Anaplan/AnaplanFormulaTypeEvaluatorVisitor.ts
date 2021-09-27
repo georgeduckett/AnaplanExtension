@@ -265,8 +265,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     throw new Error("This should never get visited. This is a coding error");
   }
 
-  // TODO: Handle unrecognised entities
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
+    // Check whether the entity is known
+    if (!this._anaplanMetaData.isKnownEntity(ctx)) {
+      this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
+    }
+
     let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
     if (missingDimensions.extraSourceEntityMappings.length != 0 && missingDimensions.extraTargetEntityMappings.length != 0) {
       this.addMissingDimensionsFormulaError(ctx, missingDimensions.extraSourceEntityMappings, missingDimensions.extraTargetEntityMappings);
@@ -275,6 +279,11 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitWordsEntity(ctx: WordsEntityContext): Format {
+    // Check whether the entity is known
+    if (!this._anaplanMetaData.isKnownEntity(ctx)) {
+      this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
+    }
+
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
@@ -286,6 +295,11 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
+    // Check whether the entity is known
+    if (!this._anaplanMetaData.isKnownEntity(ctx)) {
+      this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
+    }
+
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
