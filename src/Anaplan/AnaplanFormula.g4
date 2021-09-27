@@ -47,7 +47,7 @@ entity:
 	| WORD+								# wordsEntity
 	| left = entity DOT right = entity	# dotQualifiedEntity;
 
-WS: [ \r\n\t]+ -> skip;
+WS: [ \r\n\t]+ -> channel(HIDDEN);
 
 /////////////////
 // Fragments // ///////////////
