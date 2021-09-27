@@ -94,7 +94,6 @@ export class EditorWrapper {
 			}, 250);
 		});
 
-		// TODO: Do this as part of the above?
 		const interval = setInterval(() => {
 			if (model.getValue() !== this.textArea.value) {
 				model.setValue(this.textArea.value);
@@ -172,14 +171,6 @@ export class EditorWrapper {
 			const value = model.getValue();
 			this.textArea.value = value;
 			this.textArea.dispatchEvent(new Event("input"));
-		});
-
-		this.editor.onKeyDown((e) => {
-			// TODO: capture keys like enter to save & stop editing the formula
-
-			if (e.keyCode == KeyCode.Enter && this.textArea.value.length != 0) {
-
-			}
 		});
 
 		this.editor.onDidContentSizeChange((e) => {

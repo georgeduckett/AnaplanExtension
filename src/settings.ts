@@ -43,7 +43,7 @@ export const defaultSettings: MonacoOptions = {
 	foldingHighlight: true,
 	foldingStrategy: "auto",
 	fontFamily: undefined,
-	fontLigatures: false, // TODO: How do we express `string | boolean`?
+	fontLigatures: false,
 	fontSize: undefined,
 	fontWeight: "normal",
 	glyphMargin: false,
@@ -74,7 +74,7 @@ export const defaultSettings: MonacoOptions = {
 	renderLineHighlight: "none", // The docs says the default is "all", but this is wrong
 	renderWhitespace: "none",
 	roundedSelection: true,
-	rulers: [], // TODO: How do we express an array?
+	rulers: [],
 	scrollBeyondLastColumn: 5,
 	selectOnLineNumbers: true,
 	selectionHighlight: true,
