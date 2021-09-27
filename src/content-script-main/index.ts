@@ -80,11 +80,6 @@ if (!window.location.href.includes("embedded") && /https:\/\/.*\.app\.anaplan\.c
 	main();
 }
 else if (window.location.hostname.includes('app.anaplan.com')) {
-	// Problem is that this code won't run in the context of the first iFrame because it was created dynamically.
-	// Solution is to use <all_urls> in the manifest, however that's not ideal, as we don't really want to inject it everywhere.
-	// TODO: Look at better solutions to the <all_urls> issue.
-
-
 	window.addEventListener('message', event => {
 		if (event.data.data != undefined && event.data.data.ModelContentCache != undefined) {
 			console.log('set anaplan from event.data using ' + window.location.href + ' message from ' + event.origin);
