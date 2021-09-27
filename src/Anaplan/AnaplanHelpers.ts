@@ -324,25 +324,33 @@ export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId:
     }
     catch { } // There was an error parsing the formula, but that should be ok since we pick up the errors as part of the parsing
 
-    for (let e of errors) {
-        monacoErrors.push({
-            startLineNumber: e.startLine,
-            startColumn: e.startCol,
-            endLineNumber: e.endLine,
-            endColumn: e.endCol,
-            message: e.message,
-            severity: monaco.MarkerSeverity.Error
-        });
-    };
-    for (let e of formulaEvaluator.formulaErrors) {
-        monacoErrors.push({
-            startLineNumber: e.startLine,
-            startColumn: e.startCol,
-            endLineNumber: e.endLine,
-            endColumn: e.endCol,
-            message: e.message,
-            severity: monaco.MarkerSeverity.Error
-        });
-    };
+    if (errors.length != 0) {
+        // If we have parser errors, then we only care about those
+        monacoErrors = [];
+        for (let e of errors) {
+            monacoErrors.push({
+                startLineNumber: e.startLine,
+                startColumn: e.startCol,
+                endLineNumber: e.endLine,
+                endColumn: e.endCol,
+                message: e.message,
+                severity: monaco.MarkerSeverity.Error
+            });
+        };
+    }
+    else {
+        // We don't have parser errors, so add the formula errors in
+        for (let e of formulaEvaluator.formulaErrors) {
+            monacoErrors.push({
+                startLineNumber: e.startLine,
+                startColumn: e.startCol,
+                endLineNumber: e.endLine,
+                endColumn: e.endCol,
+                message: e.message,
+                severity: monaco.MarkerSeverity.Error
+            });
+        };
+    }
+
     monaco.editor.setModelMarkers(model, "owner", monacoErrors);
 }
