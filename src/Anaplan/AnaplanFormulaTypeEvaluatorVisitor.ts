@@ -284,6 +284,10 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
+    if (ctx.text.match('[^A-z]') != null) {
+      this.addFormulaError(ctx, `Entities containing characters other than letters must be be enclosed in single quotes.`);
+    }
+
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
@@ -298,6 +302,10 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     // Check whether the entity is known
     if (!this._anaplanMetaData.isKnownEntity(ctx)) {
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
+    }
+
+    if (ctx.text.match('[^A-z]') != null) {
+      this.addFormulaError(ctx, `Entities containing characters other than letters must be be enclosed in single quotes.`);
     }
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
