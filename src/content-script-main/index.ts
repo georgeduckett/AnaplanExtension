@@ -110,30 +110,37 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 						if (this.responseText.includes("modelInfo") && !this.responseText.includes('"modelInfo": null')) {
 							// Set the local anaplan variable, but also that of the parent, and the parent's parent
-							try {
-								if (anaplan === undefined) {
-									anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } }
-								}
-							} catch (err) { }
+
+							if (anaplan === undefined) {
+								anaplan = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } }
+							}
+
+							let failedToSetParent = false;
 							try {
 								if ((parent as any).anaplan === undefined) {
 									(parent as any).anaplan = anaplan;
 								}
-							} catch (err) { }
+							} catch (err) {
+								failedToSetParent = true;
+							}
 							try {
 								if ((parent as any).parent.anaplan === undefined) {
 									(parent as any).parent.anaplan = anaplan;
 								}
-							} catch (err) { }
-
-							// If that didn't work, then post that message to us1a since that's the url of the parent window, while we may be on eu1a
-							let anaplanPostMessage = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } }; // TODO: Don't assign this, and figure out a way of sending the already existing anaplan object
-							//let anaplanPostMessage = JSON.parse(JSON.stringify(anaplan));
-							try {
-								parent.postMessage(anaplanPostMessage, 'https://us1a.app.anaplan.com');
+							} catch (err) {
+								failedToSetParent = true;
 							}
-							catch (err) {
-								console.debug(err);
+
+							if (failedToSetParent) {
+								// If that didn't work, then post that message to all (since we have to do it cross origin (us1a to eu1a etc)) given the above errored),
+								let anaplanPostMessage = { data: { ModelContentCache: { _modelInfo: responseBody.result.modelInfo } } };
+
+								try {
+									parent.postMessage(anaplanPostMessage, '*');
+								}
+								catch (err) {
+									console.debug(err);
+								}
 							}
 						}
 					}
