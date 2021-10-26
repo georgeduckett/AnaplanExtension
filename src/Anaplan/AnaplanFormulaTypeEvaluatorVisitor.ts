@@ -284,8 +284,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
-    if (ctx.text.match('[^A-z]') != null) {
-      this.addFormulaError(ctx, `Entities containing characters other than letters must be be enclosed in single quotes.`);
+    if (ctx.text.match('[^A-z\s]') != null) {
+      this.addFormulaError(ctx, `Entities containing characters other than letters or spaces must be be enclosed in single quotes.`);
     }
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
@@ -301,11 +301,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
     // Check whether the entity is known
     if (!this._anaplanMetaData.isKnownEntity(ctx)) {
+      // TODO: Handle list item properties
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
-    if (ctx.text.match('[^A-z]') != null) {
-      this.addFormulaError(ctx, `Entities containing characters other than letters must be be enclosed in single quotes.`);
+    if (ctx._left.text.match('[^A-z\s]') != null || ctx._right.text.match('[^A-z\s]') != null) {
+      this.addFormulaError(ctx, `Entities containing characters other than letters or spaces must be be enclosed in single quotes.`);
     }
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
