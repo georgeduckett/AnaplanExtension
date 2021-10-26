@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
-	"name": "Anaplan Extension by George Duckett",
+	"name": "Better Formula Editor for Anaplan",
 	"version": "0.5.0",
-	"description": "This extension enhances Anaplan in several ways, notably using the Monaco editor for formulas and providing several quick checks for validitity of formulas",
+	"description": "WIP. This extension enhances Anaplan in several ways; using the Monaco editor and validity checks for formulas.",
 	"icons": {
 		"128": "logo.drawio.png"
 	},
