@@ -108,11 +108,17 @@ declare interface HierarchyInfo {
     topLevelMainHierarchyEntityLongId: any;
     sortOrder: string;
     propertiesLabelPage: PropertiesLabelPage;
-    propertiesInfo: any[];
+    propertiesInfo: PropertiesInfo[];
     isCustomHierarchy: boolean;
     hasSelectiveAccess: boolean;
     itemCount: number;
     entityLongId: any;
+}
+
+declare interface PropertiesInfo {
+    format: Format;
+    formula: string;
+    formulascope: string;
 }
 
 declare interface HierarchiesLabelPage {
@@ -300,13 +306,13 @@ declare interface LeafPeriodType2 {
 }
 
 declare interface LineItemInfo {
-    versionSelection: VersionSelection;
+    //versionSelection: VersionSelection;
     resolvedFormulae?: any;
     formulaScope: string;
     fullAppliesTo: number[];
     parentLineItemEntityLongId: number;
     resolvedFormulaTargets?: any;
-    leafPeriodType: LeafPeriodType2;
+    //leafPeriodType: LeafPeriodType2;
     appliesTo?: number;
     format: Format;
     formula?: string;

@@ -37,6 +37,7 @@ export class Format {
     selectiveAccessApplied?: boolean;
     showAll?: boolean;
     dataType: string;
+    periodType: any;
     constructor(dataType: string) { this.dataType = dataType; }
 }
 
@@ -218,6 +219,19 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         hierarchyParents.set(
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
+
+        // Add in the hierarchy properties as an entity
+        for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo.length; j++) {
+            let entityName = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i] + '.' + anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j];
+
+            moduleLineItems.set(entityName, {
+                parentLineItemEntityLongId: -1,
+                fullAppliesTo: [],
+                formulaScope: '',
+                isSummary: false,
+                format: anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo[j].format,
+            });
+        }
     }
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
