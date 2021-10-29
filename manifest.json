@@ -18,10 +18,6 @@
 			"all_frames": true
 		}
 	],
-	"permissions": [
-		"activeTab",
-		"scripting"
-	],
 	"host_permissions": [
 		"https://*.app.anaplan.com/*/anaplan/*",
 		"https://*.app.anaplan.com/a/modeling/*"
