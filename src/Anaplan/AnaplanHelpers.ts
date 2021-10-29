@@ -282,21 +282,17 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
     return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
 }
-export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId: number, lineItemName: string) {
-    let code = model.getValue();
 
-    if (code.length === 0) {
-        return;
+export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaData, currentModuleId: number, lineItemName: string,
+    modelLineCount: number, modelLineMaxColumn: number): monaco.editor.IMarkerData[] {
+    if (formula.length === 0) {
+        return [];
     }
-
-    let anaplanMetaData = getAnaplanMetaData(currentModuleId, lineItemName);
-
-    hoverProvider.updateMetaData(anaplanMetaData);
 
     let targetFormat = anaplanMetaData.getCurrentItem().format;
 
     let formulaEvaluator = new AnaplanFormulaTypeEvaluatorVisitor(anaplanMetaData);
-    const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(code));
+    const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(formula));
     let errors: FormulaError[] = [];
     mylexer.removeErrorListeners();
     // TODO: add error listener to mylexer?
@@ -317,8 +313,8 @@ export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId:
             monacoErrors.push({
                 startLineNumber: 1,
                 startColumn: 1,
-                endLineNumber: model.getLineCount(),
-                endColumn: model.getLineMaxColumn(model.getLineCount()),
+                endLineNumber: modelLineCount,
+                endColumn: modelLineMaxColumn,
                 message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
                 severity: monaco.MarkerSeverity.Error
             });
@@ -328,8 +324,8 @@ export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId:
                 monacoErrors.push({
                     startLineNumber: 1,
                     startColumn: 1,
-                    endLineNumber: model.getLineCount(),
-                    endColumn: model.getLineMaxColumn(model.getLineCount()),
+                    endLineNumber: modelLineCount,
+                    endColumn: modelLineMaxColumn,
                     message: `Formula evaluates to ${anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId!)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
                     severity: monaco.MarkerSeverity.Error
                 });
@@ -366,5 +362,14 @@ export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId:
         };
     }
 
-    monaco.editor.setModelMarkers(model, "owner", monacoErrors);
+    return monacoErrors;
+}
+
+export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId: number, lineItemName: string) {
+    let anaplanMetaData = getAnaplanMetaData(currentModuleId, lineItemName);
+
+    hoverProvider.updateMetaData(anaplanMetaData);
+
+    let modelLineCount = model.getLineCount();
+    monaco.editor.setModelMarkers(model, "owner", getFormulaErrors(model.getValue(), anaplanMetaData, currentModuleId, lineItemName, modelLineCount, model.getLineMaxColumn(modelLineCount)));
 }
