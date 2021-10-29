@@ -301,7 +301,6 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): Format {
     // Check whether the entity is known
     if (!this._anaplanMetaData.isKnownEntity(ctx)) {
-      // TODO: Handle list item properties
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
