@@ -113,7 +113,7 @@ export class AnaplanMetaData {
 
         // Handle list subsets
         let entityAModules = this.getSubsetModules(entityIdA);
-        let entityBModules = this.getSubsetModules(entityIdA);
+        let entityBModules = this.getSubsetModules(entityIdB);
 
         if (entityAModules != undefined && entityBModules != undefined) {
             // If there's an intersection of modules used for these line item subsets, then that's ok
