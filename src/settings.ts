@@ -101,16 +101,5 @@ export const defaultSettings: MonacoOptions = {
 };
 
 export function getSettings() {
-	return new Promise<MonacoOptions>((resolve, reject) => {
-		chrome.storage.sync.get(
-			{ settings: defaultSettings },
-			({ settings }) => {
-				if (!chrome.runtime.lastError) {
-					resolve(settings);
-				} else {
-					reject(chrome.runtime.lastError);
-				}
-			}
-		);
-	});
+	return { settings: defaultSettings };
 }

@@ -1,15 +1,10 @@
 {
 	"manifest_version": 3,
 	"name": "Better Formula Editor for Anaplan",
-	"version": "0.5.0",
+	"version": "0.5.1",
 	"description": "WIP. This extension enhances Anaplan in several ways; using the Monaco editor and validity checks for formulas.",
 	"icons": {
 		"128": "logo.drawio.png"
-	},
-	"options_ui": {
-		"page": "./dist/options.html",
-		"open_in_tab": true,
-		"browser_style": true
 	},
 	"content_scripts": [
 		{

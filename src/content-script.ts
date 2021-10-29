@@ -19,7 +19,7 @@ function injectCss(url: string) {
 	document.head.dataset.hedietMonacoEditorPublicPath = chrome.runtime.getURL(
 		"/dist/"
 	);
-	const settings = await getSettings();
+	const settings = getSettings();
 	document.head.dataset.hedietMonacoEditorSettings = JSON.stringify(settings);
 
 	injectScript(chrome.runtime.getURL("/dist/content-script-main.js"));

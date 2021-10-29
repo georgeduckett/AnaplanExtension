@@ -14,7 +14,6 @@ module.exports = (env: any) => {
 		entry: {
 			"content-script": r("./src/content-script"),
 			"content-script-main": r("./src/content-script-main/index"),
-			options: r("./src/options"),
 			styles: r("./src/styles.scss"),
 		},
 		output: {
@@ -68,14 +67,6 @@ module.exports = (env: any) => {
 				USE_CDN_FOR_MONACO: useCdnForMonaco ? "1" : "0",
 			}),
 			new ForkTsCheckerWebpackPlugin(),
-			new CopyWebpackPlugin({
-				patterns: [
-					{
-						from: "./src/options/index.html",
-						to: "./options.html",
-					}
-				],
-			}),
 			new CleanWebpackPlugin(),
 			...(useCdnForMonaco
 				? []
