@@ -1,4 +1,4 @@
-var anaplan: Anaplan;
+declare var anaplan: Anaplan;
 
 declare interface Anaplan {
     data: Data;
