@@ -316,7 +316,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                 endLineNumber: modelLineCount,
                 endColumn: modelLineMaxColumn,
                 message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
-                severity: monaco.MarkerSeverity.Error
+                severity: 8 //monaco.MarkerSeverity.Error (don't use enum so we can test)
             });
         } else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
             // Ensure the entity types is the same if the data types are entity
@@ -327,7 +327,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                     endLineNumber: modelLineCount,
                     endColumn: modelLineMaxColumn,
                     message: `Formula evaluates to ${anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId!)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
-                    severity: monaco.MarkerSeverity.Error
+                    severity: 8 //monaco.MarkerSeverity.Error (don't use enum so we can test)
                 });
             }
         }
@@ -344,7 +344,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                 endLineNumber: e.endLine,
                 endColumn: e.endCol,
                 message: e.message,
-                severity: monaco.MarkerSeverity.Error
+                severity: 8 //monaco.MarkerSeverity.Error (don't use enum so we can test)
             });
         };
     }
@@ -357,7 +357,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                 endLineNumber: e.endLine,
                 endColumn: e.endCol,
                 message: e.message,
-                severity: monaco.MarkerSeverity.Error
+                severity: 8 //monaco.MarkerSeverity.Error
             });
         };
     }
