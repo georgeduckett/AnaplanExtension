@@ -23,6 +23,9 @@ describe('Check formula evaluator', () => {
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos.length; j++) {
 
+            if (i != 101 || j != 7)
+                continue;
+
             let formula = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula;
             if (formula != undefined) {
                 cases.push([

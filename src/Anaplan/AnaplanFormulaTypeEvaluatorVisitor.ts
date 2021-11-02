@@ -252,6 +252,9 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       let lineitem = this._anaplanMetaData.getLineItemInfoFromEntityName(selector)!;
       var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
 
+      // TODO: We should visit each dimension mapping so we get any errors that would apply to them, although this seems to act a bit strangly!
+
+
       switch (selectorType.toUpperCase()) {
         case "SELECT":
           let entityName = selector.replace(new RegExp("'", 'g'), "");
