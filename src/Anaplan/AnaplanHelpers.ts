@@ -101,7 +101,7 @@ export function formatFromFunctionName(functionName: string): Format {
         case "IRR": return AnaplanDataTypeStrings.NUMBER;
         case "ISACTUALVERSION": return AnaplanDataTypeStrings.BOOLEAN;
         case "ISANCESTOR": return AnaplanDataTypeStrings.BOOLEAN;
-        case "ISCURRENTVERISON": return AnaplanDataTypeStrings.BOOLEAN;
+        case "ISCURRENTVERSION": return AnaplanDataTypeStrings.BOOLEAN;
         case "ISFIRSTOCCURRENCE": return AnaplanDataTypeStrings.BOOLEAN;
         case "LEFT": return AnaplanDataTypeStrings.TEXT;
         case "LEN": return AnaplanDataTypeStrings.NUMBER;

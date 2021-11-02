@@ -279,12 +279,21 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitWordsEntity(ctx: WordsEntityContext): Format {
+    if (getOriginalText(ctx).toUpperCase() === "TRUE" ||
+      getOriginalText(ctx).toUpperCase() === "FALSE") {
+      return AnaplanDataTypeStrings.BOOLEAN;
+    }
+    if (getOriginalText(ctx).toUpperCase() === "BLANK" ||
+      getOriginalText(ctx).toUpperCase() === "BLANK") {
+      return this._anaplanMetaData.getCurrentItem().format;
+    }
+
     // Check whether the entity is known
     if (!this._anaplanMetaData.isKnownEntity(ctx)) {
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
-    if (ctx.text.match('[^A-z\s%£]') != null && !(ctx.text.endsWith("'") && ctx.text.startsWith("'"))) {
+    if (ctx.text.match('[^A-z\s%£\?]') != null && !(ctx.text.endsWith("'") && ctx.text.startsWith("'"))) {
       this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
     }
 
@@ -304,8 +313,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
-    if ((ctx._left.text.match('[^A-z\s%£]') != null && !(ctx._left.text.endsWith("'") && ctx._left.text.startsWith("'"))) ||
-      (ctx._right.text.match('[^A-z\s%£]') != null) && !(ctx._right.text.endsWith("'") && ctx._right.text.startsWith("'"))) {
+    if ((ctx._left.text.match('[^A-z\s%£\?]') != null && !(ctx._left.text.endsWith("'") && ctx._left.text.startsWith("'"))) ||
+      (ctx._right.text.match('[^A-z\s%£\?]') != null) && !(ctx._right.text.endsWith("'") && ctx._right.text.startsWith("'"))) {
       this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
     }
 
