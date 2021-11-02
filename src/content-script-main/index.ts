@@ -1,7 +1,3 @@
-declare let __webpack_public_path__: string;
-__webpack_public_path__ = document.head.dataset
-	.hedietMonacoEditorPublicPath as string;
-
 import type { MonacoOptions } from "../settings";
 
 import { loadMonaco } from "../monaco-loader";
@@ -61,7 +57,7 @@ async function main() {
 	let timeout: NodeJS.Timeout | undefined = undefined;
 	const mutationObserver = new MutationObserver(() => {
 		if (!timeout) {
-			timeout = setTimeout(() => {
+			timeout = global.setTimeout(() => {
 				updateDocument();
 				timeout = undefined;
 			}, 50);
@@ -216,7 +212,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 let formulaTimeout: NodeJS.Timeout | undefined = undefined;
 const mutationObserver = new MutationObserver(() => {
 	if (!formulaTimeout) {
-		formulaTimeout = setTimeout(() => {
+		formulaTimeout = global.setTimeout(() => {
 			window.document.querySelectorAll('.formula-editor__body, .formula-editor__text-area, .formula-editor__monaco-wrapper').forEach(el => {
 				(el as any).style.overflow = 'visible';
 			});

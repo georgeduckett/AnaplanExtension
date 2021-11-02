@@ -9,7 +9,7 @@
 		"dev": "webpack --watch --mode development --env=use-cdn-for-monaco=true",
 		"dev-without-cdn": "webpack --watch --mode development",
 		"build": "npm install && yarn antlr && yarn build-js && yarn bundle && yarn extract",
-		"build-dev": "npm install && yarn antlr && yarn build-jsdev && yarn jest && yarn bundle && yarn extract",
+		"build-dev": "npm install && yarn antlr && yarn build-jsdev && yarn bundle && yarn extract && yarn jest",
 		"build-js": "webpack --mode production",
 		"build-jsdev": "webpack --mode development",
 		"bundle": "yarn shx rm -rf ./dist/extension.zip && yarn jszip-cli add -o ./dist/extension.zip dist manifest.json logo.drawio.png",
