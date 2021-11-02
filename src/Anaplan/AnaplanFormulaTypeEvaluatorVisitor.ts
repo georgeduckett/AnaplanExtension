@@ -89,21 +89,26 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let leftResult = this.visit(ctx._left);
     let rightResult = this.visit(ctx._right);
 
-    if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType &&
-      leftResult.dataType != AnaplanDataTypeStrings.DATE.dataType) {
+    let leftIsDateType = leftResult.dataType === AnaplanDataTypeStrings.DATE.dataType || leftResult.dataType === AnaplanDataTypeStrings.TIME_ENTITY.dataType;
+    let rightIsDateType = rightResult.dataType === AnaplanDataTypeStrings.DATE.dataType || rightResult.dataType === AnaplanDataTypeStrings.TIME_ENTITY.dataType;
+
+    // Left isn't a number or a date
+    if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType && !leftIsDateType) {
       this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
     }
-
-    if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType &&
-      rightResult.dataType != AnaplanDataTypeStrings.DATE.dataType) {
+    // Right isn't a number or a date
+    if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType && !rightIsDateType) {
       this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
     }
 
-    // If one is a date, but not both, then the result is a date
-    if (leftResult.dataType === AnaplanDataTypeStrings.DATE.dataType ||
-      rightResult.dataType === AnaplanDataTypeStrings.DATE.dataType &&
-      leftResult.dataType != rightResult.dataType) {
-      return AnaplanDataTypeStrings.DATE;
+
+    // If the left is a date and not the right, then use the left result
+    if (leftIsDateType && !rightIsDateType) {
+      return leftResult;
+    }
+    // If the right is a date and not the left, then use the right result
+    if (rightIsDateType && leftIsDateType) {
+      return rightResult;
     }
 
     return AnaplanDataTypeStrings.NUMBER;

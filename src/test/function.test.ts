@@ -22,21 +22,22 @@ describe('Check formula evaluator', () => {
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos.length; j++) {
+
             let formula = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula;
             if (formula != undefined) {
                 cases.push([
+                    i,
+                    j,
                     "'" + anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] +
                     "'.'" +
                     anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j] +
                     "'",
-                    formula,
-                    i,
-                    j]);
+                    formula]);
             }
         }
     }
 
-    it.each(cases)('Check formula for %s: %s', (lineitemname, formula, i, j) => {
+    it.each(cases)('%i, %i, Check formula for %s: %s', (i, j, lineitemname, formula) => {
         let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
             anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
 
