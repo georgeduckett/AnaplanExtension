@@ -89,13 +89,23 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let leftResult = this.visit(ctx._left);
     let rightResult = this.visit(ctx._right);
 
-    if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
+    if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType &&
+      leftResult.dataType != AnaplanDataTypeStrings.DATE.dataType) {
       this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
     }
 
-    if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
+    if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType &&
+      rightResult.dataType != AnaplanDataTypeStrings.DATE.dataType) {
       this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
     }
+
+    // If one is a date, but not both, then the result is a date
+    if (leftResult.dataType === AnaplanDataTypeStrings.DATE.dataType ||
+      rightResult.dataType === AnaplanDataTypeStrings.DATE.dataType &&
+      leftResult.dataType != rightResult.dataType) {
+      return AnaplanDataTypeStrings.DATE;
+    }
+
     return AnaplanDataTypeStrings.NUMBER;
   }
 
