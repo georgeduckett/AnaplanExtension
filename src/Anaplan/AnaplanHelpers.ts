@@ -283,7 +283,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
 }
 
-export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaData, currentModuleId: number, lineItemName: string,
+export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaData,
     modelLineCount: number, modelLineMaxColumn: number): monaco.editor.IMarkerData[] {
     if (formula.length === 0) {
         return [];
@@ -371,5 +371,5 @@ export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId:
     hoverProvider.updateMetaData(anaplanMetaData);
 
     let modelLineCount = model.getLineCount();
-    monaco.editor.setModelMarkers(model, "owner", getFormulaErrors(model.getValue(), anaplanMetaData, currentModuleId, lineItemName, modelLineCount, model.getLineMaxColumn(modelLineCount)));
+    monaco.editor.setModelMarkers(model, "owner", getFormulaErrors(model.getValue(), anaplanMetaData, modelLineCount, model.getLineMaxColumn(modelLineCount)));
 }
