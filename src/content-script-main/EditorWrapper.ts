@@ -4,6 +4,7 @@ import { editor, KeyCode } from "monaco-editor";
 import { Monaco } from "../monaco-loader";
 import { getAnaplanMetaData, setModelErrors } from '../Anaplan/AnaplanHelpers';
 import { hoverProvider } from '.';
+import he = require('he');
 
 export interface MonacoNode extends HTMLDivElement {
 	hedietEditorWrapper: EditorWrapper;
@@ -23,7 +24,7 @@ export class EditorWrapper {
 		monaco: Monaco,
 		settings: MonacoOptions,
 	) {
-		hoverProvider.updateMetaData(getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!));
+		hoverProvider.updateMetaData(getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!), he.decode(document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!)));
 		if (textArea.hedietEditorWrapper) {
 			return textArea.hedietEditorWrapper;
 		}

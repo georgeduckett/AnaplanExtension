@@ -10,6 +10,7 @@ import {
 } from "./EditorWrapper";
 import { FormulaHoverProvider } from "../Monaco/FormulaHoverProvider";
 import { getAnaplanMetaData, setModelErrors } from "../Anaplan/AnaplanHelpers";
+import he = require("he");
 
 export let hoverProvider: FormulaHoverProvider;
 
@@ -169,8 +170,8 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 			let headerText = document.querySelectorAll(".formula-editor__header")[0].innerHTML.split('—').map(s => s.trim());
 
-			let currentModuleName = headerText[0];
-			let currentLineItemName = headerText[1];
+			let currentModuleName = he.decode(headerText[0]);
+			let currentLineItemName = he.decode(headerText[1]);
 
 			hoverProvider.updateMetaData(getAnaplanMetaData(currentModuleName, currentLineItemName));
 
@@ -197,8 +198,8 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 							headerText = headerElement.innerHTML;
 						}
 
-						let currentModuleName = headerText.split('—').map(s => s.trim())[0];
-						let currentLineItemName = headerText.split('—').map(s => s.trim())[1];
+						let currentModuleName = he.decode(headerText.split('—').map(s => s.trim())[0]);
+						let currentLineItemName = he.decode(headerText.split('—').map(s => s.trim())[1]);
 
 						let metadata = getAnaplanMetaData(currentModuleName, currentLineItemName);
 						setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
