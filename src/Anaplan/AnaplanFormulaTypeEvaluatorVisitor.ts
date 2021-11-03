@@ -265,6 +265,10 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           break;
         default: // If it's an aggregation we check the target entity mappings
           extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
+          // We also remove any of this line item's dimensions from the source
+          for (let j = 0; j < lineitem.fullAppliesTo.length; j++) {
+            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineitem.fullAppliesTo[j]));
+          }
       }
     }
 
