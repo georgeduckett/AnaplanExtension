@@ -36,7 +36,7 @@ describe('Check formula evaluator', () => {
         }
     }
 
-    it.each(cases)('%i, %i, Check formula for %s: %s', (i, j, lineitemname, formula) => {
+    it.each(cases)('%i, %i, Check formula for %s: %s', (i, j, _, formula) => {
         let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
             anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
 
