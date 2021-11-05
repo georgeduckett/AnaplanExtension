@@ -29,7 +29,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       return aggregate;
     }
     // Ensure both are the same, if they aren't produce an error
-    if (aggregate.dataType != nextResult.dataType) { // TODO: compare this properly
+    if (aggregate.dataType != nextResult.dataType) {
       throw new Error(`Tried to combine different expression types, ${JSON.stringify(aggregate)} and ${JSON.stringify(nextResult)}`);
     }
     return nextResult
@@ -48,7 +48,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     var thenExpressionResult = this.visit(ctx._thenExpression);
     var elseExpressionResult = this.visit(ctx._elseExpression);
 
-    if (thenExpressionResult.dataType != elseExpressionResult.dataType) { // TODO: compare this properly
+    if (thenExpressionResult.dataType != elseExpressionResult.dataType) {
       this.addFormulaError(ctx, `Data types for each result must be the same. 'Then' is ${thenExpressionResult.dataType}, 'Else' is ${elseExpressionResult.dataType}.`);
       return AnaplanDataTypeStrings.UNKNOWN;
     }

@@ -37,7 +37,7 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
             }
 
             if (previousTree instanceof EntityContext) {
-                let entityName = this._anaplanMetaData!.getEntityName(previousTree).replace(new RegExp("'", 'g'), ""); // TODO: Maybe properly remove qualifying quotes (look at entity chidren this node has, if any)
+                let entityName = this._anaplanMetaData!.getEntityName(previousTree).replace(new RegExp("'", 'g'), "");
                 // Look up the dimensions of this entity
                 let lineItemInfo = this._anaplanMetaData!.getLineItemInfoFromEntityName(entityName);
 

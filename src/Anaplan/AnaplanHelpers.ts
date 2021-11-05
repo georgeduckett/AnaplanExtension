@@ -48,7 +48,7 @@ export class AnaplanDataTypeStrings {
     static NONE: Format = new Format("NONE");
     static ENTITY: Format = new Format("ENTITY");
     static TIME_ENTITY: Format = new Format("TIME_ENTITY");
-    static DATE: Format = new Format("DATE"); // TODO: Maybe separate time formats (day/month/year etc)?
+    static DATE: Format = new Format("DATE");
 
     static UNKNOWN: Format = new Format("UNKNOWN");
 }
@@ -295,7 +295,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
     const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(formula));
     let errors: FormulaError[] = [];
     mylexer.removeErrorListeners();
-    // TODO: add error listener to mylexer?
+
     const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
     myparser.removeErrorListeners();
     myparser.addErrorListener(new CollectorErrorListener(errors));
