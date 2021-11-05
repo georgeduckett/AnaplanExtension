@@ -139,7 +139,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitNotExp(ctx: NotExpContext): Format {
-    let format = this.visit(ctx.NOT());
+    let format = this.visit(ctx.expression());
     if (format.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
       this.addFormulaError(ctx, `Expected a Boolean, but found ${format.dataType}.`);
     }
