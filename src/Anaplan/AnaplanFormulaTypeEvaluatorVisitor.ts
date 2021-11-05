@@ -252,8 +252,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       let lineitem = this._anaplanMetaData.getLineItemInfoFromEntityName(selector)!;
       var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
 
-      // TODO: We should visit each dimension mapping so we get any errors that would apply to them, although this seems to act a bit strangly!
-
+      this.visit(dimensionMappings[i]);
 
       switch (selectorType.toUpperCase()) {
         case "SELECT":
@@ -280,7 +279,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitDimensionmapping(ctx: DimensionmappingContext): Format {
-    throw new Error("This should never get visited. This is a coding error");
+    return this.visit(ctx.entity());
   }
 
   visitFunctionname(ctx: FunctionnameContext): Format {
