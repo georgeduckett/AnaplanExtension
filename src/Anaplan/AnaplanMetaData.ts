@@ -93,13 +93,17 @@ export class AnaplanMetaData {
         } else if (ctx instanceof WordsEntityContext) {
             return this._moduleName + "." + getOriginalText(ctx);
         } else if (ctx instanceof DotQualifiedEntityContext) {
+            let fullUnquotedEntityName = `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`;
+            // If the dot qualified thing matches, use that
+            if (this._entityIds.has(fullUnquotedEntityName)) return fullUnquotedEntityName;
+
             // In the case of a dot-qualified entity, the name could be a hierarchyname.listitem, in which case we just want the hierarchyname
             let unquotedLeft = unQuoteEntity(getOriginalText(ctx._left));
-            if (this._entityIds.has(unquotedLeft) && this._entityIds.get(unquotedLeft)?.type === 'hierarchy') { // TODO: Check only for hierarchy entity types
+            if (this._entityIds.has(unquotedLeft) && this._entityIds.get(unquotedLeft)?.type === 'hierarchy') {
                 return unquotedLeft;
             }
 
-            return `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`
+            return fullUnquotedEntityName;
         } else if (ctx instanceof FuncSquareBracketsContext) {
             return this.getEntityName(ctx.entity());
         }

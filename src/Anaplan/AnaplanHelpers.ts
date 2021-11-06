@@ -227,6 +227,15 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo.length; j++) {
             let entityName = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i] + '.' + anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j];
 
+            entityNames.set(
+                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.entityIds[j],
+                entityName);
+            entityIds.set(
+                entityName,
+                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.entityIds[j]);
+
+
+
             moduleLineItems.set(entityName, {
                 parentLineItemEntityLongId: -1,
                 fullAppliesTo: [],
