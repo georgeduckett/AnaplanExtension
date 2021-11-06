@@ -214,20 +214,28 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           return itemFormat;
         }
       case "PARENT":
-        let entityId = this.visit(ctx.expression()[0]).hierarchyEntityLongId!;
+        let entityFormat = this.visit(ctx.expression()[0]);
 
-
-        let parentEntityId = this._anaplanMetaData.getEntityParentId(entityId);
-
-        if (parentEntityId === undefined) {
-          this.addFormulaError(ctx.functionname(), `There is no parent of entity ${this._anaplanMetaData.getEntityNameFromId(entityId)}.`);
-          return AnaplanDataTypeStrings.UNKNOWN;
+        if (entityFormat.dataType == AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
+          // TODO: Check the level (year/month/etc) of the TIME_ENTITY and move it up one
+          return AnaplanDataTypeStrings.TIME_ENTITY;
         }
+        else {
+          let entityId = entityFormat.hierarchyEntityLongId!;
 
-        let parentFormat = AnaplanDataTypeStrings.ENTITY;
-        parentFormat.hierarchyEntityLongId = parentEntityId;
 
-        return parentFormat;
+          let parentEntityId = this._anaplanMetaData.getEntityParentId(entityId);
+
+          if (parentEntityId === undefined) {
+            this.addFormulaError(ctx.functionname(), `There is no parent of entity ${this._anaplanMetaData.getEntityNameFromId(entityId)}.`);
+            return AnaplanDataTypeStrings.UNKNOWN;
+          }
+
+          let parentFormat = AnaplanDataTypeStrings.ENTITY;
+          parentFormat.hierarchyEntityLongId = parentEntityId;
+
+          return parentFormat;
+        }
       default:
         let format = formatFromFunctionName(functionName);
 
