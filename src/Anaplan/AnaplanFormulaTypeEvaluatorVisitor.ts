@@ -249,10 +249,10 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       let dimensionMapping = dimensionMappings[i];
       let selectorType = dimensionMapping.WORD().text;
       let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
-      let lineitem = this._anaplanMetaData.getLineItemInfoFromEntityName(selector)!;
+      let lineitem = this._anaplanMetaData.getItemInfoFromEntityName(selector)!;
       var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
 
-      this.visit(dimensionMappings[i]);
+      this.visit(dimensionMappings[i]); // TODO: Does this definitely mean we report unknown entities here?
 
       switch (selectorType.toUpperCase()) {
         case "SELECT":
@@ -292,7 +292,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
-    if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
+    if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
       if (missingDimensions.extraSourceEntityMappings.length != 0 && missingDimensions.extraTargetEntityMappings.length != 0) {
@@ -322,7 +322,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
     }
 
-    if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
+    if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
       if (missingDimensions.extraSourceEntityMappings.length != 0 && missingDimensions.extraTargetEntityMappings.length != 0) {
@@ -343,7 +343,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
     }
 
-    if (!(ctx.parent instanceof FuncSquareBracketsContext)) {
+    if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
       if (missingDimensions.extraSourceEntityMappings.length != 0 && missingDimensions.extraTargetEntityMappings.length != 0) {

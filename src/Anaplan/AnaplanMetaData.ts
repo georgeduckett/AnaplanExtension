@@ -6,11 +6,11 @@ export class AnaplanMetaData {
     private readonly _lineItemInfo: Map<string, LineItemInfo>;
     private readonly _hierarchyParents: Map<number, number>;
     private readonly _entityNames: Map<number, string>;
-    private readonly _entityIds: Map<string, number>;
+    private readonly _entityIds: Map<string, { id: number, type: string }>; // TODO: Need entity type info somewhere (module/hierarchy/lineitem)
     private readonly _currentLineItem: LineItemInfo;
     private readonly _subsetInfo: Map<number, SubsetInfo>;
 
-    constructor(lineItemInfo: Map<string, LineItemInfo>, subsetInfo: Map<number, SubsetInfo>, entityNames: Map<number, string>, entityIds: Map<string, number>, hierarchyParents: Map<number, number>, moduleName: string, currentLineItem: LineItemInfo) {
+    constructor(lineItemInfo: Map<string, LineItemInfo>, subsetInfo: Map<number, SubsetInfo>, entityNames: Map<number, string>, entityIds: Map<string, { id: number, type: string }>, hierarchyParents: Map<number, number>, moduleName: string, currentLineItem: LineItemInfo) {
         this._moduleName = moduleName;
         this._subsetInfo = subsetInfo;
         this._lineItemInfo = lineItemInfo;
@@ -22,11 +22,11 @@ export class AnaplanMetaData {
 
     getEntityType(ctx: EntityContext): Format {
         let entityName = this.getEntityName(ctx);
-        return this.getLineItemInfoFromEntityName(entityName)?.format ?? AnaplanDataTypeStrings.UNKNOWN;
+        return this.getItemInfoFromEntityName(entityName)?.format ?? AnaplanDataTypeStrings.UNKNOWN;
     }
     getEntityDimensions(ctx: EntityContext): number[] {
         let entityName = this.getEntityName(ctx);
-        let entityDimensions = this.getLineItemInfoFromEntityName(entityName)?.fullAppliesTo?.sort();
+        let entityDimensions = this.getItemInfoFromEntityName(entityName)?.fullAppliesTo?.sort();
 
         if (entityDimensions === undefined) {
             return [];
@@ -36,18 +36,22 @@ export class AnaplanMetaData {
 
     isKnownEntity(ctx: EntityContext): boolean {
         let entityName = this.getEntityName(ctx);
-        return this.getLineItemInfoFromEntityName(entityName) != undefined;
+        return this.getItemInfoFromEntityName(entityName) != undefined;
     }
 
     getEntityIdFromName(entityName: string): number | undefined {
-        return this._entityIds.get(entityName);
+        return this._entityIds.get(entityName)?.id;
+    }
+
+    getEntityTypeFromName(entityName: string): string | undefined {
+        return this._entityIds.get(entityName)?.type;
     }
 
     getEntityParentId(entityId: number): number | undefined {
         return this._hierarchyParents.get(entityId);
     }
 
-    getLineItemEntityId(lineItem: LineItemInfo): number { // We assume that if it's not a hierarchy entity, then it's a time entity
+    getLineItemEntityId(lineItem: { format: Format, fullAppliesTo: number[] }): number { // We assume that if it's not a hierarchy entity, then it's a time entity
         return lineItem.format.hierarchyEntityLongId ?? (anaplanTimeEntityBaseId + lineItem.format.periodType.entityIndex);
     }
 
@@ -75,7 +79,7 @@ export class AnaplanMetaData {
         return this._currentLineItem;
     }
 
-    getLineItemInfoFromEntityName(entityName: string): LineItemInfo | undefined {
+    getItemInfoFromEntityName(entityName: string): { format: Format, fullAppliesTo: number[] } | undefined {
         return this._lineItemInfo.get(entityName);
     }
 
@@ -89,6 +93,12 @@ export class AnaplanMetaData {
         } else if (ctx instanceof WordsEntityContext) {
             return this._moduleName + "." + getOriginalText(ctx);
         } else if (ctx instanceof DotQualifiedEntityContext) {
+            // In the case of a dot-qualified entity, the name could be a hierarchyname.listitem, in which case we just want the hierarchyname
+            let unquotedLeft = unQuoteEntity(getOriginalText(ctx._left));
+            if (this._entityIds.has(unquotedLeft) && this._entityIds.get(unquotedLeft)?.type === 'hierarchy') { // TODO: Check only for hierarchy entity types
+                return unquotedLeft;
+            }
+
             return `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`
         } else if (ctx instanceof FuncSquareBracketsContext) {
             return this.getEntityName(ctx.entity());

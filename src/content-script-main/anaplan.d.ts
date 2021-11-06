@@ -112,7 +112,7 @@ declare interface HierarchyInfo {
     isCustomHierarchy: boolean;
     hasSelectiveAccess: boolean;
     itemCount: number;
-    entityLongId: any;
+    entityLongId: number;
 }
 
 declare interface PropertiesInfo {

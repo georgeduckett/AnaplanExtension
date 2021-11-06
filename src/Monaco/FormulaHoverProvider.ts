@@ -39,7 +39,7 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
             if (previousTree instanceof EntityContext) {
                 let entityName = this._anaplanMetaData!.getEntityName(previousTree).replace(new RegExp("'", 'g'), "");
                 // Look up the dimensions of this entity
-                let lineItemInfo = this._anaplanMetaData!.getLineItemInfoFromEntityName(entityName);
+                let lineItemInfo = this._anaplanMetaData!.getItemInfoFromEntityName(entityName);
 
                 if (lineItemInfo != undefined) {
                     let dimensions = lineItemInfo?.fullAppliesTo.map(this._anaplanMetaData!.getEntityNameFromId, this._anaplanMetaData).sort().join(', ');
@@ -48,7 +48,7 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
                     }
 
                     let dataTypeDisplayString = lineItemInfo.format.dataType;
-
+                    // TODO: Why is the data type a "User" for 'C1 Department'.All Customers
                     if (dataTypeDisplayString === "ENTITY") {
                         dataTypeDisplayString = this._anaplanMetaData?.getEntityNameFromId(lineItemInfo.format.hierarchyEntityLongId!)!;
                     } else {

@@ -38,7 +38,7 @@ export class Format {
     showAll?: boolean;
     dataType: string;
     periodType: any;
-    constructor(dataType: string) { this.dataType = dataType; }
+    constructor(dataType: string, hierarchyEntityLongId?: number) { this.dataType = dataType; this.hierarchyEntityLongId = hierarchyEntityLongId; }
 }
 
 export class AnaplanDataTypeStrings {
@@ -197,7 +197,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     }
 
     let entityNames = new Map<number, string>();
-    let entityIds = new Map<string, number>();
+    let entityIds = new Map<string, { id: number, type: string }>();
     let hierarchyParents = new Map<number, number>();
 
     for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0].length; i++) {
@@ -215,7 +215,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]);
         entityIds.set(
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
-            anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i]);
+            {
+                id: anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
+                type: 'hierarchy'
+            });
         hierarchyParents.set(
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
@@ -232,6 +235,18 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                 format: anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo[j].format,
             });
         }
+
+        // Add in the hierarchy itself as an entity
+        let format = AnaplanDataTypeStrings.ENTITY;
+        format.hierarchyEntityLongId = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId;
+
+        moduleLineItems.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i], {
+            parentLineItemEntityLongId: -1,
+            fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
+            formulaScope: '',
+            isSummary: false,
+            format: format,
+        });
     }
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
@@ -257,12 +272,15 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         entityNames.set(anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
             'Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel);
         entityIds.set('Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel,
-            anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex);
+            {
+                id: anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
+                type: 'time'
+            });
     }
 
     // Add in special entity names
     entityNames.set(20000000020, 'Version');
-    entityIds.set('Version', 20000000020);
+    entityIds.set('Version', { id: 20000000020, type: 'version' });
 
 
 
