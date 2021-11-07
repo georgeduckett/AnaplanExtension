@@ -258,7 +258,6 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       let selectorType = dimensionMapping.WORD().text;
       let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
       let lineitem = this._anaplanMetaData.getItemInfoFromEntityName(selector)!;
-      var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
 
       this.visit(dimensionMappings[i]); // TODO: Does this definitely mean we report unknown entities here?
 
@@ -267,10 +266,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           let entityName = selector.replace(new RegExp("'", 'g'), "");
           entityName = entityName.substring(0, entityName.indexOf('.'));
           extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, this._anaplanMetaData.getEntityIdFromName(entityName)!));
+          break;
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
+          var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
           extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           break;
         default: // If it's an aggregation we check the target entity mappings
+          var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
           extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           // We also remove any of this line item's dimensions from the source
           for (let j = 0; j < lineitem.fullAppliesTo.length; j++) {

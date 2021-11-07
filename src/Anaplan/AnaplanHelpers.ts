@@ -272,7 +272,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                     anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]) {
                     // We found the module this line item subset relates to. We can't know which line items are in the subset, so we just add them all
                     for (let l = 0; l < anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0].length; l++) {
-                        let name = `{anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]}.{anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l]}`;
+                        let name = `${anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]}.${anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l]}`;
                         moduleLineItems.set(name, {
                             parentLineItemEntityLongId: -1,
                             fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
