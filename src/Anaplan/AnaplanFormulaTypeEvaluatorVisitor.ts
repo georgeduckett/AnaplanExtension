@@ -208,10 +208,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           return AnaplanDataTypeStrings.TIME_ENTITY;
         }
         else {
-          let itemFormat = AnaplanDataTypeStrings.ENTITY;
-          itemFormat.hierarchyEntityLongId = this._anaplanMetaData.getEntityIdFromName(itemName);
-
-          return itemFormat;
+          return AnaplanDataTypeStrings.ENTITY(this._anaplanMetaData.getEntityIdFromName(itemName));
         }
       case "PARENT":
         let entityFormat = this.visit(ctx.expression()[0]);
@@ -231,10 +228,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
             return AnaplanDataTypeStrings.UNKNOWN;
           }
 
-          let parentFormat = AnaplanDataTypeStrings.ENTITY;
-          parentFormat.hierarchyEntityLongId = parentEntityId;
-
-          return parentFormat;
+          return AnaplanDataTypeStrings.ENTITY(parentEntityId);
         }
       default:
         let format = formatFromFunctionName(functionName);

@@ -46,7 +46,7 @@ export class AnaplanDataTypeStrings {
     static TEXT: Format = new Format("TEXT");
     static NUMBER: Format = new Format("NUMBER");
     static NONE: Format = new Format("NONE");
-    static ENTITY: Format = new Format("ENTITY");
+    static ENTITY(entityId: number | undefined): Format { return new Format("ENTITY", entityId); }
     static TIME_ENTITY: Format = new Format("TIME_ENTITY");
     static DATE: Format = new Format("DATE");
 
@@ -236,8 +236,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         }
 
         // Add in the hierarchy itself as an entity
-        let format = AnaplanDataTypeStrings.ENTITY;
-        format.hierarchyEntityLongId = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId;
+        let format = AnaplanDataTypeStrings.ENTITY(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId);
 
         moduleLineItems.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i], {
             parentLineItemEntityLongId: -1,
@@ -279,12 +278,31 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                             formulaScope: '',
                             isSummary: false,
                             format: anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemInfos[l].format,
-                        })
+                        });
                     }
                     break;
                 }
             }
         }
+    }
+
+    // Add the versions
+    for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.count; i++) {
+        let name = 'VERSIONS.' + anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.labels[0][i];
+        entityNames.set(
+            anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i],
+            name);
+        entityIds.set(
+            name,
+            anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i]);
+
+        moduleLineItems.set(name, {
+            parentLineItemEntityLongId: -1,
+            fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i]],
+            formulaScope: '',
+            isSummary: false,
+            format: AnaplanDataTypeStrings.ENTITY(anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i]),
+        });
     }
 
     // Add in the special time dimensions
@@ -356,7 +374,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
             message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
             severity: 8 //monaco.MarkerSeverity.Error (don't use enum so we can test)
         });
-    } else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY.dataType) {
+    } else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
         // Ensure the entity types is the same if the data types are entity
         if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
             monacoErrors.push({
