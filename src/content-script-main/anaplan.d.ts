@@ -354,7 +354,7 @@ declare interface ModuleInfo {
     leafPeriodType: LeafPeriodType;
     timeRangeLabel: string;
     lineItemInfos: LineItemInfo[];
-    lineItemSubsetEntityLongIds: any[];
+    lineItemSubsetEntityLongIds: number[];
     lineItemsLabelPage: LineItemsLabelPage;
     versionSelection: VersionSelection2;
     functionalAreaEntityLongId: number;

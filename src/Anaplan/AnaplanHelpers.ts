@@ -226,16 +226,6 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         // Add in the hierarchy properties as an entity
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo.length; j++) {
             let entityName = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i] + '.' + anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j];
-
-            entityNames.set(
-                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.entityIds[j],
-                entityName);
-            entityIds.set(
-                entityName,
-                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.entityIds[j]);
-
-
-
             moduleLineItems.set(entityName, {
                 parentLineItemEntityLongId: -1,
                 fullAppliesTo: [],
@@ -274,6 +264,27 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         entityIds.set(
             anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
             anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]);
+
+        // Find the module this applies to and add it's measures as entities
+        for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; j++) {
+            for (let k = 0; k < anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemSubsetEntityLongIds.length; k++) {
+                if (anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemSubsetEntityLongIds[k] ===
+                    anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]) {
+                    // We found the module this line item subset relates to. We can't know which line items are in the subset, so we just add them all
+                    for (let l = 0; l < anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0].length; l++) {
+                        let name = `{anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]}.{anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l]}`;
+                        moduleLineItems.set(name, {
+                            parentLineItemEntityLongId: -1,
+                            fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
+                            formulaScope: '',
+                            isSummary: false,
+                            format: anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemInfos[l].format,
+                        })
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     // Add in the special time dimensions

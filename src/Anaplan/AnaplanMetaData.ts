@@ -96,6 +96,7 @@ export class AnaplanMetaData {
             let fullUnquotedEntityName = `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`;
             // If the dot qualified thing matches, use that
             if (this._entityIds.has(fullUnquotedEntityName)) return fullUnquotedEntityName;
+            if (this._lineItemInfo.has(fullUnquotedEntityName)) return fullUnquotedEntityName;
 
             // In the case of a dot-qualified entity, the name could be a hierarchyname.listitem, in which case we just want the hierarchyname
             let unquotedLeft = unQuoteEntity(getOriginalText(ctx._left));
