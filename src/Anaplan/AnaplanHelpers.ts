@@ -206,7 +206,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i]);
         entityIds.set(
             anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i],
-            anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i]);
+            {
+                id: anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityLongIds[0][i],
+                type: 'entity'
+            });
     }
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
@@ -253,7 +256,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i]);
         entityIds.set(
             anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0][i],
-            anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i]);
+            {
+                id: anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.entityLongIds[0][i],
+                type: 'hierarchysubset'
+            });
     }
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0].length; i++) {
@@ -262,7 +268,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]);
         entityIds.set(
             anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
-            anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]);
+            {
+                id: anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i],
+                type: 'lineitemsubset'
+            });
 
         // Find the module this applies to and add it's measures as entities
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; j++) {
@@ -294,7 +303,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             name);
         entityIds.set(
             name,
-            anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i]);
+            {
+                id: anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i],
+                type: 'version'
+            });
 
         moduleLineItems.set(name, {
             parentLineItemEntityLongId: -1,
