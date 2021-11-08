@@ -3,20 +3,20 @@ grammar AnaplanFormula;
 formula: expression EOF;
 
 expression:
-	signedAtom											# atomExp
-	| STRINGLITERAL										# stringliteralExp
-	| NOT expression									# notExp
-	| left = expression AMPERSAND right = expression	# concatenateExp
+	signedAtom													# atomExp
+	| STRINGLITERAL												# stringliteralExp
+	| NOT expression											# notExp
+	| left = expression op = (TIMES | DIV) right = expression	# muldivExp
+	| left = expression op = (PLUS | MINUS) right = expression	# addsubtractExp
+	| left = expression AMPERSAND right = expression			# concatenateExp
 	| left = expression op = (
-		EQUALS
-		| NOTEQUALS
-		| GTEQUALS
+		GTEQUALS
 		| LTEQUALS
 		| LT
 		| GT
+		| EQUALS
+		| NOTEQUALS
 	) right = expression																			# comparisonExp
-	| left = expression op = (PLUS | MINUS) right = expression										# addsubtractExp
-	| left = expression op = (TIMES | DIV) right = expression										# muldivExp
 	| left = expression BINARYOPERATOR right = expression											# binaryoperationExp
 	| IF condition = expression THEN thenExpression = expression ELSE elseExpression = expression	#
 		ifExp
