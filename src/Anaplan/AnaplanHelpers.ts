@@ -343,6 +343,20 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         }
     }
 
+    // Add in TIME.All Periods
+    entityIds.set('TIME.All Periods',
+        {
+            id: -1, // TODO: What should this be?
+            type: 'time'
+        });
+    moduleLineItems.set('TIME.All Periods', {
+        parentLineItemEntityLongId: -1,
+        fullAppliesTo: [],
+        formulaScope: '',
+        isSummary: false,
+        format: AnaplanDataTypeStrings.TIME_ENTITY,
+    });
+
     // Add in the special time period types
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {
         entityNames.set(anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
