@@ -305,7 +305,33 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         });
     }
 
-    // Add in the special time dimensions
+    // Add in the different time periods
+    for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypeLabelPages.length; i++) {
+        for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypeLabelPages.length; j++) {
+            entityNames.set(anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypeLabelPages[i].entityLongIds[0][j],
+                'Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypeLabelPages[i].labels[0][j]);
+            entityIds.set('Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypeLabelPages[i].labels[0][j],
+                {
+                    id: anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypeLabelPages[i].entityLongIds[0][j],
+                    type: 'time'
+                });
+        }
+    }
+
+    // Add in the different time periods (supersets)
+    for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleSupersetInfo.allowedTimeEntityPeriodTypeLabelPages.length; i++) {
+        for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.timeScaleSupersetInfo.allowedTimeEntityPeriodTypeLabelPages.length; j++) {
+            entityNames.set(anaplan.data.ModelContentCache._modelInfo.timeScaleSupersetInfo.allowedTimeEntityPeriodTypeLabelPages[i].entityLongIds[0][j],
+                'Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleSupersetInfo.allowedTimeEntityPeriodTypeLabelPages[i].labels[0][j]);
+            entityIds.set('Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleSupersetInfo.allowedTimeEntityPeriodTypeLabelPages[i].labels[0][j],
+                {
+                    id: anaplan.data.ModelContentCache._modelInfo.timeScaleSupersetInfo.allowedTimeEntityPeriodTypeLabelPages[i].entityLongIds[0][j],
+                    type: 'time'
+                });
+        }
+    }
+
+    // Add in the special time period types
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {
         entityNames.set(anaplanTimeEntityBaseId + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityIndex,
             'Time.' + anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes[i].entityLabel);
