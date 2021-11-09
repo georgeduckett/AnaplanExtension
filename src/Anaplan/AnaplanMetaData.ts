@@ -1,5 +1,5 @@
 import { unQuoteEntity, getOriginalText, AnaplanDataTypeStrings, Format, anaplanTimeEntityBaseId } from "./AnaplanHelpers";
-import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from "./antlrclasses/AnaplanFormulaParser";
+import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext } from "./antlrclasses/AnaplanFormulaParser";
 
 export class AnaplanMetaData {
     private readonly _moduleName: string;
@@ -99,9 +99,12 @@ export class AnaplanMetaData {
             if (this._lineItemInfo.has(fullUnquotedEntityName)) return fullUnquotedEntityName;
 
             // In the case of a dot-qualified entity, the name could be a hierarchyname.listitem, in which case we just want the hierarchyname
-            let unquotedLeft = unQuoteEntity(getOriginalText(ctx._left));
-            if (this._entityIds.has(unquotedLeft) && this._entityIds.get(unquotedLeft)?.type === 'hierarchy') {
-                return unquotedLeft;
+            if (ctx.parent instanceof DimensionmappingContext) {
+                // This is within a dimension mapping, then 'anything' on the righthand side is ok, since we can't know what the list items all are
+                let unquotedLeft = unQuoteEntity(getOriginalText(ctx._left));
+                if (this._entityIds.has(unquotedLeft) && this._entityIds.get(unquotedLeft)?.type === 'hierarchy') {
+                    return unquotedLeft;
+                }
             }
 
             return fullUnquotedEntityName;
