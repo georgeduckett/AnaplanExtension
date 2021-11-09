@@ -6,6 +6,7 @@ import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData } from './AnaplanMetaData';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
+import { ParseTree } from 'antlr4ts/tree/ParseTree';
 
 export let entitySpecialCharSelector = '[^A-z\s%£\?]';
 
@@ -46,6 +47,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   visitParenthesisExp(ctx: ParenthesisExpContext): Format {
     return this.visit(ctx.expression());
+  }
+
+  visit(tree: ParseTree): Format {
+    if (tree != undefined) {
+      return tree.accept(this);
+    }
+    return this.defaultResult();
   }
 
   visitIfExp(ctx: IfExpContext): Format {

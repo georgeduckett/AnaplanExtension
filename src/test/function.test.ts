@@ -59,3 +59,16 @@ describe('Check formula with syntax error gives the correct error', () => {
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toEqual('syntax error; found unexpected character');
 });
+
+describe("Check incomplete IF statement doesn't cause an error", () => {
+    let i = 10;
+    let j = 0;
+    let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
+        anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
+    let formula = 'IF '
+    let errors = getFormulaErrors(formula, metaData, 1, formula.length);
+
+    expect(errors).toHaveLength(1);
+    let desiredErrorStart = "mismatched input '<EOF>' expecting {IF";
+    expect(errors[0].message.substring(0, desiredErrorStart.length)).toEqual(desiredErrorStart);
+});
