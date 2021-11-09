@@ -1,10 +1,11 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
+import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext } from './antlrclasses/AnaplanFormulaParser';
 import { AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText, unQuoteEntity } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData } from './AnaplanMetaData';
+import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   private readonly _anaplanMetaData: AnaplanMetaData;
@@ -17,7 +18,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   defaultResult(): Format {
-    throw new Error("Shouldn't get an unknown expression type; this is a coding error");
+    return AnaplanDataTypeStrings.UNKNOWN;
   }
 
   aggregateResult(aggregate: Format, nextResult: Format): Format {
@@ -150,8 +151,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     return AnaplanDataTypeStrings.TEXT;
   }
 
-  visitAtomExp(ctx: AtomExpContext): Format {
-    return this.visit(ctx.signedAtom());
+  visitErrorNode(ctx: ErrorNode): Format {
+    return AnaplanDataTypeStrings.UNKNOWN;
   }
 
   visitPlusSignedAtom(ctx: PlusSignedAtomContext): Format {
