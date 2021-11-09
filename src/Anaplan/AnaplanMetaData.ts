@@ -1,3 +1,4 @@
+import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { unQuoteEntity, getOriginalText, AnaplanDataTypeStrings, Format, anaplanTimeEntityBaseId } from "./AnaplanHelpers";
 import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext } from "./antlrclasses/AnaplanFormulaParser";
 
@@ -24,10 +25,36 @@ export class AnaplanMetaData {
         let result = [];
         // TODO: Include the other types of items (subsets, hierarchy properties etc)
         for (let lineItem of this._lineItemInfo) {
-            result.push({ name: lineItem[0], type: "lineitem" });
+            let name = lineItem[0];
+            // TODO: Add in quotes as needed, based on entitySpecialCharSelector
+            if (name.includes('.')) {
+                if (name.split('.')[0] === this._moduleName) {
+                    let nameRight = name.split('.')[1];
 
-            if (lineItem[0].includes('.') && lineItem[0].split('.')[0] === this._moduleName) {
-                result.push({ name: lineItem[0].split('.')[1], type: "lineitem" });
+                    if (nameRight.match(entitySpecialCharSelector)) {
+                        nameRight = "'" + nameRight + "'";
+                    }
+                    result.push({ name: nameRight, type: "lineitem" });
+                }
+                else {
+                    let nameSplit = name.split('.');
+                    // TODO: Maybe handle adding the qoutes as part of the accepting the change / as inserted text but not shown text
+                    if (nameSplit[0].match(entitySpecialCharSelector)) {
+                        nameSplit[0] = "'" + nameSplit[0] + "'";
+                    }
+                    if (nameSplit[1].match(entitySpecialCharSelector)) {
+                        nameSplit[1] = "'" + nameSplit[1] + "'";
+                    }
+
+                    result.push({ name: nameSplit[0] + '.' + nameSplit[1], type: "lineitem" });
+
+                }
+            }
+            else {
+                if (name.match(entitySpecialCharSelector)) {
+                    name = "'" + name + "'";
+                }
+                result.push({ name: name, type: "lineitem" });
             }
         }
 

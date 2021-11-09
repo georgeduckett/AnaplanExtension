@@ -6,7 +6,8 @@ import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData } from './AnaplanMetaData';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
-import { TerminalNode } from 'antlr4ts/tree/TerminalNode';
+
+export let entitySpecialCharSelector = '[^A-z\s%£\?]';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   private readonly _anaplanMetaData: AnaplanMetaData;
@@ -17,6 +18,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     super();
     this._anaplanMetaData = anaplanMetaData;
   }
+
 
   defaultResult(): Format {
     return AnaplanDataTypeStrings.UNKNOWN;
@@ -329,7 +331,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
-    if (ctx.text.match('[^A-z\s%£\?]') != null && !(ctx.text.endsWith("'") && ctx.text.startsWith("'"))) {
+    if (ctx.text.match(entitySpecialCharSelector) != null && !(ctx.text.endsWith("'") && ctx.text.startsWith("'"))) {
       this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
     }
 
@@ -349,8 +351,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
     }
 
-    if ((ctx._left.text.match('[^A-z\s%£\?]') != null && !(ctx._left.text.endsWith("'") && ctx._left.text.startsWith("'"))) ||
-      (ctx._right.text.match('[^A-z\s%£\?]') != null) && !(ctx._right.text.endsWith("'") && ctx._right.text.startsWith("'"))) {
+    if ((ctx._left.text.match(entitySpecialCharSelector) != null && !(ctx._left.text.endsWith("'") && ctx._left.text.startsWith("'"))) ||
+      (ctx._right.text.match(entitySpecialCharSelector) != null) && !(ctx._right.text.endsWith("'") && ctx._right.text.startsWith("'"))) {
       this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
     }
 
