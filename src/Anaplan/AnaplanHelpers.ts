@@ -410,7 +410,6 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
 
     let monacoErrors = [];
 
-    //try {
     const myresult = formulaEvaluator.visit(myparser.formula());
     // TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
 
@@ -439,12 +438,9 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
             });
         }
     }
-    //}
-    //catch { } // There was an error parsing the formula, but that should be ok since we pick up the errors as part of the parsing
-    // TODO: It's only ok in some circumstances to have an error here
 
     if (errors.length != 0) {
-        // If we have parser errors, then we only care about those
+        // If we have parser errors, then we only care about those, not whether or not the formula evaluates to what we need (since if there are errors the evaluation could easily be wrong anyway)
         monacoErrors = [];
         for (let e of errors) {
             monacoErrors.push({
@@ -469,6 +465,12 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                 severity: 8 //monaco.MarkerSeverity.Error
             });
         };
+    }
+
+    for (let i = 0; i < monacoErrors.length; i++) {
+        if (monacoErrors[i].message.startsWith("no viable alternative at input")) {
+            monacoErrors[i].message = "syntax error; found unexpected character" + (monacoErrors[i].endColumn === monacoErrors[i].startColumn + 1 ? "" : "(s)");
+        }
     }
 
     return monacoErrors;

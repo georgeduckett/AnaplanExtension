@@ -15,7 +15,7 @@ let modelInfoJson = `{"modelDefinitionSerialNumber":224452392287419,"metadataId"
 
 
 
-describe('Check formula evaluator', () => {
+describe('Check anaplan formulas are all considered valid', () => {
     global.anaplan = { data: { ModelContentCache: { _modelInfo: JSON.parse(modelInfoJson) } } };
 
     let cases: any[][] = [];
@@ -46,4 +46,16 @@ describe('Check formula evaluator', () => {
             expect(errors).toHaveLength(0);
         }
     });
+});
+
+describe('Check formula with syntax error gives the correct error', () => {
+    let i = 10;
+    let j = 0;
+    let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
+        anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
+    let formula = 'lalkasndad.,asdaskdjn'
+    let errors = getFormulaErrors(formula, metaData, 1, formula.length);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toEqual('syntax error; found unexpected character');
 });
