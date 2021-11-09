@@ -254,7 +254,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
       let lineitem = this._anaplanMetaData.getItemInfoFromEntityName(selector)!;
 
-      this.visit(dimensionMappings[i]); // TODO: Does this definitely mean we report unknown entities here?
+      this.visit(dimensionMappings[i]);
 
       switch (selectorType.toUpperCase()) {
         case "SELECT":

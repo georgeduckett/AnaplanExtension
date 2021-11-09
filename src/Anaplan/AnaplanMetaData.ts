@@ -6,7 +6,7 @@ export class AnaplanMetaData {
     private readonly _lineItemInfo: Map<string, LineItemInfo>;
     private readonly _hierarchyParents: Map<number, number>;
     private readonly _entityNames: Map<number, string>;
-    private readonly _entityIds: Map<string, { id: number, type: string }>; // TODO: Need entity type info somewhere (module/hierarchy/lineitem)
+    private readonly _entityIds: Map<string, { id: number, type: string }>;
     private readonly _currentLineItem: LineItemInfo;
     private readonly _subsetInfo: Map<number, SubsetInfo>;
 

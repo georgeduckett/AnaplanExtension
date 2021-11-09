@@ -48,7 +48,7 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
                     }
 
                     let dataTypeDisplayString = lineItemInfo.format.dataType;
-                    // TODO: Why is the data type a "User" for 'C1 Department'.All Customers
+
                     if (dataTypeDisplayString === "ENTITY") {
                         dataTypeDisplayString = this._anaplanMetaData?.getEntityNameFromId(lineItemInfo.format.hierarchyEntityLongId!)!;
                     } else {
