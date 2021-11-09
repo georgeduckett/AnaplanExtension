@@ -78,8 +78,10 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
 
         core.preferredRules = new Set([
             AnaplanFormulaParser.RULE_entity,
-            AnaplanFormulaParser.RULE_dimensionmapping,
+            AnaplanFormulaParser.RULE_dimensionmappingselector,
         ]);
+
+        core.showResult = true;
 
         let candidates = core.collectCandidates(computeTokenIndex(tree, position)!);
 
@@ -99,7 +101,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     }
                     break;
                 }
-                case AnaplanFormulaParser.RULE_dimensionmapping: {
+                case AnaplanFormulaParser.RULE_dimensionmappingselector: {
                     keywords.push('SELECT');
                     keywords.push('LOOKUP');
                     keywords.push('SUM');

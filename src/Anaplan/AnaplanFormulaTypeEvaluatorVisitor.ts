@@ -6,6 +6,7 @@ import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData } from './AnaplanMetaData';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
+import { TerminalNode } from 'antlr4ts/tree/TerminalNode';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   private readonly _anaplanMetaData: AnaplanMetaData;
@@ -250,7 +251,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let dimensionMappings = ctx.dimensionmapping();
     for (let i = 0; i < dimensionMappings.length; i++) {
       let dimensionMapping = dimensionMappings[i];
-      let selectorType = dimensionMapping.WORD().text;
+      let selectorType = dimensionMapping.dimensionmappingselector().text;
       let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
       let lineitem = this._anaplanMetaData.getItemInfoFromEntityName(selector)!;
 
@@ -267,6 +268,11 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           break;
         default: // If it's an aggregation we check the target entity mappings
+          if (!["MIN", "MAX", "SUM", "AVERAGE", "ANY", "ALL"].includes(selectorType.toUpperCase())) {
+            this.addFormulaError(dimensionMapping.dimensionmappingselector(), `Unknown aggregation function '${selectorType}'`);
+          }
+          // TODO: Ensure ANY/ALL are used with a boolean, and the others are used with a number
+
           var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
           extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           // We also remove any of this line item's dimensions from the source
@@ -374,12 +380,15 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
   //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
   addFormulaError(ctx: ParserRuleContext, message: string) {
-    this.formulaErrors.push(new FormulaError(
-      ctx.start.line,
-      ctx.stop?.line ?? ctx.start.line,
-      ctx.start.charPositionInLine + 1,
-      ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
-      message,
-      "2"));
+
+    if (ctx instanceof ParserRuleContext) {
+      this.formulaErrors.push(new FormulaError(
+        ctx.start.line,
+        ctx.stop?.line ?? ctx.start.line,
+        ctx.start.charPositionInLine + 1,
+        ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
+        message,
+        "2"));
+    }
   }
 }

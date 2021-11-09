@@ -153,7 +153,7 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
   }
 
   visitDimensionmapping(ctx: DimensionmappingContext): string {
-    return `${ctx.WORD().text}${ctx.COLON().text} ${this.visit(ctx.entity())}`;
+    return `${ctx.dimensionmappingselector().text}${ctx.COLON().text} ${this.visit(ctx.entity())}`;
   }
 
   visitFunctionname(ctx: FunctionnameContext): string {

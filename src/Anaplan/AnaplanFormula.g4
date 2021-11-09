@@ -37,8 +37,10 @@ func_:
 	functionname LPAREN (expression (',' expression)*)? RPAREN			# funcParameterised
 	| entity LSQUARE dimensionmapping (',' dimensionmapping)* RSQUARE	# funcSquareBrackets;
 
-dimensionmapping:
-	WORD COLON entity; // Could make WORD more specific here
+dimensionmapping: dimensionmappingselector COLON entity;
+
+dimensionmappingselector:
+	WORD; // Could make WORD more specific here
 
 functionname: WORD; // Could make WORD more specific here
 
