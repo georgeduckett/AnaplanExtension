@@ -20,6 +20,19 @@ export class AnaplanMetaData {
         this._currentLineItem = currentLineItem;
     }
 
+    getAutoCompleteItems(): { name: string, type: string }[] {
+        let result = [];
+        // TODO: Include the other types of items (subsets, hierarchy properties etc)
+        for (let lineItem of this._lineItemInfo) {
+            result.push({ name: lineItem[0], type: "lineitem" });
+
+            if (lineItem[0].includes('.') && lineItem[0].split('.')[0] === this._moduleName) {
+                result.push({ name: lineItem[0].split('.')[1], type: "lineitem" });
+            }
+        }
+
+        return result;
+    }
     getEntityType(ctx: EntityContext): Format {
         let entityName = this.getEntityName(ctx);
         return this.getItemInfoFromEntityName(entityName)?.format ?? AnaplanDataTypeStrings.UNKNOWN;
