@@ -265,7 +265,11 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
       let lineitem = this._anaplanMetaData.getItemInfoFromEntityName(selector)!;
 
-      this.visit(dimensionMappings[i]);
+      this.visit(dimensionMapping);
+
+      if (lineitem === undefined) {
+        continue;
+      }
 
       switch (selectorType.toUpperCase()) {
         case "SELECT":
