@@ -193,6 +193,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 				let handle: any;
 				model.onDidChangeContent(function (e) {
 					clearTimeout(handle);
+
 					handle = setTimeout(() => {
 						let headerElement = document.querySelectorAll(".formula-editor__header")[0];
 
