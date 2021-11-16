@@ -411,7 +411,6 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
     let monacoErrors = [];
 
     const myresult = formulaEvaluator.visit(myparser.formula());
-    // TODO: Use https://www.npmjs.com/package/antlr4-c3 for code completion?
 
     // Add the errors with the whole formula if needed
     if (myresult.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
