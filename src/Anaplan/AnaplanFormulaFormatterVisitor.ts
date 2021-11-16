@@ -161,7 +161,7 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
   }
 
   visitQuotedEntity(ctx: QuotedEntityContext): string {
-    return ctx.QUOTELITERAL().text;
+    return ctx.quotedEntityRule().text;
   }
 
   visitWordsEntity(ctx: WordsEntityContext): string {

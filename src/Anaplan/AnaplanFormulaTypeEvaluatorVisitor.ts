@@ -1,6 +1,6 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext } from './antlrclasses/AnaplanFormulaParser';
+import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext } from './antlrclasses/AnaplanFormulaParser';
 import { AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText, unQuoteEntity } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
@@ -259,6 +259,9 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
 
     let dimensionMappings = ctx.dimensionmapping();
+
+    let visitEntityResult = this.visit(ctx.entity());
+
     for (let i = 0; i < dimensionMappings.length; i++) {
       let dimensionMapping = dimensionMappings[i];
       let selectorType = dimensionMapping.dimensionmappingselector().text;
@@ -285,7 +288,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           if (!["MIN", "MAX", "SUM", "AVERAGE", "ANY", "ALL"].includes(selectorType.toUpperCase())) {
             this.addFormulaError(dimensionMapping.dimensionmappingselector(), `Unknown aggregation function '${selectorType}'`);
           }
-          // TODO: Ensure ANY/ALL are used with a boolean, and the others are used with a number
+
+          if (["ANY", "ALL"].includes(selectorType.toUpperCase()) && visitEntityResult.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
+            this.addFormulaError(dimensionMapping.dimensionmappingselector(), `'${selectorType}' must be used with a BOOLEAN entity`);
+          }
+          if (["MIN", "MAX", "SUM", "AVERAGE"].includes(selectorType.toUpperCase()) && visitEntityResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
+            this.addFormulaError(dimensionMapping.dimensionmappingselector(), `'${selectorType}' must be used with a NUMBER entity`);
+          }
 
           var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
           extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
@@ -300,7 +309,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       this.addMissingDimensionsFormulaError(ctx, extraSourceEntityMappings, extraTargetEntityMappings);
     }
 
-    return this.visit(ctx.entity());
+    return visitEntityResult;
   }
 
   visitDimensionmapping(ctx: DimensionmappingContext): Format {
@@ -326,6 +335,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
 
     return this._anaplanMetaData.getEntityType(ctx);
+  }
+
+  visitDotQualifiedEntityIncomplete(ctx: DotQualifiedEntityIncompleteContext): Format {
+
+    this.addFormulaError(ctx, `You must complete this dot-qualified entity`);
+    return AnaplanDataTypeStrings.UNKNOWN;
   }
 
   visitWordsEntity(ctx: WordsEntityContext): Format {
