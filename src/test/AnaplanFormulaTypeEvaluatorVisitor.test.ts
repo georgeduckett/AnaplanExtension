@@ -57,7 +57,7 @@ describe('Check formula with syntax error gives the correct error', () => {
     let errors = getFormulaErrors(formula, metaData, 1, formula.length);
 
     expect(errors).toHaveLength(1);
-    expect(errors[0].message).toEqual('syntax error; found unexpected character');
+    expect(errors[0].message).toEqual("mismatched input ',' expecting {WORD, '.'}");
 });
 
 describe("Check incomplete IF statement doesn't cause an error", () => {

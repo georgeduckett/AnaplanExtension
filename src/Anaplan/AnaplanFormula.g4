@@ -45,15 +45,19 @@ dimensionmappingselector:
 functionname: WORD; // Could make WORD more specific here
 
 entity:
-	quotedEntityRule															# quotedEntity
-	| wordsEntityRule															# wordsEntity
-	| left = dotQualifiedEntityLeftPart DOT right = dotQualifiedEntityRightPart	# dotQualifiedEntity;
+	quotedEntityRule																	# quotedEntity
+	| wordsEntityRule																	# wordsEntity
+	| left = dotQualifiedEntityLeftPart DOT right = dotQualifiedEntityRightPart			# dotQualifiedEntity
+	| left = dotQualifiedEntityLeftPart DOT right = dotQualifiedEntityRightPartEmpty	#
+		dotQualifiedEntityIncomplete;
 
 quotedEntityRule: QUOTELITERAL;
 wordsEntityRule: WORD+;
 
 dotQualifiedEntityLeftPart: dotQualifiedEntityPart;
 dotQualifiedEntityRightPart: dotQualifiedEntityPart;
+dotQualifiedEntityRightPartEmpty:
+	/* This is a placeholder for code completion */;
 
 dotQualifiedEntityPart:
 	QUOTELITERAL	# quotedEntityPart

@@ -1,11 +1,11 @@
 import { CodeCompletionCore, Symbol, SymbolTable, VariableSymbol } from "antlr4-c3";
-import { CharStreams, CommonTokenStream } from "antlr4ts";
+import { CharStreams, CommonTokenStream, DefaultErrorStrategy, ParserRuleContext } from "antlr4ts";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { Position } from "monaco-editor";
 import { AnaplanMetaData } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
 import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
 
@@ -30,13 +30,32 @@ function computeTokenIndexOfTerminalNode(parseTree: TerminalNode, caretLine: num
 }
 
 function computeTokenIndexOfChildNode(parseTree: ParseTree, caretLine: number, caretIndex: number) {
+    let bestMatch: TokenPosition | undefined = undefined;
+    // TODO: Handle the parsetree node being empty (changing index won't work as getting completions only uses that, so it doesn't matter that the context is correct)
+    // TODO: Next debugging step is to see what token stream we get
+    if (parseTree.childCount === 0) {
+        return { index: -1, context: parseTree };
+    }
+
     for (let i = 0; i < parseTree.childCount; i++) {
         let index = computeTokenIndex(parseTree.getChild(i), caretLine, caretIndex);
         if (index !== undefined) {
-            return index;
+            if (bestMatch === undefined) {
+                // We don't have a best match yet
+                bestMatch = index;
+            }
+            if (!(index.context instanceof TerminalNode)) {
+                // If the match isn't a terminal node, then use that
+
+                if (index.index === -1) {
+                    index.index = bestMatch.index;
+                }
+
+                return index;
+            }
         }
     }
-    return undefined;
+    return bestMatch;
 }
 
 export class FormulaCompletionItemProvider implements monaco.languages.CompletionItemProvider {
@@ -53,6 +72,8 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(model.getValue()));
         mylexer.removeErrorListeners();
         const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+        // TODO: Somehow make the parser create missing rules/tokens as needed where possible (to enable things like suggestions directly after a dot qualifier)
+
         myparser.removeErrorListeners();
 
         let tree = myparser.formula();
@@ -81,6 +102,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
 
         core.preferredRules = new Set([
             AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart,
+            AnaplanFormulaParser.RULE_dotQualifiedEntityRightPartEmpty,
             AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart,
             AnaplanFormulaParser.RULE_wordsEntityRule, // We don't include QuotedEntityRule here, as Words seems to cover it
             AnaplanFormulaParser.RULE_dimensionmappingselector,
@@ -88,7 +110,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
 
         let tokenPosition = computeTokenIndex(tree, position.lineNumber, position.column - 1)!;
 
-        let candidates = core.collectCandidates(tokenPosition.index);
+        let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
 
         let keywords: string[] = [];
         for (let candidate of candidates.tokens) {
@@ -105,9 +127,10 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     }
                     break;
                 }
-                case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart: {
+                case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart:
+                case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPartEmpty: {
                     // TODO: anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered acording to before the qualifying dot)
-                    let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext);
+                    let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext) ?? findAncestor(tokenPosition.context, DotQualifiedEntityIncompleteContext);
                     if (node != undefined) {
                         let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
                         if (leftPartText != undefined) {

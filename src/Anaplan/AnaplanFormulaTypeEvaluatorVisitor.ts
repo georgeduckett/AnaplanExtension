@@ -1,6 +1,6 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext } from './antlrclasses/AnaplanFormulaParser';
+import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext } from './antlrclasses/AnaplanFormulaParser';
 import { AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText, unQuoteEntity } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
@@ -335,6 +335,12 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
 
     return this._anaplanMetaData.getEntityType(ctx);
+  }
+
+  visitDotQualifiedEntityIncomplete(ctx: DotQualifiedEntityIncompleteContext): Format {
+
+    this.addFormulaError(ctx, `You must complete this dot-qualified entity`);
+    return AnaplanDataTypeStrings.UNKNOWN;
   }
 
   visitWordsEntity(ctx: WordsEntityContext): Format {
