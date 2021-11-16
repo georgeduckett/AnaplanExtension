@@ -45,9 +45,19 @@ dimensionmappingselector:
 functionname: WORD; // Could make WORD more specific here
 
 entity:
-	QUOTELITERAL						# quotedEntity
-	| WORD+								# wordsEntity
-	| left = entity DOT right = entity	# dotQualifiedEntity;
+	quotedEntityRule															# quotedEntity
+	| wordsEntityRule															# wordsEntity
+	| left = dotQualifiedEntityLeftPart DOT right = dotQualifiedEntityRightPart	# dotQualifiedEntity;
+
+quotedEntityRule: QUOTELITERAL;
+wordsEntityRule: WORD+;
+
+dotQualifiedEntityLeftPart: dotQualifiedEntityPart;
+dotQualifiedEntityRightPart: dotQualifiedEntityPart;
+
+dotQualifiedEntityPart:
+	QUOTELITERAL	# quotedEntityPart
+	| WORD+			# wordsEntityPart;
 
 WS: [ \r\n\t]+ -> channel(HIDDEN);
 

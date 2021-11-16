@@ -1,5 +1,6 @@
 import { CharStreams, CommonTokenStream, ConsoleErrorListener, ParserRuleContext } from "antlr4ts";
 import { Interval } from "antlr4ts/misc/Interval";
+import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { hoverProvider } from "../content-script-main";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { AnaplanMetaData } from "./AnaplanMetaData";
@@ -51,6 +52,23 @@ export class AnaplanDataTypeStrings {
     static DATE: Format = new Format("DATE");
 
     static UNKNOWN: Format = new Format("UNKNOWN");
+}
+
+type Constructor<T> = { new(...args: any[]): T };
+
+export function findAncestor<T extends ParseTree>(node: ParseTree | undefined, TName: Constructor<T>): T | undefined {
+    if (node === undefined || node instanceof TName) { return node as T; }
+
+    return findAncestor(node.parent, TName);
+}
+export function tryGetChild<T extends ParseTree>(node: ParseTree | undefined, TName: Constructor<T>): T | undefined {
+    if (node === undefined) return undefined;
+
+    for (let i = 0; i < node?.childCount; i++) {
+        if (node.getChild(i) instanceof TName) { return node.getChild(i) as T; }
+    }
+
+    return undefined;
 }
 
 export function formatFromFunctionName(functionName: string): Format {
@@ -184,6 +202,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
     for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
         for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
+            // TODO: Have the line items have separate left and right parts, so we don't split on a dot
             var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
             var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
             if (dataTypeString != AnaplanDataTypeStrings.NONE.dataType) {
@@ -228,6 +247,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
         // Add in the hierarchy properties as an entity
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo.length; j++) {
+            // TODO: Have the line items have separate left and right parts, so we don't split on a dot
             let entityName = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i] + '.' + anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j];
             moduleLineItems.set(entityName, {
                 parentLineItemEntityLongId: -1,
@@ -280,6 +300,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                     anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]) {
                     // We found the module this line item subset relates to. We can't know which line items are in the subset, so we just add them all
                     for (let l = 0; l < anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0].length; l++) {
+                        // TODO: Have the line items have separate left and right parts, so we don't split on a dot
                         let name = `${anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]}.${anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l]}`;
                         moduleLineItems.set(name, {
                             parentLineItemEntityLongId: -1,

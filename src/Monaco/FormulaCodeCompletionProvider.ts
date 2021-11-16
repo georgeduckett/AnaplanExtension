@@ -5,30 +5,33 @@ import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { Position } from "monaco-editor";
 import { AnaplanMetaData } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
+import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
 
-function computeTokenIndex(parseTree: ParseTree, caretPosition: Position): number | undefined {
+type TokenPosition = { index: number, context: ParseTree };
+
+function computeTokenIndex(parseTree: ParseTree, caretLine: number, caretIndex: number): TokenPosition | undefined {
     if (parseTree instanceof TerminalNode) {
-        return computeTokenIndexOfTerminalNode(parseTree, caretPosition);
+        return computeTokenIndexOfTerminalNode(parseTree, caretLine, caretIndex);
     } else {
-        return computeTokenIndexOfChildNode(parseTree, caretPosition);
+        return computeTokenIndexOfChildNode(parseTree, caretLine, caretIndex);
     }
 }
 
-function computeTokenIndexOfTerminalNode(parseTree: TerminalNode, caretPosition: Position) {
+function computeTokenIndexOfTerminalNode(parseTree: TerminalNode, caretLine: number, caretIndex: number): TokenPosition | undefined {
     let start = parseTree.symbol.charPositionInLine;
     let stop = parseTree.symbol.charPositionInLine + parseTree.text.length;
-    if (parseTree.symbol.line == caretPosition.lineNumber && start <= caretPosition.column && stop >= caretPosition.column) {
-        return parseTree.symbol.tokenIndex;
+    if (parseTree.symbol.line == caretLine && start <= caretIndex && stop >= caretIndex) {
+        return { index: parseTree.symbol.tokenIndex, context: parseTree };
     } else {
         return undefined;
     }
 }
 
-function computeTokenIndexOfChildNode(parseTree: ParseTree, caretPosition: Position) {
+function computeTokenIndexOfChildNode(parseTree: ParseTree, caretLine: number, caretIndex: number) {
     for (let i = 0; i < parseTree.childCount; i++) {
-        let index = computeTokenIndex(parseTree.getChild(i), caretPosition);
+        let index = computeTokenIndex(parseTree.getChild(i), caretLine, caretIndex);
         if (index !== undefined) {
             return index;
         }
@@ -77,13 +80,15 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         ]);
 
         core.preferredRules = new Set([
-            AnaplanFormulaParser.RULE_entity,
+            AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart,
+            AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart,
+            AnaplanFormulaParser.RULE_wordsEntityRule, // We don't include QuotedEntityRule here, as Words seems to cover it
             AnaplanFormulaParser.RULE_dimensionmappingselector,
         ]);
 
-        core.showResult = true;
+        let tokenPosition = computeTokenIndex(tree, position.lineNumber, position.column - 1)!;
 
-        let candidates = core.collectCandidates(computeTokenIndex(tree, position)!);
+        let candidates = core.collectCandidates(tokenPosition.index);
 
         let keywords: string[] = [];
         for (let candidate of candidates.tokens) {
@@ -93,8 +98,29 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         let entityNames: string[] = [];
         for (let candidate of candidates.rules) {
             switch (candidate[0]) {
-                case AnaplanFormulaParser.RULE_entity: {
-                    for (let e of this._anaplanMetaData!.getAutoCompleteItems()) {
+                case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
+                    // TODO: anything that could be before a qualifying dot, i.e. modules, list names, subsets
+                    for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedLeftPart()) {
+                        entityNames.push(e.name);
+                    }
+                    break;
+                }
+                case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart: {
+                    // TODO: anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered acording to before the qualifying dot)
+                    let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext);
+                    if (node != undefined) {
+                        let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
+                        if (leftPartText != undefined) {
+                            for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedRightPart(leftPartText)) {
+                                entityNames.push(e.name);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case AnaplanFormulaParser.RULE_wordsEntityRule: {
+                    // TODO: Any entity that doesn't need to be qualified (e.g. line items of the current module)
+                    for (let e of this._anaplanMetaData!.getAutoCompleteWords()) {
                         if (!e.name.startsWith('<<') && !e.name.startsWith('--')) {
                             entityNames.push(e.name);
                         }
@@ -110,6 +136,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     keywords.push('MAX');
                     keywords.push('ANY');
                     keywords.push('ALL');
+                    break;
                 }
             }
         }

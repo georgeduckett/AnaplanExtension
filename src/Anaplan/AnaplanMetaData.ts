@@ -21,40 +21,51 @@ export class AnaplanMetaData {
         this._currentLineItem = currentLineItem;
     }
 
-    getAutoCompleteItems(): { name: string, type: string }[] {
-        let result = [];
-        // TODO: Include the other types of items (subsets, hierarchy properties etc)
+    quoteIfNeeded(entityName: string): string {
+        if (entityName.match(entitySpecialCharSelector)) {
+            return "'" + entityName + "'";
+        }
+        else {
+            return entityName;
+        }
+    }
+
+
+    // TODO: Include the other types of items (subsets, hierarchy properties etc)
+
+    getAutoCompleteQualifiedLeftPart(): Set<{ name: string, type: string }> {
+        let result = new Set<string>();
+
         for (let lineItem of this._lineItemInfo) {
-            let name = lineItem[0];
-            // TODO: Add in quotes as needed, based on entitySpecialCharSelector
-            if (name.includes('.')) {
-                if (name.split('.')[0] === this._moduleName) {
-                    let nameRight = name.split('.')[1];
+            if (lineItem[0].includes('.')) {
+                // If this line item is dot-qualified, show just the first part
+                result.add(this.quoteIfNeeded(lineItem[0].split('.')[0]));
+            }
+        }
 
-                    if (nameRight.match(entitySpecialCharSelector)) {
-                        nameRight = "'" + nameRight + "'";
-                    }
-                    result.push({ name: nameRight, type: "lineitem" });
-                }
-                else {
-                    let nameSplit = name.split('.');
-                    // TODO: Maybe handle adding the qoutes as part of the accepting the change / as inserted text but not shown text
-                    if (nameSplit[0].match(entitySpecialCharSelector)) {
-                        nameSplit[0] = "'" + nameSplit[0] + "'";
-                    }
-                    if (nameSplit[1].match(entitySpecialCharSelector)) {
-                        nameSplit[1] = "'" + nameSplit[1] + "'";
-                    }
-
-                    result.push({ name: nameSplit[0] + '.' + nameSplit[1], type: "lineitem" });
-
+        return new Set(Array.from(result).map(e => { return { name: e, type: "lineitem" }; }));
+    }
+    getAutoCompleteQualifiedRightPart(leftPartText: string): Set<{ name: string, type: string }> {
+        let result = new Set<{ name: string, type: string }>();
+        // Add anything that needs to be qualified
+        for (let lineItem of this._lineItemInfo) {
+            if (lineItem[0].includes('.')) {
+                if (this.quoteIfNeeded(lineItem[0].split('.')[0]) === leftPartText) {
+                    // If this line item is dot-qualified, show just the first part
+                    result.add({ name: this.quoteIfNeeded(lineItem[0].split('.')[1]), type: "lineitem" });
                 }
             }
-            else {
-                if (name.match(entitySpecialCharSelector)) {
-                    name = "'" + name + "'";
-                }
-                result.push({ name: name, type: "lineitem" });
+        }
+
+        return result;
+    }
+
+    getAutoCompleteWords(): Set<{ name: string, type: string }> {
+        let result = new Set<{ name: string, type: string }>();
+        // Add anything that doesn't need to be qualified
+        for (let lineItem of this._lineItemInfo) {
+            if (!lineItem[0].includes('.')) {
+                result.add({ name: this.quoteIfNeeded(lineItem[0]), type: "lineitem" });
             }
         }
 
@@ -129,7 +140,7 @@ export class AnaplanMetaData {
 
     getEntityName(ctx: EntityContext): string {
         if (ctx instanceof QuotedEntityContext) {
-            return this._moduleName + "." + unQuoteEntity(ctx.QUOTELITERAL().text);
+            return this._moduleName + "." + unQuoteEntity(ctx.quotedEntityRule().text);
         } else if (ctx instanceof WordsEntityContext) {
             return this._moduleName + "." + getOriginalText(ctx);
         } else if (ctx instanceof DotQualifiedEntityContext) {
