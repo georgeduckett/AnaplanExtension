@@ -127,6 +127,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         }
 
         let suggestions: CompletionItem[] = [];
+        // TODO: Display entites without enclosing quotes
         suggestions.push(...keywords.map(s => new CompletionItem(s, monaco.languages.CompletionItemKind.Keyword, s, range)));
         suggestions.push(...entityNames.map(s => new CompletionItem(s, monaco.languages.CompletionItemKind.Variable, s, range)));
 
