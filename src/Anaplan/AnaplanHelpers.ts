@@ -202,11 +202,14 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
     for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
         for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
-            // TODO: Have the line items have separate left and right parts, so we don't split on a dot
             var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
             var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
             if (dataTypeString != AnaplanDataTypeStrings.NONE.dataType) {
-                moduleLineItems.set(entityName, new EntityMetaData(anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j], EntityType.LineItem));
+                moduleLineItems.set(entityName, new EntityMetaData(
+                    anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j],
+                    EntityType.LineItem,
+                    anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i],
+                    anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j]));
 
                 if (dataTypeString === AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
 
@@ -247,7 +250,6 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
         // Add in the hierarchy properties as an entity
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo.length; j++) {
-            // TODO: Have the line items have separate left and right parts, so we don't split on a dot
             let entityName = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i] + '.' + anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j];
             moduleLineItems.set(entityName, new EntityMetaData({
                 parentLineItemEntityLongId: -1,
@@ -255,7 +257,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                 formulaScope: '',
                 isSummary: false,
                 format: anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo[j].format,
-            }, EntityType.LineItem));
+            },
+                EntityType.LineItem,
+                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
+                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j]));
         }
 
         // Add in the hierarchy itself as an entity
@@ -267,7 +272,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             formulaScope: '',
             isSummary: false,
             format: format,
-        }, EntityType.Hierarchy));
+        },
+            EntityType.Hierarchy,
+            anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
+            undefined));
     }
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
@@ -300,7 +308,6 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                     anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.entityLongIds[0][i]) {
                     // We found the module this line item subset relates to. We can't know which line items are in the subset, so we just add them all
                     for (let l = 0; l < anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0].length; l++) {
-                        // TODO: Have the line items have separate left and right parts, so we don't split on a dot
                         let name = `${anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]}.${anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l]}`;
                         moduleLineItems.set(name, new EntityMetaData({
                             parentLineItemEntityLongId: -1,
@@ -308,7 +315,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                             formulaScope: '',
                             isSummary: false,
                             format: anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemInfos[l].format,
-                        }, EntityType.LineItemSubSet));
+                        },
+                            EntityType.LineItemSubSet,
+                            anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
+                            anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l]));
                     }
                     break;
                 }
@@ -335,7 +345,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             formulaScope: '',
             isSummary: false,
             format: AnaplanDataTypeStrings.ENTITY(anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i]),
-        }, EntityType.Version));
+        },
+            EntityType.Version,
+            "VERSIONS",
+            anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.labels[0][i]));
     }
 
     // Add in the different time periods
@@ -376,7 +389,10 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         formulaScope: '',
         isSummary: false,
         format: AnaplanDataTypeStrings.TIME_ENTITY,
-    }, EntityType.HierarchyListItem));
+    },
+        EntityType.HierarchyListItem,
+        "TIME",
+        "All Periods"));
 
     // Add in the special time period types
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {

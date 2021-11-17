@@ -25,10 +25,14 @@ export enum EntityType { Module, Hierarchy, LineItem, LineItemSubSet, Version, H
 export class EntityMetaData {
     public lineItemInfo: LineItemInfo;
     public entityType: EntityType;
+    public qualifier: string;
+    public name: string | undefined;
 
-    constructor(lineItemInfo: LineItemInfo, entityType: EntityType) {
+    constructor(lineItemInfo: LineItemInfo, entityType: EntityType, qualifier: string, name: string | undefined) {
         this.lineItemInfo = lineItemInfo;
         this.entityType = entityType;
+        this.qualifier = qualifier;
+        this.name = name;
     }
 
     public getMonacoAutoCompleteKind(): monaco.languages.CompletionItemKind {
@@ -76,10 +80,9 @@ export class AnaplanMetaData {
         let result = new Set<string>();
 
         for (let lineItem of this._lineItemInfo) {
-            if (lineItem[0].includes('.')) {
+            if (lineItem[1].name != undefined) {
                 // If this line item is dot-qualified, show just the first part
-                // If this isn't a 'header' module
-                result.add(lineItem[0].split('.')[0]);
+                result.add(lineItem[1].qualifier);
             }
         }
 
@@ -89,10 +92,10 @@ export class AnaplanMetaData {
         let result = new Set<AutoCompleteInfo>();
         // Add anything that needs to be qualified
         for (let lineItem of this._lineItemInfo) {
-            if (lineItem[0].includes('.')) {
-                if (this.quoteIfNeeded(lineItem[0].split('.')[0]) === leftPartText) {
+            if (lineItem[1].name != undefined) {
+                if (this.quoteIfNeeded(lineItem[1].qualifier) === leftPartText) {
                     // If this line item is dot-qualified, show just the first part
-                    result.add(new AutoCompleteInfo(lineItem[0].split('.')[1], this.quoteIfNeeded(lineItem[0].split('.')[1]), monaco.languages.CompletionItemKind.Constant, [' ', ']']));
+                    result.add(new AutoCompleteInfo(lineItem[1].name, this.quoteIfNeeded(lineItem[1].name), monaco.languages.CompletionItemKind.Constant, [' ', ']']));
                 }
             }
         }
@@ -104,7 +107,7 @@ export class AnaplanMetaData {
         let result = new Set<AutoCompleteInfo>();
         // Add anything that doesn't need to be qualified
         for (let lineItem of this._lineItemInfo) {
-            if (!lineItem[0].includes('.') && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
+            if (!lineItem[1].name != undefined && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
                 result.add(new AutoCompleteInfo(lineItem[0], this.quoteIfNeeded(lineItem[0]), monaco.languages.CompletionItemKind.Constant, []));
             }
         }
