@@ -116,11 +116,11 @@ export class AnaplanMetaData {
     }
     getEntityType(ctx: EntityContext): Format {
         let entityName = this.getEntityName(ctx);
-        return this.getItemInfoFromEntityName(entityName)?.format ?? AnaplanDataTypeStrings.UNKNOWN;
+        return this.getItemInfoFromEntityName(entityName)?.lineItemInfo?.format ?? AnaplanDataTypeStrings.UNKNOWN;
     }
     getEntityDimensions(ctx: EntityContext): number[] {
         let entityName = this.getEntityName(ctx);
-        let entityDimensions = this.getItemInfoFromEntityName(entityName)?.fullAppliesTo?.sort();
+        let entityDimensions = this.getItemInfoFromEntityName(entityName)?.lineItemInfo.fullAppliesTo?.sort();
 
         if (entityDimensions === undefined) {
             return [];
@@ -173,8 +173,8 @@ export class AnaplanMetaData {
         return this._currentLineItem;
     }
 
-    getItemInfoFromEntityName(entityName: string): { format: Format, fullAppliesTo: number[] } | undefined {
-        return this._lineItemInfo.get(entityName)?.lineItemInfo;
+    getItemInfoFromEntityName(entityName: string): EntityMetaData | undefined {
+        return this._lineItemInfo.get(entityName);
     }
 
     getEntityNameFromId(entityId: number): string {

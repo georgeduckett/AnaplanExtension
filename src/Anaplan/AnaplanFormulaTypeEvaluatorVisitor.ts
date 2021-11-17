@@ -276,12 +276,11 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
       switch (selectorType.toUpperCase()) {
         case "SELECT":
-          let entityName = selector.replace(new RegExp("'", 'g'), "");
-          entityName = entityName.substring(0, entityName.indexOf('.'));
+          let entityName = lineitem.qualifier;
           extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, this._anaplanMetaData.getEntityIdFromName(entityName)!));
           break;
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
-          var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
+          var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem.lineItemInfo);
           extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           break;
         default: // If it's an aggregation we check the target entity mappings
@@ -296,11 +295,11 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
             this.addFormulaError(dimensionMapping.dimensionmappingselector(), `'${selectorType}' must be used with a NUMBER entity`);
           }
 
-          var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem);
+          var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem.lineItemInfo);
           extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           // We also remove any of this line item's dimensions from the source
-          for (let j = 0; j < lineitem.fullAppliesTo.length; j++) {
-            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineitem.fullAppliesTo[j]));
+          for (let j = 0; j < lineitem.lineItemInfo.fullAppliesTo.length; j++) {
+            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineitem.lineItemInfo.fullAppliesTo[j]));
           }
       }
     }

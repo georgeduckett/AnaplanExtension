@@ -42,15 +42,15 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
                 let lineItemInfo = this._anaplanMetaData!.getItemInfoFromEntityName(entityName);
 
                 if (lineItemInfo != undefined) {
-                    let dimensions = lineItemInfo?.fullAppliesTo.map(this._anaplanMetaData!.getEntityNameFromId, this._anaplanMetaData).sort().join(', ');
+                    let dimensions = lineItemInfo?.lineItemInfo?.fullAppliesTo.map(this._anaplanMetaData!.getEntityNameFromId, this._anaplanMetaData).sort().join(', ');
                     if (dimensions === "") {
                         dimensions = "\\<None>";
                     }
 
-                    let dataTypeDisplayString = lineItemInfo.format.dataType;
+                    let dataTypeDisplayString = lineItemInfo.lineItemInfo.format.dataType;
 
                     if (dataTypeDisplayString === "ENTITY") {
-                        dataTypeDisplayString = this._anaplanMetaData?.getEntityNameFromId(lineItemInfo.format.hierarchyEntityLongId!)!;
+                        dataTypeDisplayString = this._anaplanMetaData?.getEntityNameFromId(lineItemInfo.lineItemInfo.format.hierarchyEntityLongId!)!;
                     } else {
                         dataTypeDisplayString = dataTypeDisplayString.toLowerCase().replace(/\b\S/g, t => t.toUpperCase());
                     }
