@@ -70,7 +70,6 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(model.getValue()));
         mylexer.removeErrorListeners();
         const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
-        // TODO: Somehow make the parser create missing rules/tokens as needed where possible (to enable things like suggestions directly after a dot qualifier)
 
         myparser.removeErrorListeners();
 
@@ -173,7 +172,6 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         }
 
         let suggestions: CompletionItem[] = [];
-        // TODO: Display entites without enclosing quotes
         suggestions.push(...keywords.map(s => new CompletionItem(s, monaco.languages.CompletionItemKind.Keyword, s, range)));
         suggestions.push(...entityNames.map(s => {
             let result = new CompletionItem(s.label, s.kind, s.text, range);

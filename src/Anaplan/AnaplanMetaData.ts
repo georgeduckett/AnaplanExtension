@@ -72,9 +72,6 @@ export class AnaplanMetaData {
         }
     }
 
-
-    // TODO: Include the other types of items (subsets, hierarchy properties etc)
-
     getAutoCompleteQualifiedLeftPart(): Set<AutoCompleteInfo> {
         let result = new Set<string>();
 
