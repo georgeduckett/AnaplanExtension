@@ -94,8 +94,8 @@ export class AnaplanMetaData {
                 let itemKey = lineItem[1].qualifier + '|' + EntityType[lineItem[1].entityType];
                 if (!keys.has(itemKey)) {
                     result.add(new AutoCompleteInfo(
-                        (lineItem[1].entityType === EntityType.HierarchyProperty ? lineItem[1].name + '.' : '') + lineItem[1].qualifier,
-                        (lineItem[1].entityType === EntityType.HierarchyProperty ? this.quoteIfNeeded(lineItem[1].name) + '.' : '') + this.quoteIfNeeded(lineItem[1].qualifier),
+                        lineItem[1].qualifier + (lineItem[1].entityType === EntityType.HierarchyProperty ? '.' + lineItem[1].name : ''),
+                        this.quoteIfNeeded(lineItem[1].qualifier) + (lineItem[1].entityType === EntityType.HierarchyProperty ? '.' + this.quoteIfNeeded(lineItem[1].name) : ''),
                         EntityMetaData.getMonacoAutoCompleteKind(lineItem[1].entityType === EntityType.LineItem ? EntityType.Module : lineItem[1].entityType),
                         ['.'],
                         lineItem[1].entityType === EntityType.LineItem ? 'Module' : EntityType[lineItem[1].entityType],
