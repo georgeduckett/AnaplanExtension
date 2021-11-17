@@ -2,16 +2,58 @@ import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor"
 import { unQuoteEntity, getOriginalText, AnaplanDataTypeStrings, Format, anaplanTimeEntityBaseId } from "./AnaplanHelpers";
 import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext } from "./antlrclasses/AnaplanFormulaParser";
 
+export class AutoCompleteInfo {
+    public label: string;
+    public text: string;
+    public kind: monaco.languages.CompletionItemKind;
+    public autoInsertChars: string[];
+
+    constructor(label: string, text: string, kind: monaco.languages.CompletionItemKind, autoInsertChars: string[]) {
+        this.label = label;
+        this.text = text;
+        this.kind = kind;
+        this.autoInsertChars = autoInsertChars;
+    }
+}
+
+function assertUnreachable(x: never): never {
+    throw new Error("Didn't expect to get here");
+}
+
+export enum EntityType { Module, Hierarchy, LineItem, LineItemSubSet, Version, HierarchyListItem }
+
+export class EntityMetaData {
+    public lineItemInfo: LineItemInfo;
+    public entityType: EntityType;
+
+    constructor(lineItemInfo: LineItemInfo, entityType: EntityType) {
+        this.lineItemInfo = lineItemInfo;
+        this.entityType = entityType;
+    }
+
+    public getMonacoAutoCompleteKind(): monaco.languages.CompletionItemKind {
+        switch (this.entityType) {
+            case EntityType.Module: return monaco.languages.CompletionItemKind.Folder;
+            case EntityType.LineItem: return monaco.languages.CompletionItemKind.Value;
+            case EntityType.Hierarchy: return monaco.languages.CompletionItemKind.Constant;
+            case EntityType.LineItemSubSet: return monaco.languages.CompletionItemKind.Value;
+            case EntityType.Version: return monaco.languages.CompletionItemKind.Value;
+            case EntityType.HierarchyListItem: return monaco.languages.CompletionItemKind.Value;
+            default: return assertUnreachable(this.entityType);
+        }
+    }
+}
+
 export class AnaplanMetaData {
     private readonly _moduleName: string;
-    private readonly _lineItemInfo: Map<string, LineItemInfo>;
+    private readonly _lineItemInfo: Map<string, EntityMetaData>;
     private readonly _hierarchyParents: Map<number, number>;
     private readonly _entityNames: Map<number, string>;
     private readonly _entityIds: Map<string, { id: number, type: string }>;
     private readonly _currentLineItem: LineItemInfo;
     private readonly _subsetInfo: Map<number, SubsetInfo>;
 
-    constructor(lineItemInfo: Map<string, LineItemInfo>, subsetInfo: Map<number, SubsetInfo>, entityNames: Map<number, string>, entityIds: Map<string, { id: number, type: string }>, hierarchyParents: Map<number, number>, moduleName: string, currentLineItem: LineItemInfo) {
+    constructor(lineItemInfo: Map<string, EntityMetaData>, subsetInfo: Map<number, SubsetInfo>, entityNames: Map<number, string>, entityIds: Map<string, { id: number, type: string }>, hierarchyParents: Map<number, number>, moduleName: string, currentLineItem: LineItemInfo) {
         this._moduleName = moduleName;
         this._subsetInfo = subsetInfo;
         this._lineItemInfo = lineItemInfo;
@@ -33,26 +75,27 @@ export class AnaplanMetaData {
 
     // TODO: Include the other types of items (subsets, hierarchy properties etc)
 
-    getAutoCompleteQualifiedLeftPart(): Set<{ name: string, type: string }> {
+    getAutoCompleteQualifiedLeftPart(): Set<AutoCompleteInfo> {
         let result = new Set<string>();
 
         for (let lineItem of this._lineItemInfo) {
             if (lineItem[0].includes('.')) {
                 // If this line item is dot-qualified, show just the first part
-                result.add(this.quoteIfNeeded(lineItem[0].split('.')[0]));
+                // If this isn't a 'header' module
+                result.add(lineItem[0].split('.')[0]);
             }
         }
 
-        return new Set(Array.from(result).map(e => { return { name: e, type: "lineitem" }; }));
+        return new Set(Array.from(result).map(e => new AutoCompleteInfo(e, this.quoteIfNeeded(e), monaco.languages.CompletionItemKind.Folder, ['.'])));
     }
-    getAutoCompleteQualifiedRightPart(leftPartText: string): Set<{ name: string, type: string }> {
-        let result = new Set<{ name: string, type: string }>();
+    getAutoCompleteQualifiedRightPart(leftPartText: string): Set<AutoCompleteInfo> {
+        let result = new Set<AutoCompleteInfo>();
         // Add anything that needs to be qualified
         for (let lineItem of this._lineItemInfo) {
             if (lineItem[0].includes('.')) {
                 if (this.quoteIfNeeded(lineItem[0].split('.')[0]) === leftPartText) {
                     // If this line item is dot-qualified, show just the first part
-                    result.add({ name: this.quoteIfNeeded(lineItem[0].split('.')[1]), type: "lineitem" });
+                    result.add(new AutoCompleteInfo(lineItem[0].split('.')[1], this.quoteIfNeeded(lineItem[0].split('.')[1]), monaco.languages.CompletionItemKind.Constant, [' ', ']']));
                 }
             }
         }
@@ -60,12 +103,12 @@ export class AnaplanMetaData {
         return result;
     }
 
-    getAutoCompleteWords(): Set<{ name: string, type: string }> {
-        let result = new Set<{ name: string, type: string }>();
+    getAutoCompleteWords(): Set<AutoCompleteInfo> {
+        let result = new Set<AutoCompleteInfo>();
         // Add anything that doesn't need to be qualified
         for (let lineItem of this._lineItemInfo) {
-            if (!lineItem[0].includes('.')) {
-                result.add({ name: this.quoteIfNeeded(lineItem[0]), type: "lineitem" });
+            if (!lineItem[0].includes('.') && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
+                result.add(new AutoCompleteInfo(lineItem[0], this.quoteIfNeeded(lineItem[0]), monaco.languages.CompletionItemKind.Constant, []));
             }
         }
 
@@ -131,7 +174,7 @@ export class AnaplanMetaData {
     }
 
     getItemInfoFromEntityName(entityName: string): { format: Format, fullAppliesTo: number[] } | undefined {
-        return this._lineItemInfo.get(entityName);
+        return this._lineItemInfo.get(entityName)?.lineItemInfo;
     }
 
     getEntityNameFromId(entityId: number): string {

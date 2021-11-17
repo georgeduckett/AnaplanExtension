@@ -3,7 +3,7 @@ import { CharStreams, CommonTokenStream, DefaultErrorStrategy, ParserRuleContext
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { Position } from "monaco-editor";
-import { AnaplanMetaData } from "../Anaplan/AnaplanMetaData";
+import { AnaplanMetaData, AutoCompleteInfo } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
 import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
@@ -115,13 +115,13 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             keywords.push(myparser.vocabulary.getDisplayName(candidate[0]));
         }
 
-        let entityNames: string[] = [];
+        let entityNames: AutoCompleteInfo[] = [];
         for (let candidate of candidates.rules) {
             switch (candidate[0]) {
                 case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
                     // anything that could be before a qualifying dot, i.e. modules, list names, subsets
                     for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedLeftPart()) {
-                        entityNames.push(e.name);
+                        entityNames.push(e);
                     }
                     break;
                 }
@@ -133,7 +133,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
                         if (leftPartText != undefined) {
                             for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedRightPart(leftPartText)) {
-                                entityNames.push(e.name);
+                                entityNames.push(e);
                             }
                         }
                     }
@@ -142,9 +142,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                 case AnaplanFormulaParser.RULE_wordsEntityRule: {
                     // Any entity that doesn't need to be qualified (e.g. line items of the current module)
                     for (let e of this._anaplanMetaData!.getAutoCompleteWords()) {
-                        if (!e.name.startsWith('<<') && !e.name.startsWith('--')) {
-                            entityNames.push(e.name);
-                        }
+                        entityNames.push(e);
                     }
                     break;
                 }
@@ -177,7 +175,11 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         let suggestions: CompletionItem[] = [];
         // TODO: Display entites without enclosing quotes
         suggestions.push(...keywords.map(s => new CompletionItem(s, monaco.languages.CompletionItemKind.Keyword, s, range)));
-        suggestions.push(...entityNames.map(s => new CompletionItem(s, monaco.languages.CompletionItemKind.Variable, s, range)));
+        suggestions.push(...entityNames.map(s => {
+            let result = new CompletionItem(s.label, s.kind, s.text, range);
+            result.commitCharacters = s.autoInsertChars;
+            return result;
+        }));
 
         return {
             suggestions: suggestions

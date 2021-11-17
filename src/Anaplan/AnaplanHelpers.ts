@@ -3,7 +3,7 @@ import { Interval } from "antlr4ts/misc/Interval";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { hoverProvider } from "../content-script-main";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
-import { AnaplanMetaData } from "./AnaplanMetaData";
+import { AnaplanMetaData, EntityMetaData, EntityType } from "./AnaplanMetaData";
 import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
 import { AnaplanFormulaParser } from './antlrclasses/AnaplanFormulaParser';
 import { CollectorErrorListener } from "./CollectorErrorListener";
@@ -198,7 +198,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
     let currentLineItemName = currentModuleName + "." + lineItemName;
 
-    let moduleLineItems = new Map<string, LineItemInfo>();
+    let moduleLineItems = new Map<string, EntityMetaData>();
 
     for (var i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
         for (var j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0].length; j++) {
@@ -206,7 +206,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             var entityName = anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] + "." + anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j];
             var dataTypeString = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].format.dataType;
             if (dataTypeString != AnaplanDataTypeStrings.NONE.dataType) {
-                moduleLineItems.set(entityName, anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j]);
+                moduleLineItems.set(entityName, new EntityMetaData(anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j], EntityType.LineItem));
 
                 if (dataTypeString === AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
 
@@ -249,25 +249,25 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo.length; j++) {
             // TODO: Have the line items have separate left and right parts, so we don't split on a dot
             let entityName = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i] + '.' + anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j];
-            moduleLineItems.set(entityName, {
+            moduleLineItems.set(entityName, new EntityMetaData({
                 parentLineItemEntityLongId: -1,
                 fullAppliesTo: [],
                 formulaScope: '',
                 isSummary: false,
                 format: anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo[j].format,
-            });
+            }, EntityType.LineItem));
         }
 
         // Add in the hierarchy itself as an entity
         let format = AnaplanDataTypeStrings.ENTITY(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId);
 
-        moduleLineItems.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i], {
+        moduleLineItems.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i], new EntityMetaData({
             parentLineItemEntityLongId: -1,
             fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
             formulaScope: '',
             isSummary: false,
             format: format,
-        });
+        }, EntityType.Hierarchy));
     }
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
@@ -302,13 +302,13 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                     for (let l = 0; l < anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0].length; l++) {
                         // TODO: Have the line items have separate left and right parts, so we don't split on a dot
                         let name = `${anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]}.${anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l]}`;
-                        moduleLineItems.set(name, {
+                        moduleLineItems.set(name, new EntityMetaData({
                             parentLineItemEntityLongId: -1,
                             fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
                             formulaScope: '',
                             isSummary: false,
                             format: anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemInfos[l].format,
-                        });
+                        }, EntityType.LineItemSubSet));
                     }
                     break;
                 }
@@ -329,13 +329,13 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                 type: 'version'
             });
 
-        moduleLineItems.set(name, {
+        moduleLineItems.set(name, new EntityMetaData({
             parentLineItemEntityLongId: -1,
             fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i]],
             formulaScope: '',
             isSummary: false,
             format: AnaplanDataTypeStrings.ENTITY(anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i]),
-        });
+        }, EntityType.Version));
     }
 
     // Add in the different time periods
@@ -370,13 +370,13 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             id: -1, // TODO: What should this be?
             type: 'time'
         });
-    moduleLineItems.set('TIME.All Periods', {
+    moduleLineItems.set('TIME.All Periods', new EntityMetaData({
         parentLineItemEntityLongId: -1,
         fullAppliesTo: [],
         formulaScope: '',
         isSummary: false,
         format: AnaplanDataTypeStrings.TIME_ENTITY,
-    });
+    }, EntityType.HierarchyListItem));
 
     // Add in the special time period types
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {
@@ -409,7 +409,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     }
 
 
-    return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!);
+    return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!.lineItemInfo);
 }
 
 export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaData,
