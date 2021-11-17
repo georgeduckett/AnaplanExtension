@@ -258,7 +258,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                 isSummary: false,
                 format: anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo[j].format,
             },
-                EntityType.LineItem,
+                EntityType.HierarchyProperty,
                 anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
                 anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j]));
         }

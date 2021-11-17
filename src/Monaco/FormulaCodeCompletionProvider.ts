@@ -176,6 +176,8 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         suggestions.push(...entityNames.map(s => {
             let result = new CompletionItem(s.label, s.kind, s.text, range);
             result.commitCharacters = s.autoInsertChars;
+            result.detail = s.detail;
+            result.documentation = s.documentation;
             return result;
         }));
 

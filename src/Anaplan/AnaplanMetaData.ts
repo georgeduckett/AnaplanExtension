@@ -6,13 +6,17 @@ export class AutoCompleteInfo {
     public label: string;
     public text: string;
     public kind: monaco.languages.CompletionItemKind;
-    public autoInsertChars: string[];
+    public autoInsertChars: string[] | undefined;
+    public detail: string | undefined;
+    public documentation: string | undefined;
 
-    constructor(label: string, text: string, kind: monaco.languages.CompletionItemKind, autoInsertChars: string[]) {
+    constructor(label: string, text: string, kind: monaco.languages.CompletionItemKind, autoInsertChars: string[] | undefined, detail: string | undefined, documentation: string | undefined) {
         this.label = label;
         this.text = text;
         this.kind = kind;
         this.autoInsertChars = autoInsertChars;
+        this.detail = detail
+        this.documentation = documentation;
     }
 }
 
@@ -20,7 +24,7 @@ function assertUnreachable(x: never): never {
     throw new Error("Didn't expect to get here");
 }
 
-export enum EntityType { Module, Hierarchy, LineItem, LineItemSubSet, Version, HierarchyListItem }
+export enum EntityType { Module, Hierarchy, LineItem, LineItemSubSet, Version, HierarchyListItem, HierarchyProperty }
 
 export class EntityMetaData {
     public lineItemInfo: LineItemInfo;
@@ -36,14 +40,18 @@ export class EntityMetaData {
     }
 
     public getMonacoAutoCompleteKind(): monaco.languages.CompletionItemKind {
-        switch (this.entityType) {
+        return EntityMetaData.getMonacoAutoCompleteKind(this.entityType);
+    }
+    public static getMonacoAutoCompleteKind(entityType: EntityType): monaco.languages.CompletionItemKind {
+        switch (entityType) {
             case EntityType.Module: return monaco.languages.CompletionItemKind.Folder;
             case EntityType.LineItem: return monaco.languages.CompletionItemKind.Value;
             case EntityType.Hierarchy: return monaco.languages.CompletionItemKind.Constant;
             case EntityType.LineItemSubSet: return monaco.languages.CompletionItemKind.Value;
             case EntityType.Version: return monaco.languages.CompletionItemKind.Value;
             case EntityType.HierarchyListItem: return monaco.languages.CompletionItemKind.Value;
-            default: return assertUnreachable(this.entityType);
+            case EntityType.HierarchyProperty: return monaco.languages.CompletionItemKind.Value;
+            default: return assertUnreachable(entityType);
         }
     }
 }
@@ -77,16 +85,27 @@ export class AnaplanMetaData {
     }
 
     getAutoCompleteQualifiedLeftPart(): Set<AutoCompleteInfo> {
-        let result = new Set<string>();
+        let keys = new Set<string>();
+        let result = new Set<AutoCompleteInfo>();
 
         for (let lineItem of this._lineItemInfo) {
             if (lineItem[1].name != undefined) {
-                // If this line item is dot-qualified, show just the first part
-                result.add(lineItem[1].qualifier);
+                // If this line item is dot-qualified, show just the first part, unless it's a hierarchy property
+                let itemKey = lineItem[1].qualifier + '|' + EntityType[lineItem[1].entityType];
+                if (!keys.has(itemKey)) {
+                    result.add(new AutoCompleteInfo(
+                        (lineItem[1].entityType === EntityType.HierarchyProperty ? lineItem[1].name + '.' : '') + lineItem[1].qualifier,
+                        (lineItem[1].entityType === EntityType.HierarchyProperty ? this.quoteIfNeeded(lineItem[1].name) + '.' : '') + this.quoteIfNeeded(lineItem[1].qualifier),
+                        EntityMetaData.getMonacoAutoCompleteKind(lineItem[1].entityType === EntityType.LineItem ? EntityType.Module : lineItem[1].entityType),
+                        ['.'],
+                        lineItem[1].entityType === EntityType.LineItem ? 'Module' : EntityType[lineItem[1].entityType],
+                        undefined));
+                    keys.add(itemKey);
+                }
             }
         }
 
-        return new Set(Array.from(result).map(e => new AutoCompleteInfo(e, this.quoteIfNeeded(e), monaco.languages.CompletionItemKind.Folder, ['.'])));
+        return result;
     }
     getAutoCompleteQualifiedRightPart(leftPartText: string): Set<AutoCompleteInfo> {
         let result = new Set<AutoCompleteInfo>();
@@ -94,8 +113,14 @@ export class AnaplanMetaData {
         for (let lineItem of this._lineItemInfo) {
             if (lineItem[1].name != undefined) {
                 if (this.quoteIfNeeded(lineItem[1].qualifier) === leftPartText) {
-                    // If this line item is dot-qualified, show just the first part
-                    result.add(new AutoCompleteInfo(lineItem[1].name, this.quoteIfNeeded(lineItem[1].name), monaco.languages.CompletionItemKind.Constant, [' ', ']', '+', '-', '*', '/']));
+                    // If this line item is dot-qualified, show just the last part
+                    result.add(new AutoCompleteInfo(
+                        lineItem[1].name,
+                        this.quoteIfNeeded(lineItem[1].name),
+                        monaco.languages.CompletionItemKind.Constant,
+                        [' ', ']', '+', '-', '*', '/'],
+                        EntityType[lineItem[1].entityType],
+                        undefined));
                 }
             }
         }
@@ -107,8 +132,13 @@ export class AnaplanMetaData {
         let result = new Set<AutoCompleteInfo>();
         // Add anything that doesn't need to be qualified
         for (let lineItem of this._lineItemInfo) {
-            if (!lineItem[1].name != undefined && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
-                result.add(new AutoCompleteInfo(lineItem[0], this.quoteIfNeeded(lineItem[0]), monaco.languages.CompletionItemKind.Constant, [' ', ']', '+', '-', '*', '/']));
+            if (lineItem[1].name === undefined && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
+                result.add(new AutoCompleteInfo(lineItem[0],
+                    this.quoteIfNeeded(lineItem[0]),
+                    monaco.languages.CompletionItemKind.Constant,
+                    [',', ']', '+', '-', '*', '/'],
+                    EntityType[lineItem[1].entityType],
+                    undefined));
             }
         }
 
