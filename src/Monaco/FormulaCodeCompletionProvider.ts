@@ -31,8 +31,6 @@ function computeTokenIndexOfTerminalNode(parseTree: TerminalNode, caretLine: num
 
 function computeTokenIndexOfChildNode(parseTree: ParseTree, caretLine: number, caretIndex: number) {
     let bestMatch: TokenPosition | undefined = undefined;
-    // TODO: Handle the parsetree node being empty (changing index won't work as getting completions only uses that, so it doesn't matter that the context is correct)
-    // TODO: Next debugging step is to see what token stream we get
     if (parseTree.childCount === 0) {
         return { index: -1, context: parseTree };
     }
@@ -121,7 +119,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         for (let candidate of candidates.rules) {
             switch (candidate[0]) {
                 case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
-                    // TODO: anything that could be before a qualifying dot, i.e. modules, list names, subsets
+                    // anything that could be before a qualifying dot, i.e. modules, list names, subsets
                     for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedLeftPart()) {
                         entityNames.push(e.name);
                     }
@@ -129,7 +127,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                 }
                 case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart:
                 case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPartEmpty: {
-                    // TODO: anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered acording to before the qualifying dot)
+                    // anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered acording to before the qualifying dot)
                     let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext) ?? findAncestor(tokenPosition.context, DotQualifiedEntityIncompleteContext);
                     if (node != undefined) {
                         let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
@@ -142,7 +140,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     break;
                 }
                 case AnaplanFormulaParser.RULE_wordsEntityRule: {
-                    // TODO: Any entity that doesn't need to be qualified (e.g. line items of the current module)
+                    // Any entity that doesn't need to be qualified (e.g. line items of the current module)
                     for (let e of this._anaplanMetaData!.getAutoCompleteWords()) {
                         if (!e.name.startsWith('<<') && !e.name.startsWith('--')) {
                             entityNames.push(e.name);
