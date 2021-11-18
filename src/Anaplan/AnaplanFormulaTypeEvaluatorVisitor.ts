@@ -264,8 +264,6 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
     for (let i = 0; i < dimensionMappings.length; i++) {
       let dimensionMapping = dimensionMappings[i];
-      if (dimensionMapping.childCount != 3) continue; // TODO: Should I be handling this in a better way?
-      // TODO: Test typeing out a SELECT: entity, it errors somewhere
 
       let selectorType = dimensionMapping.dimensionmappingselector().text;
       let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
