@@ -74,28 +74,8 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         myparser.removeErrorListeners();
 
         let tree = myparser.formula();
-        // TODO: Make sure we have successfully parsed the input
 
-        // TODO: Do we want to add any tokens at all?
         let core = new CodeCompletionCore(myparser);
-        core.ignoredTokens = new Set([
-            AnaplanFormulaLexer.LPAREN, AnaplanFormulaLexer.RPAREN,
-            AnaplanFormulaLexer.AMPERSAND, AnaplanFormulaLexer.BINARYOPERATOR,
-            AnaplanFormulaLexer.COLON, AnaplanFormulaLexer.DOT,
-            AnaplanFormulaLexer.DOUBLEQUOTES,
-            AnaplanFormulaLexer.EOF,
-            AnaplanFormulaLexer.EQUALS, AnaplanFormulaLexer.NOTEQUALS, AnaplanFormulaLexer.GT, AnaplanFormulaLexer.GTEQUALS,
-            AnaplanFormulaLexer.LT, AnaplanFormulaLexer.LTEQUALS,
-            AnaplanFormulaLexer.LSQUARE, AnaplanFormulaLexer.RSQUARE,
-            AnaplanFormulaLexer.SCIENTIFIC_NUMBER,
-            AnaplanFormulaLexer.STRINGLITERAL,
-            AnaplanFormulaLexer.TIMES, AnaplanFormulaLexer.DIV,
-            AnaplanFormulaLexer.UNDERSCORE,
-            AnaplanFormulaLexer.WORD,
-            AnaplanFormulaLexer.PLUS, AnaplanFormulaLexer.MINUS,
-            AnaplanFormulaLexer.QUOTELITERAL,
-            AnaplanFormulaLexer.IF,
-        ]);
 
         core.preferredRules = new Set([
             AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart,
@@ -108,11 +88,6 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         let tokenPosition = computeTokenIndex(tree, position.lineNumber, position.column - 1)!;
 
         let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
-
-        let keywords: string[] = [];
-        for (let candidate of candidates.tokens) {
-            keywords.push(myparser.vocabulary.getDisplayName(candidate[0]));
-        }
 
         let entityNames: AutoCompleteInfo[] = [];
         for (let candidate of candidates.rules) {
@@ -146,14 +121,14 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     break;
                 }
                 case AnaplanFormulaParser.RULE_dimensionmappingselector: {
-                    keywords.push('SELECT');
-                    keywords.push('LOOKUP');
-                    keywords.push('SUM');
-                    keywords.push('AVERAGE');
-                    keywords.push('MIN');
-                    keywords.push('MAX');
-                    keywords.push('ANY');
-                    keywords.push('ALL');
+                    entityNames.push(new AutoCompleteInfo('SELECT', 'SELECT', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    entityNames.push(new AutoCompleteInfo('LOOKUP', 'LOOKUP', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    entityNames.push(new AutoCompleteInfo('SUM', 'SUM', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    entityNames.push(new AutoCompleteInfo('AVERAGE', 'AVERAGE', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    entityNames.push(new AutoCompleteInfo('MIN', 'MIN', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    entityNames.push(new AutoCompleteInfo('MAX', 'MAX', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    entityNames.push(new AutoCompleteInfo('ANY', 'ANY', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    entityNames.push(new AutoCompleteInfo('ALL', 'ALL', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
                     break;
                 }
             }
@@ -162,17 +137,18 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         // Finally combine all found lists into one for the UI.
         // We do that in separate steps so that you can apply some ordering to each of your sub lists.
         // Then you also can order symbols groups as a whole depending their importance.
-
-        const word = model.getWordUntilPosition(position)
+        // TODO: Be more intelligent about how we work out what to replace
+        const word = model.getWordUntilPosition(position);
         const range = {
             startLineNumber: position.lineNumber,
             endLineNumber: position.lineNumber,
             startColumn: word.startColumn,
             endColumn: word.endColumn,
-        }
+        };
+
+
 
         let suggestions: CompletionItem[] = [];
-        suggestions.push(...keywords.map(s => new CompletionItem(s, monaco.languages.CompletionItemKind.Keyword, s, range)));
         suggestions.push(...entityNames.map(s => {
             let result = new CompletionItem(s.label, s.kind, s.text, range);
             result.commitCharacters = s.autoInsertChars;
