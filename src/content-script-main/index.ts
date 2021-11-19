@@ -181,6 +181,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			hoverProvider.updateMetaData(metaData);
 			completionItemProvider.updateMetaData(metaData);
 
+			// Anaplan have their own token provider
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 			monaco.languages.registerCompletionItemProvider('anaplanguage', completionItemProvider)
 
