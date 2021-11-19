@@ -55,11 +55,10 @@ class FormulaLineTokens implements ILineTokens {
 }
 
 export function tokensForLine(input: string): monaco.languages.ILineTokens {
+
     const lexer = new AnaplanFormulaLexer(CharStreams.fromString(input));
     let done = false;
     let myTokens: monaco.languages.IToken[] = [];
-    let priorTokenType: string | undefined = undefined;
-    let priorTokenStartIndex = 0;
     do {
         let token = lexer.nextToken();
         if (token == null) {
@@ -70,20 +69,11 @@ export function tokensForLine(input: string): monaco.languages.ILineTokens {
                 done = true;
             } else {
                 let tokenTypeName = lexer.ruleNames[token.type];
-                if (tokenTypeName != priorTokenType) {
-
-                    myTokens.push(new FormulaToken(tokenTypeName, priorTokenStartIndex));
-                    priorTokenType = tokenTypeName;
-                    priorTokenStartIndex = token.startIndex;
-                }
-
+                let myToken = new FormulaToken(tokenTypeName, token.startIndex);
+                myTokens.push(myToken);
             }
         }
     } while (!done);
-
-    if (priorTokenType != undefined) {
-        myTokens.push(new FormulaToken(priorTokenType, priorTokenStartIndex));
-    }
 
     return new FormulaLineTokens(myTokens);
 }
