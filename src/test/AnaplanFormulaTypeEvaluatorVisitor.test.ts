@@ -1,4 +1,5 @@
 import { getAnaplanMetaData, getFormulaErrors } from '../Anaplan/AnaplanHelpers'
+import { Random } from '../Random';
 
 
 
@@ -84,4 +85,47 @@ describe("Check incomplete dimensionselector doesn't cause an error", () => {
     expect(errors).toHaveLength(1);
     let desiredErrorStart = "mismatched input '<EOF>' expecting {WO";
     expect(errors[0].message.substring(0, desiredErrorStart.length)).toEqual(desiredErrorStart);
+});
+
+describe("Check no program errors are produced with an incorrect formula", () => {
+    global.anaplan = { data: { ModelContentCache: { _modelInfo: JSON.parse(modelInfoJson) } } };
+
+    let cases: any[][] = [];
+
+    let rnd = new Random(1);
+
+    for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
+        for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos.length; j++) {
+
+
+            let formula = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula;
+            if (formula != undefined) {
+                let charToRemove = rnd.nextInt32([0, formula.length]);
+                // psudo-randomly remove a character from the formula
+                let alteredformula = formula.slice(0, charToRemove) + formula.slice(charToRemove + 1);
+
+                if (i != 213 || j != 3) continue;
+
+                cases.push([
+                    i,
+                    j,
+                    "'" + anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] +
+                    "'.'" +
+                    anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j] +
+                    "'",
+                    alteredformula,
+                    formula]);
+            }
+        }
+    }
+
+    it.each(cases)('%i, %i, Check formula for %s: %s. ORIGINAL WAS: %s', (i, j, _, formula, __) => {
+        let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
+            anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
+
+        if (formula != undefined) {
+            let errors = getFormulaErrors(formula, metaData, 1, formula.length);
+            expect(errors).toBeDefined();
+        }
+    });
 });

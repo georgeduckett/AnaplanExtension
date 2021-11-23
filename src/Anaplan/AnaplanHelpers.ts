@@ -471,7 +471,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                     startColumn: 1,
                     endLineNumber: modelLineCount,
                     endColumn: modelLineMaxColumn,
-                    message: `Formula evaluates to ${anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId!)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
+                    message: `Formula evaluates to ${myresult.hierarchyEntityLongId === undefined ? "an invalid entity" : anaplanMetaData.getEntityNameFromId(myresult.hierarchyEntityLongId)} but the line item type is ${anaplanMetaData.getEntityNameFromId(targetFormat.hierarchyEntityLongId!)}`,
                     severity: 8 //monaco.MarkerSeverity.Error (don't use enum so we can test)
                 });
             }
