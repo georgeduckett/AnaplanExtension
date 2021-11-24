@@ -132,7 +132,7 @@ export class AnaplanMetaData {
         let result = new Set<AutoCompleteInfo>();
         // Add anything that doesn't need to be qualified
         for (let lineItem of this._lineItemInfo) {
-            if ((lineItem[1].qualifier === undefined) && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
+            if ((lineItem[1].qualifier === undefined || lineItem[1].qualifier === this._moduleName) && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
                 result.add(new AutoCompleteInfo(lineItem[1].name,
                     this.quoteIfNeeded(lineItem[1].name),
                     monaco.languages.CompletionItemKind.Constant,
