@@ -5,7 +5,7 @@ import { AnaplanMetaData } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
 import { AnaplanFormulaParser, EntityContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 
-
+// TODO: Use FunctionInfos to provide info about functions when hovering
 export class FormulaHoverProvider implements monaco.languages.HoverProvider {
     _anaplanMetaData: AnaplanMetaData | undefined;
 

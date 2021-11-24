@@ -2,7 +2,7 @@ import { CodeCompletionCore, Symbol, SymbolTable, VariableSymbol } from "antlr4-
 import { CharStreams, CommonTokenStream, DefaultErrorStrategy, ParserRuleContext } from "antlr4ts";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
-import { Position } from "monaco-editor";
+import { UriComponents } from "monaco-editor";
 import { AnaplanMetaData, AutoCompleteInfo } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
 import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
@@ -11,6 +11,16 @@ import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
 
 type TokenPosition = { index: number, context: ParseTree };
+
+class MarkdownString {
+    readonly value: string;
+    readonly isTrusted?: boolean;
+    readonly supportThemeIcons?: boolean;
+    uris?: { [href: string]: UriComponents; };
+    constructor(value: string) {
+        this.value = value;
+    }
+}
 
 function computeTokenIndex(parseTree: ParseTree, caretLine: number, caretIndex: number): TokenPosition | undefined {
     if (parseTree instanceof TerminalNode) {
@@ -135,7 +145,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                 }
                 case AnaplanFormulaParser.RULE_functionname: {
                     for (let e of FunctionsInfo) {
-                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], e[1].type, e[1].description));
+                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], e[1].type, new MarkdownString(e[1].description + "  \r\n[Anaplan Documentation](https://help.anaplan.com/Calculation_Functions/All/" + e[0] + ".html)")));
                     }
                     break;
                 }

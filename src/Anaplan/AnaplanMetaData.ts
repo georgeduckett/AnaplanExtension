@@ -1,3 +1,4 @@
+import { IMarkdownString } from "monaco-editor";
 import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { unQuoteEntity, getOriginalText, anaplanTimeEntityBaseId } from "./AnaplanHelpers";
 import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext } from "./antlrclasses/AnaplanFormulaParser";
@@ -9,9 +10,9 @@ export class AutoCompleteInfo {
     public kind: monaco.languages.CompletionItemKind;
     public autoInsertChars: string[] | undefined;
     public detail: string | undefined;
-    public documentation: string | undefined;
+    public documentation: IMarkdownString | undefined;
 
-    constructor(label: string, text: string, kind: monaco.languages.CompletionItemKind, autoInsertChars: string[] | undefined, detail: string | undefined, documentation: string | undefined) {
+    constructor(label: string, text: string, kind: monaco.languages.CompletionItemKind, autoInsertChars: string[] | undefined, detail: string | undefined, documentation: IMarkdownString | undefined) {
         this.label = label;
         this.text = text;
         this.kind = kind;
