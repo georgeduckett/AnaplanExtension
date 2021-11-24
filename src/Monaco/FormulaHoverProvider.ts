@@ -1,9 +1,13 @@
 import { CharStreams, CommonTokenStream, RuleContext, ParserRuleContext } from "antlr4ts";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
-import { AnaplanMetaData } from "../Anaplan/AnaplanMetaData";
+import { AnaplanMetaData, assertUnreachable } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, EntityContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AnaplanFormulaParser, EntityContext, FunctionnameContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { FunctionsInfo } from "../Anaplan/FunctionInfo";
+
+type hoverHandled = EntityContext | FunctionnameContext
+let hoverHandledClasses = [EntityContext, FunctionnameContext];
 
 // TODO: Use FunctionInfos to provide info about functions when hovering
 export class FormulaHoverProvider implements monaco.languages.HoverProvider {
@@ -28,52 +32,75 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
 
             let previousTree: ParseTree | undefined = undefined;
 
-            while ((!foundEntity || (foundTree instanceof EntityContext)) && foundTree.parent != undefined) {
-                if (foundTree instanceof EntityContext) {
+            while ((!foundEntity || (hoverHandledClasses.some(c => foundTree instanceof c))) && foundTree.parent != undefined) {
+                if (hoverHandledClasses.some(c => foundTree instanceof c)) {
                     foundEntity = true;
                 }
                 previousTree = foundTree;
                 foundTree = foundTree?.parent;
             }
 
-            if (previousTree instanceof EntityContext) {
-                let entityName = this._anaplanMetaData!.getEntityName(previousTree).replace(new RegExp("'", 'g'), "");
-                // Look up the dimensions of this entity
-                let lineItemInfo = this._anaplanMetaData!.getItemInfoFromEntityName(entityName);
+            if (hoverHandledClasses.some(c => previousTree instanceof c)) {
+                return this.provideHoverForContext(<hoverHandled>previousTree); // Assert the type here, as we checked it above
+            }
+        }
+        return null;
+    }
 
-                if (lineItemInfo != undefined) {
-                    let dimensions = lineItemInfo?.lineItemInfo?.fullAppliesTo.map(this._anaplanMetaData!.getEntityNameFromId, this._anaplanMetaData).sort().join(', ');
-                    if (dimensions === "") {
-                        dimensions = "\\<None>";
-                    }
+    provideHoverForContext(ctx: hoverHandled): monaco.languages.ProviderResult<monaco.languages.Hover> {
+        if (ctx instanceof EntityContext) {
+            let entityName = this._anaplanMetaData!.getEntityName(ctx).replace(new RegExp("'", 'g'), "");
+            // Look up the dimensions of this entity
+            let lineItemInfo = this._anaplanMetaData!.getItemInfoFromEntityName(entityName);
 
-                    let dataTypeDisplayString = lineItemInfo.lineItemInfo.format.dataType;
-
-                    if (dataTypeDisplayString === "ENTITY") {
-                        dataTypeDisplayString = this._anaplanMetaData?.getEntityNameFromId(lineItemInfo.lineItemInfo.format.hierarchyEntityLongId!)!;
-                    } else {
-                        dataTypeDisplayString = dataTypeDisplayString.toLowerCase().replace(/\b\S/g, t => t.toUpperCase());
-                    }
-                    return {
-                        range: new monaco.Range(previousTree.start.line, previousTree.start.charPositionInLine + 1, previousTree.stop!.line, previousTree.stop!.charPositionInLine! + previousTree.stop!.text!.length + 1),
-                        contents: [
-                            { value: "Dimensions: " + dimensions },
-                            { value: "Type: " + dataTypeDisplayString }
-                        ]
-                    }
+            if (lineItemInfo != undefined) {
+                let dimensions = lineItemInfo?.lineItemInfo?.fullAppliesTo.map(this._anaplanMetaData!.getEntityNameFromId, this._anaplanMetaData).sort().join(', ');
+                if (dimensions === "") {
+                    dimensions = "\\<None>";
                 }
-                else if (previousTree.parent?.children![0].text === "SELECT") {
-                    // This is a select, so the entity name is actually just the first part, without quotes
+
+                let dataTypeDisplayString = lineItemInfo.lineItemInfo.format.dataType;
+
+                if (dataTypeDisplayString === "ENTITY") {
+                    dataTypeDisplayString = this._anaplanMetaData?.getEntityNameFromId(lineItemInfo.lineItemInfo.format.hierarchyEntityLongId!)!;
+                } else {
+                    dataTypeDisplayString = dataTypeDisplayString.toLowerCase().replace(/\b\S/g, t => t.toUpperCase());
+                }
+
+                return {
+                    range: new monaco.Range(ctx.start.line, ctx.start.charPositionInLine + 1, ctx.stop!.line, ctx.stop!.charPositionInLine! + ctx.stop!.text!.length + 1),
+                    contents: [
+                        { value: "Dimensions: " + dimensions },
+                        { value: "Type: " + dataTypeDisplayString }
+                    ]
+                }
+            }
+            else if (ctx.parent?.children![0].text === "SELECT") {
+                // This is a select, so the entity name is actually just the first part, without quotes
+                return {
+                    range: new monaco.Range(ctx.start.line, ctx.start.charPositionInLine + 1, ctx.stop!.line, ctx.stop!.charPositionInLine! + ctx.stop!.text!.length + 1),
+                    contents: [
+                        { value: "Type: " + entityName.substring(0, entityName.indexOf('.')) }
+                    ]
+                }
+            }
+        }
+        else if (ctx instanceof FunctionnameContext) {
+            if (FunctionsInfo.has(ctx.text)) {
+                let desc = FunctionsInfo.get(ctx.text)?.description;
+                if (desc != undefined) {
                     return {
-                        range: new monaco.Range(previousTree.start.line, previousTree.start.charPositionInLine + 1, previousTree.stop!.line, previousTree.stop!.charPositionInLine! + previousTree.stop!.text!.length + 1),
+                        range: new monaco.Range(ctx.start.line, ctx.start.charPositionInLine + 1, ctx.stop!.line, ctx.stop!.charPositionInLine! + ctx.stop!.text!.length + 1),
                         contents: [
-                            { value: "Type: " + entityName.substring(0, entityName.indexOf('.')) }
+                            { value: desc + "  \r\n[Anaplan Documentation](https://help.anaplan.com/Calculation_Functions/All/" + ctx.text + ".html)" }
                         ]
                     }
                 }
             }
         }
-        return null;
+        else {
+            return assertUnreachable(ctx);
+        }
     }
 
     /**
@@ -121,3 +148,4 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
         }
     }
 }
+
