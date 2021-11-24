@@ -104,8 +104,6 @@ describe("Check no program errors are produced with an incorrect formula", () =>
                 // psudo-randomly remove a character from the formula
                 let alteredformula = formula.slice(0, charToRemove) + formula.slice(charToRemove + 1);
 
-                if (i != 213 || j != 3) continue;
-
                 cases.push([
                     i,
                     j,

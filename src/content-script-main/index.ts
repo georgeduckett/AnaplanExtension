@@ -97,7 +97,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 	const send = XHR.send
 	XHR.send = function (body?: any): void {
-
+		// TODO: Pick up on new line items without reloading the page
 		if (body?.toString().includes('"fetchAllModelSummaries":true')) {
 			this.addEventListener('load', function () {
 				try {

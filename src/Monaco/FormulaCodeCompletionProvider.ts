@@ -97,6 +97,10 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedLeftPart()) {
                         entityNames.push(e);
                     }
+                    // Any entity that doesn't need to be qualified (e.g. line items of the current module)
+                    for (let e of this._anaplanMetaData!.getAutoCompleteWords()) {
+                        entityNames.push(e);
+                    }
                     break;
                 }
                 case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart:

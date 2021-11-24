@@ -29,10 +29,10 @@ export enum EntityType { Module, Hierarchy, LineItem, LineItemSubSet, Version, H
 export class EntityMetaData {
     public lineItemInfo: LineItemInfo;
     public entityType: EntityType;
-    public qualifier: string;
-    public name: string | undefined;
+    public qualifier: string | undefined;
+    public name: string;
 
-    constructor(lineItemInfo: LineItemInfo, entityType: EntityType, qualifier: string, name: string | undefined) {
+    constructor(lineItemInfo: LineItemInfo, entityType: EntityType, qualifier: string | undefined, name: string) {
         this.lineItemInfo = lineItemInfo;
         this.entityType = entityType;
         this.qualifier = qualifier;
@@ -89,7 +89,7 @@ export class AnaplanMetaData {
         let result = new Set<AutoCompleteInfo>();
 
         for (let lineItem of this._lineItemInfo) {
-            if (lineItem[1].name != undefined) {
+            if (lineItem[1].qualifier != undefined) {
                 // If this line item is dot-qualified, show just the first part, unless it's a hierarchy property
                 let itemKey = lineItem[1].qualifier + '|' + EntityType[lineItem[1].entityType];
                 if (!keys.has(itemKey)) {
@@ -111,7 +111,7 @@ export class AnaplanMetaData {
         let result = new Set<AutoCompleteInfo>();
         // Add anything that needs to be qualified
         for (let lineItem of this._lineItemInfo) {
-            if (lineItem[1].name != undefined) {
+            if (lineItem[1].qualifier != undefined) {
                 if (this.quoteIfNeeded(lineItem[1].qualifier) === leftPartText) {
                     // If this line item is dot-qualified, show just the last part
                     result.add(new AutoCompleteInfo(
@@ -132,9 +132,9 @@ export class AnaplanMetaData {
         let result = new Set<AutoCompleteInfo>();
         // Add anything that doesn't need to be qualified
         for (let lineItem of this._lineItemInfo) {
-            if (lineItem[1].name === undefined && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
-                result.add(new AutoCompleteInfo(lineItem[0],
-                    this.quoteIfNeeded(lineItem[0]),
+            if ((lineItem[1].qualifier === undefined) && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
+                result.add(new AutoCompleteInfo(lineItem[1].name,
+                    this.quoteIfNeeded(lineItem[1].name),
                     monaco.languages.CompletionItemKind.Constant,
                     [',', ']', '+', '-', '*', '/'],
                     EntityType[lineItem[1].entityType],
@@ -175,8 +175,8 @@ export class AnaplanMetaData {
         return this._hierarchyParents.get(entityId);
     }
 
-    getLineItemEntityId(lineItem: { format: Format, fullAppliesTo: number[] }): number { // We assume that if it's not a hierarchy entity, then it's a time entity
-        return lineItem.format.hierarchyEntityLongId ?? (anaplanTimeEntityBaseId + lineItem.format.periodType.entityIndex);
+    getLineItemEntityId(lineItem: { format: Format, fullAppliesTo: number[] }): number | undefined { // We assume that if it's not a hierarchy entity, then it's a time entity
+        return lineItem.format.hierarchyEntityLongId ?? (lineItem.format.periodType === undefined ? undefined : anaplanTimeEntityBaseId + lineItem.format.periodType.entityIndex);
     }
 
     entityIsAncestorOfEntity(possibleAncestorEntity: number, possibleDescendantEntity: number | undefined) {
@@ -239,7 +239,9 @@ export class AnaplanMetaData {
         throw new Error("Unknown EntityContext type. Has the grammar file been altered?     " + ctx.text);
     }
 
-    areCompatibleDimensions(entityIdA: number, entityIdB: number) {
+    areCompatibleDimensions(entityIdA: number, entityIdB: number | undefined) {
+        if (entityIdB === undefined) return false;
+
         // If the subset normalised values are the same, then that's a match
         if (this.getSubsetNormalisedEntityId(entityIdA) === this.getSubsetNormalisedEntityId(entityIdB)) {
             return true;

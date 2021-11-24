@@ -232,15 +232,22 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         else {
           let entityId = entityFormat.hierarchyEntityLongId!;
 
-
-          let parentEntityId = this._anaplanMetaData.getEntityParentId(entityId);
-
-          if (parentEntityId === undefined) {
-            this.addFormulaError(ctx.functionname(), `There is no parent of entity ${this._anaplanMetaData.getEntityNameFromId(entityId)}.`);
+          if (entityId === undefined) {
+            this.addFormulaError(ctx.functionname(), `Can't get parent of unknown entity.`);
             return AnaplanDataTypeStrings.UNKNOWN;
+
+          } else {
+
+            let parentEntityId = this._anaplanMetaData.getEntityParentId(entityId);
+
+            if (parentEntityId === undefined) {
+              this.addFormulaError(ctx.functionname(), `There is no parent of entity ${this._anaplanMetaData.getEntityNameFromId(entityId)}.`);
+              return AnaplanDataTypeStrings.UNKNOWN;
+            }
+
+            return AnaplanDataTypeStrings.ENTITY(parentEntityId);
           }
 
-          return AnaplanDataTypeStrings.ENTITY(parentEntityId);
         }
       default:
         let format = formatFromFunctionName(functionName);
@@ -277,8 +284,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
       switch (selectorType.toUpperCase()) {
         case "SELECT":
-          let entityName = lineitem.qualifier;
-          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, this._anaplanMetaData.getEntityIdFromName(entityName)!));
+          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, this._anaplanMetaData.getEntityIdFromName(lineitem.qualifier + '.' + lineitem.name) ?? this._anaplanMetaData.getEntityIdFromName(lineitem.qualifier ?? lineitem.name)!));
           break;
         case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
           var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem.lineItemInfo);

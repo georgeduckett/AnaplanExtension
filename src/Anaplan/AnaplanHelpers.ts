@@ -274,8 +274,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             format: format,
         },
             EntityType.Hierarchy,
-            anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
-            undefined));
+            undefined,
+            anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]));
     }
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
@@ -330,12 +330,14 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.count; i++) {
         let name = 'VERSIONS.' + anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.labels[0][i];
         entityNames.set(
-            anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i],
+            // Don't use the actual version entity id for each individual version here, we want to use the 'version' entity id
+            //anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i],
+            20000000020,
             name);
         entityIds.set(
             name,
             {
-                id: anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i],
+                id: 20000000020, //anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.entityLongIds[0][i],
                 type: 'version'
             });
 
@@ -383,12 +385,16 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             id: -1, // TODO: What should this be?
             type: 'time'
         });
+
+    let allPeriodsFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined);
+    allPeriodsFormat.periodType = { entityIndex: -1 };// TODO: What should this be?
+
     moduleLineItems.set('TIME.All Periods', new EntityMetaData({
         parentLineItemEntityLongId: -1,
         fullAppliesTo: [],
         formulaScope: '',
         isSummary: false,
-        format: AnaplanDataTypeStrings.TIME_ENTITY,
+        format: allPeriodsFormat,
     },
         EntityType.HierarchyListItem,
         "TIME",
