@@ -8,6 +8,7 @@ import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer
 import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
 import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
+import { FunctionsInfo } from "../Anaplan/FunctionInfo";
 
 type TokenPosition = { index: number, context: ParseTree };
 
@@ -83,6 +84,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart,
             AnaplanFormulaParser.RULE_wordsEntityRule, // We don't include QuotedEntityRule here, as Words seems to cover it
             AnaplanFormulaParser.RULE_dimensionmappingselector,
+            AnaplanFormulaParser.RULE_functionname,
         ]);
 
         let tokenPosition = computeTokenIndex(tree, position.lineNumber, position.column - 1)!;
@@ -129,6 +131,12 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     entityNames.push(new AutoCompleteInfo('MAX', 'MAX', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
                     entityNames.push(new AutoCompleteInfo('ANY', 'ANY', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
                     entityNames.push(new AutoCompleteInfo('ALL', 'ALL', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    break;
+                }
+                case AnaplanFormulaParser.RULE_functionname: {
+                    for (let e of FunctionsInfo) {
+                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], e[1].type, e[1].description));
+                    }
                     break;
                 }
             }

@@ -1,6 +1,7 @@
 import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor";
-import { unQuoteEntity, getOriginalText, AnaplanDataTypeStrings, Format, anaplanTimeEntityBaseId } from "./AnaplanHelpers";
+import { unQuoteEntity, getOriginalText, anaplanTimeEntityBaseId } from "./AnaplanHelpers";
 import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext } from "./antlrclasses/AnaplanFormulaParser";
+import { AnaplanDataTypeStrings } from "./FunctionInfo";
 
 export class AutoCompleteInfo {
     public label: string;

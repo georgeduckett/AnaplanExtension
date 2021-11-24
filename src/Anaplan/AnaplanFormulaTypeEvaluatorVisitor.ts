@@ -1,17 +1,18 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext } from './antlrclasses/AnaplanFormulaParser';
-import { AnaplanDataTypeStrings, Format, formatFromFunctionName, getOriginalText, unQuoteEntity } from './AnaplanHelpers';
+import { getOriginalText } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData } from './AnaplanMetaData';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 import { ParseTree } from 'antlr4ts/tree/ParseTree';
+import { AnaplanDataTypeStrings, Format, FunctionsInfo } from './FunctionInfo';
 
 export let entitySpecialCharSelector = '[^A-z\s%£\?]';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
-  private readonly _anaplanMetaData: AnaplanMetaData;
+  public readonly _anaplanMetaData: AnaplanMetaData;
 
   public readonly formulaErrors: Array<FormulaError> = new Array<FormulaError>();
 
@@ -196,68 +197,19 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitFuncParameterised(ctx: FuncParameterisedContext): Format {
     // TODO: Somewhere check that the parameters of the function are the correct type (or not, since Anaplan does that anyway)
     let functionName = ctx.functionname().text.toUpperCase();
-    switch (functionName) {
-      case "CURRENTVERSION":
-      case "HALFYEARVALUE":
-      case "LAG":
-      case "LEAD":
-      case "MAX":
-      case "MIN":
-      case "MONTHTODATE":
-      case "MONTHVALUE":
-      case "NEXT":
-      case "NEXTVERSION":
-      case "OFFSET":
-      case "PREVIOUS":
-      case "PREVIOUSVERSION":
-      case "QUARTERVALUE":
-      case "WEEKVALUE":
-      case "YEARVALUE": return this.visit(ctx.expression()[0]);
-      case "FINDITEM":
-      case "ITEM":
-        let itemName = unQuoteEntity(getOriginalText(ctx.expression()[0]));
-        if (itemName === "Time") {
-          return AnaplanDataTypeStrings.TIME_ENTITY;
-        }
-        else {
-          return AnaplanDataTypeStrings.ENTITY(this._anaplanMetaData.getEntityIdFromName(itemName));
-        }
-      case "PARENT":
-        let entityFormat = this.visit(ctx.expression()[0]);
 
-        if (entityFormat.dataType == AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
-          // TODO: Check the level (year/month/etc) of the TIME_ENTITY and move it up one
-          return AnaplanDataTypeStrings.TIME_ENTITY;
-        }
-        else {
-          let entityId = entityFormat.hierarchyEntityLongId!;
-
-          if (entityId === undefined) {
-            this.addFormulaError(ctx.functionname(), `Can't get parent of unknown entity.`);
-            return AnaplanDataTypeStrings.UNKNOWN;
-
-          } else {
-
-            let parentEntityId = this._anaplanMetaData.getEntityParentId(entityId);
-
-            if (parentEntityId === undefined) {
-              this.addFormulaError(ctx.functionname(), `There is no parent of entity ${this._anaplanMetaData.getEntityNameFromId(entityId)}.`);
-              return AnaplanDataTypeStrings.UNKNOWN;
-            }
-
-            return AnaplanDataTypeStrings.ENTITY(parentEntityId);
-          }
-
-        }
-      default:
-        let format = formatFromFunctionName(functionName);
-
-        if (format.dataType == "UNKNOWN") {
-          this.addFormulaError(ctx.functionname(), `Unknown function ${functionName}.`);
-        }
-
-        return format;
+    if (FunctionsInfo.has(functionName)) {
+      let func = FunctionsInfo.get(functionName)?.returnType;
+      if (func instanceof Format) {
+        return func;
+      }
+      else if (func instanceof Function) {
+        return func(this, ctx);
+      }
     }
+
+    this.addFormulaError(ctx.functionname(), `Unknown function ${functionName}.`);
+    return AnaplanDataTypeStrings.UNKNOWN;
   }
 
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
