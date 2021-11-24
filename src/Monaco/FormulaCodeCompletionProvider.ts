@@ -133,7 +133,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     break;
                 }
                 case AnaplanFormulaParser.RULE_dimensionmappingselector: {
-                    // TODO: Make a map simiar to FunctionsInfo, then use it here and in HoverProvider
+                    // TODO: Make a map similar to FunctionsInfo, then use it here and in HoverProvider
                     entityNames.push(new AutoCompleteInfo('SELECT', 'SELECT', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
                     entityNames.push(new AutoCompleteInfo('LOOKUP', 'LOOKUP', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
                     entityNames.push(new AutoCompleteInfo('SUM', 'SUM', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
