@@ -192,28 +192,48 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 			function onCreateModel(model: monaco.editor.ITextModel) {
 				let handle: any;
+
+				let metaData = getEditorMetaData();
+				hoverProvider.updateMetaData(metaData);
+				completionItemProvider.updateMetaData(metaData);
+
+				// Add custom logic to when the user clicks the "Edit" button, since before doing that they could add line items etc.
+				let editButtonElement = document.querySelectorAll(".formula-editor__button-widget--edit")[0];
+
+				editButtonElement.addEventListener("click", () => {
+					let metaData = getEditorMetaData();
+					hoverProvider.updateMetaData(metaData);
+					completionItemProvider.updateMetaData(metaData);
+				}, false)
+
 				model.onDidChangeContent(function (e) {
 					clearTimeout(handle);
 
 					handle = setTimeout(() => {
-						let headerElement = document.querySelectorAll(".formula-editor__header")[0];
-
-						let headerText = "";
-
-						if (headerElement.innerHTML.startsWith("<button")) {
-							headerText = headerElement.children[0].children[0].innerHTML;
-						}
-						else {
-							headerText = headerElement.innerHTML;
-						}
-
-						let currentModuleName = he.decode(headerText.split('—').map(s => s.trim())[0]);
-						let currentLineItemName = he.decode(headerText.split('—').map(s => s.trim())[1]);
-
-						let metadata = getAnaplanMetaData(currentModuleName, currentLineItemName);
+						// When the formula changes, after a delay update the metadata.
+						let metadata = getEditorMetaData();
 						setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
 					}, 250);
 				});
+
+				function getEditorMetaData() {
+					let headerElement = document.querySelectorAll(".formula-editor__header")[0];
+
+					let headerText: string;
+
+					if (headerElement.innerHTML.startsWith("<button")) {
+						headerText = headerElement.children[0].children[0].innerHTML;
+					}
+					else {
+						headerText = headerElement.innerHTML;
+					}
+
+					let currentModuleName = he.decode(headerText.split('—').map(s => s.trim())[0]);
+					let currentLineItemName = he.decode(headerText.split('—').map(s => s.trim())[1]);
+
+					let metaData = getAnaplanMetaData(currentModuleName, currentLineItemName);
+					return metaData;
+				}
 			}
 		}
 	}
