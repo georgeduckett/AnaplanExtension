@@ -9,7 +9,6 @@ import { FunctionsInfo } from "../Anaplan/FunctionInfo";
 type hoverHandled = EntityContext | FunctionnameContext
 let hoverHandledClasses = [EntityContext, FunctionnameContext];
 
-// TODO: Use FunctionInfos to provide info about functions when hovering
 export class FormulaHoverProvider implements monaco.languages.HoverProvider {
     _anaplanMetaData: AnaplanMetaData | undefined;
 
