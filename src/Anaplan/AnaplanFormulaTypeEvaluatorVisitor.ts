@@ -243,7 +243,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           break;
         default: // If it's an aggregation we check the target entity mappings
-          if (!["MIN", "MAX", "SUM", "AVERAGE", "ANY", "ALL"].includes(selectorType.toUpperCase())) {
+          if (!["MIN", "MAX", "SUM", "AVERAGE", "ANY", "ALL", "TEXTLIST"].includes(selectorType.toUpperCase())) {
             this.addFormulaError(dimensionMapping.dimensionmappingselector(), `Unknown aggregation function '${selectorType}'`);
           }
 
@@ -252,6 +252,9 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           }
           if (["MIN", "MAX", "SUM", "AVERAGE"].includes(selectorType.toUpperCase()) && visitEntityResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
             this.addFormulaError(dimensionMapping.dimensionmappingselector(), `'${selectorType}' must be used with a NUMBER entity`);
+          }
+          if (["TEXTLIST"].includes(selectorType.toUpperCase()) && visitEntityResult.dataType != AnaplanDataTypeStrings.TEXT.dataType) {
+            this.addFormulaError(dimensionMapping.dimensionmappingselector(), `'${selectorType}' must be used with a TEXT entity`);
           }
 
           var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem.lineItemInfo);
