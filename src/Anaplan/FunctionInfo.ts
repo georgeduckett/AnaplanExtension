@@ -1,37 +1,18 @@
+import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { getOriginalText, unQuoteEntity } from "./AnaplanHelpers";
 import { FuncParameterisedContext } from "./antlrclasses/AnaplanFormulaParser";
-
-export class Format {
-    hierarchyEntityLongId?: number;
-    entityFormatFilter?: any;
-    selectiveAccessApplied?: boolean;
-    showAll?: boolean;
-    dataType: string;
-    periodType: any;
-    constructor(dataType: string, hierarchyEntityLongId?: number) { this.dataType = dataType; this.hierarchyEntityLongId = hierarchyEntityLongId; }
-}
-
-export class AnaplanDataTypeStrings {
-    static BOOLEAN: Format = new Format("BOOLEAN");
-    static TEXT: Format = new Format("TEXT");
-    static NUMBER: Format = new Format("NUMBER");
-    static NONE: Format = new Format("NONE");
-    static ENTITY(entityId: number | undefined): Format { return new Format("ENTITY", entityId); }
-    static TIME_ENTITY: Format = new Format("TIME_ENTITY");
-    static DATE: Format = new Format("DATE");
-
-    static UNKNOWN: Format = new Format("UNKNOWN");
-}
 
 export class FunctionInfo {
     public description: string;
     public type: string;
     public returnType: ((visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParameterisedContext) => Format) | Format;
-    constructor(description: string, type: string, returnType: ((visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParameterisedContext) => Format) | Format) {
+    public htmlPageName: string | undefined;
+    constructor(description: string, type: string, returnType: ((visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParameterisedContext) => Format) | Format, htmlPageName: string | undefined = undefined) {
         this.description = description;
         this.type = type;
         this.returnType = returnType;
+        this.htmlPageName = htmlPageName;
     }
 }
 
@@ -72,6 +53,17 @@ let parentFunc = (visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParamete
 
     }
 }
+
+export let AggregationFunctionsInfo = new Map([
+    ['SELECT', new FunctionInfo('The SELECT function is used to identify a list item to use from one or more hierarchy lists to filter the source module data. This function works in conjunction with the other dimensions in the module to return dependent values.', 'Logical', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) })],
+    ['LOOKUP', new FunctionInfo('The function looks up a number, Boolean, time period, list item, text, or date value in a list or a time period from a source module using one or more common mappings.', 'Logical', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) })],
+    ['SUM', new FunctionInfo('The SUM aggregation function sums values in a result module based on mapping from a source module.', 'Aggregation', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xSUM_y')],
+    ['AVERAGE', new FunctionInfo('Calculates the average for a range of values in a list.', 'Aggregation', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xAVERAGE_y')],
+    ['MIN', new FunctionInfo('The MIN aggregation function returns the minimum value from a line item in a source module.', 'Aggregation', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xMIN_y')],
+    ['MAX', new FunctionInfo('The MAX aggregation function returns the maximum value from a line item in a source module.', 'Aggregation', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xMAX_y')],
+    ['ANY', new FunctionInfo('The ANY aggregation function returns a TRUE result for any value that matches specific Boolean criteria in a source module.', 'Logical', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xANY_y')],
+    ['ALL', new FunctionInfo('The ALL aggregation function returns a TRUE result for all values that match specific Boolean criteria in a source module.', 'Logical', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xALL_y')],
+])
 
 export let FunctionsInfo = new Map([
     ['ABS', new FunctionInfo('Returns the absolute value of a number.', 'Numeric', AnaplanDataTypeStrings.NUMBER)],

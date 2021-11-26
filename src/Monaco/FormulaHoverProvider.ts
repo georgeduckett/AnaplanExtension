@@ -3,11 +3,12 @@ import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { AnaplanMetaData, assertUnreachable } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, EntityContext, FunctionnameContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
-import { FunctionsInfo } from "../Anaplan/FunctionInfo";
+import { AnaplanFormulaParser, DimensionmappingContext, DimensionmappingselectorContext, EntityContext, FunctionnameContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AggregationFunctionsInfo, FunctionsInfo } from "../Anaplan/FunctionInfo";
 
-type hoverHandled = EntityContext | FunctionnameContext
-let hoverHandledClasses = [EntityContext, FunctionnameContext];
+// Keep the below two lines in sync!
+type hoverHandled = EntityContext | FunctionnameContext | DimensionmappingselectorContext;
+let hoverHandledClasses = [EntityContext, FunctionnameContext, DimensionmappingselectorContext];
 
 export class FormulaHoverProvider implements monaco.languages.HoverProvider {
     _anaplanMetaData: AnaplanMetaData | undefined;
@@ -86,12 +87,27 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
         }
         else if (ctx instanceof FunctionnameContext) {
             if (FunctionsInfo.has(ctx.text)) {
-                let desc = FunctionsInfo.get(ctx.text)?.description;
+                let funcInfo = FunctionsInfo.get(ctx.text);
+                let desc = funcInfo!.description;
                 if (desc != undefined) {
                     return {
                         range: new monaco.Range(ctx.start.line, ctx.start.charPositionInLine + 1, ctx.stop!.line, ctx.stop!.charPositionInLine! + ctx.stop!.text!.length + 1),
                         contents: [
-                            { value: desc + "  \r\n[Anaplan Documentation](https://help.anaplan.com/Calculation_Functions/All/" + ctx.text + ".html)" }
+                            { value: desc + "  \r\n[Anaplan Documentation](https://help.anaplan.com/Calculation_Functions/All/" + (funcInfo!.htmlPageName ?? ctx.text) + ".html)" }
+                        ]
+                    }
+                }
+            }
+        }
+        else if (ctx instanceof DimensionmappingselectorContext) {
+            if (AggregationFunctionsInfo.has(ctx.text)) {
+                let funcInfo = AggregationFunctionsInfo.get(ctx.text);
+                let desc = funcInfo!.description;
+                if (desc != undefined) {
+                    return {
+                        range: new monaco.Range(ctx.start.line, ctx.start.charPositionInLine + 1, ctx.stop!.line, ctx.stop!.charPositionInLine! + ctx.stop!.text!.length + 1),
+                        contents: [
+                            { value: desc + "  \r\n[Anaplan Documentation](https://help.anaplan.com/Calculation_Functions/All/" + (funcInfo!.htmlPageName ?? ctx.text) + ".html)" }
                         ]
                     }
                 }

@@ -2,13 +2,14 @@ import { CharStreams, CommonTokenStream, ParserRuleContext } from "antlr4ts";
 import { Interval } from "antlr4ts/misc/Interval";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { hoverProvider } from "../content-script-main";
+import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { AnaplanMetaData, EntityMetaData, EntityType } from "./AnaplanMetaData";
 import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
 import { AnaplanFormulaParser } from './antlrclasses/AnaplanFormulaParser';
 import { CollectorErrorListener } from "./CollectorErrorListener";
+import { Format } from "./Format";
 import { FormulaError } from "./FormulaError";
-import { AnaplanDataTypeStrings, Format } from "./FunctionInfo";
 
 export function getOriginalText(ctx: ParserRuleContext): string {
     if (ctx.start.inputStream != undefined && ctx.stop != undefined) {

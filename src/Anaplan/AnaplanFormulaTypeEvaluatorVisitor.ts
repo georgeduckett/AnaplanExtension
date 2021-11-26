@@ -7,7 +7,9 @@ import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData } from './AnaplanMetaData';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 import { ParseTree } from 'antlr4ts/tree/ParseTree';
-import { AnaplanDataTypeStrings, Format, FunctionsInfo } from './FunctionInfo';
+import { FunctionsInfo } from './FunctionInfo';
+import { AnaplanDataTypeStrings } from './AnaplanDataTypeStrings';
+import { Format } from './Format';
 
 export let entitySpecialCharSelector = '[^A-z\s%£\?]';
 

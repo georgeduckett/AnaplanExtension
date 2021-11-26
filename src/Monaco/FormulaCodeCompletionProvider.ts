@@ -8,7 +8,7 @@ import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer
 import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
 import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
-import { FunctionsInfo } from "../Anaplan/FunctionInfo";
+import { AggregationFunctionsInfo, FunctionsInfo } from "../Anaplan/FunctionInfo";
 
 type TokenPosition = { index: number, context: ParseTree };
 
@@ -133,15 +133,9 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     break;
                 }
                 case AnaplanFormulaParser.RULE_dimensionmappingselector: {
-                    // TODO: Make a map similar to FunctionsInfo, then use it here and in HoverProvider
-                    entityNames.push(new AutoCompleteInfo('SELECT', 'SELECT', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
-                    entityNames.push(new AutoCompleteInfo('LOOKUP', 'LOOKUP', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
-                    entityNames.push(new AutoCompleteInfo('SUM', 'SUM', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
-                    entityNames.push(new AutoCompleteInfo('AVERAGE', 'AVERAGE', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
-                    entityNames.push(new AutoCompleteInfo('MIN', 'MIN', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
-                    entityNames.push(new AutoCompleteInfo('MAX', 'MAX', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
-                    entityNames.push(new AutoCompleteInfo('ANY', 'ANY', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
-                    entityNames.push(new AutoCompleteInfo('ALL', 'ALL', monaco.languages.CompletionItemKind.Keyword, [':'], undefined, undefined));
+                    for (let e of AggregationFunctionsInfo) {
+                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], e[1].type, new MarkdownString(e[1].description + "  \r\n[Anaplan Documentation](https://help.anaplan.com/Calculation_Functions/All/" + e[0] + ".html)")));
+                    }
                     break;
                 }
                 case AnaplanFormulaParser.RULE_functionname: {
