@@ -81,5 +81,6 @@ typings/
 
 dist/
 out/
-.antlr/
 src/Anaplan/antlrclasses/
+.antlr/
+# We still want .generateAnaplanData since although generated, we want to track changes
