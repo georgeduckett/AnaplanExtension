@@ -70,12 +70,12 @@ export let FunctionDescriptions = new Map([\r\n`;
 
 const $ = cheerio.load(request('GET', 'https://help.anaplan.com/186d3858-241b-4b78-8aa5-006fc4260546-All-Functions').getBody());
 const trs = $("table tr");
-
 trs.each((_, tr) => {
     let tds = cheerio.load(tr)("td");
     let aElement = tds.first().find("a:not(:empty)");
     if (aElement.length != 0) {
         let functionName = aElement.text();
+
         // We have a row with a link in the first cell
         console.log(functionName);
 
@@ -221,37 +221,56 @@ trs.each((_, tr) => {
                             format = detailPage(cells[formatIndex]).text().trim();
                         }
 
-                        console.log(`Param Name: ${arg}, Required: ${required}, Format: ${format}, Description: ${desc}`)
+                        paramInfo.push(new ParameterInfo(arg, desc, format, required));
                     }
                 }
-                return; // TODO: Do something with this
+            }
+
+            function addParamInfo(paramIndex: number, text: string, paramInfo: ParameterInfo[]) {
+                console.log(text);
+                let required: boolean | undefined = undefined;
+                if (text.includes('(optional)')) required = false;
+                if (text.includes('(required)')) required = true;
+
+                // TODO: Compare param name with syntax
+                paramInfo.push(new ParameterInfo(text.substring(0, text.indexOf(':')), text.substring(text.indexOf(':') + 1), undefined, required));
             }
 
             let syntaxArgumentsList = detailPage('h2:contains("Syntax") + * + p:contains("where:") + ul, h2:contains("Syntax") + p:contains("where:") + ul');
-
-            if (syntaxArgumentsList.length === 1) {
+            if (paramInfo.length === 0 && syntaxArgumentsList.length === 1) {
                 console.log('Found syntax arguments ul.');
-                return; // TODO: Do something with this
+                let rows = syntaxArgumentsList.find('> li');
+                for (let i = 0; i < rows.length; i++) {
+                    addParamInfo(i, detailPage(rows[i]).text(), paramInfo);
+                }
             }
 
             let syntaxArgumentsPSpanList = detailPage(' h2:contains("Syntax") + * + p:contains("where:") + p:has(span), h2:contains("Syntax") + p:contains("where:") + p:has(span)');
-
-            if (syntaxArgumentsPSpanList.length === 1) {
+            if (paramInfo.length === 0 && syntaxArgumentsPSpanList.length === 1) {
                 console.log('Found syntax arguments p span list.');
-                return; // TODO: Do something with this
+                let ps = syntaxArgumentsPSpanList.prev().nextUntil(':not(p:has(span))');
+
+                for (let i = 0; i < ps.length; i++) {
+                    addParamInfo(i, detailPage(ps[i]).text(), paramInfo);
+                }
             }
 
-            let argumentsList = detailPage('h2:contains("Arguments") + p + ul')
-
-            if (argumentsList.length === 1) {
+            let argumentsList = detailPage('h2:contains("Arguments") + p + ul');
+            if (paramInfo.length === 0 && argumentsList.length === 1) {
                 console.log('Found arguments ul.');
-                //return; // TODO: Do something with this
+                let rows = syntaxArgumentsList.find('> li');
+                for (let i = 0; i < rows.length; i++) {
+                    addParamInfo(i, detailPage(rows[i]).text(), paramInfo);
+                }
             }
 
-            throw Error('Could not work out arguments table for ' + functionName);
+            if (paramInfo.length === 0) {
+                throw Error('Could not work out arguments table for ' + functionName);
+            }
         }
-    }
 
+        // TODO: record function details
+    }
 });
 
 output += `    ['SELECT', 'SELECT explanation')],\r\n`

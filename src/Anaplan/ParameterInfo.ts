@@ -1,10 +1,12 @@
 export class ParameterInfo {
     public readonly name: string;
     public readonly details: string;
-    public readonly optional: boolean;
-    constructor(name: string, details: string, optional: boolean) {
+    public readonly format: string | undefined;
+    public readonly required: boolean | undefined;
+    constructor(name: string, details: string, format: string | undefined, required: boolean | undefined) {
         this.name = name;
         this.details = details;
-        this.optional = optional;
+        this.required = required;
+        this.format = format;
     }
 }
