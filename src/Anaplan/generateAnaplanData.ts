@@ -2,7 +2,8 @@ import fs = require('fs');
 import path = require('path');
 var request = require('sync-request');
 import cheerio = require('cheerio');
-import { ParameterInfo } from "./ParameterInfo"
+import { GeneratedParameterInfo } from "./GeneratedParameterInfo"
+import { GeneratedFunctionInfo } from './GeneratedFunctionInfo';
 
 
 
@@ -65,8 +66,7 @@ if (!fs.existsSync(path.parse(outputFile).dir)) {
 }
 
 
-let output = `import { ParameterInfo } from "./ParameterInfo"
-export let FunctionDescriptions = new Map([\r\n`;
+let functions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>();
 
 const $ = cheerio.load(request('GET', 'https://help.anaplan.com/186d3858-241b-4b78-8aa5-006fc4260546-All-Functions').getBody());
 const trs = $("table tr");
@@ -94,7 +94,7 @@ trs.each((_, tr) => {
 
 
         let syntax: string | undefined = undefined;
-        let paramInfo: ParameterInfo[] = [];
+        let paramInfo: GeneratedParameterInfo[] = [];
 
         let titleText = detailPage('h1').text();
 
@@ -157,6 +157,36 @@ trs.each((_, tr) => {
 
         // Now try and get the arguments
         if (syntax.includes('(') && !syntax.includes('()')) {
+            let paramsFromSyntax: { name: string, required: boolean }[] = [];
+
+            let start = syntax.indexOf('(') + 1;
+            while (start < syntax.length - 1) {
+                let nextCommaOrEnd = syntax.indexOf(',', start);
+                if (nextCommaOrEnd === -1) {
+                    nextCommaOrEnd = syntax.indexOf(')', start);
+                }
+
+                let nextParamName = syntax.substring(start, nextCommaOrEnd).trim();
+                let required = true;
+                if (nextParamName.endsWith('[')) {
+                    nextParamName = nextParamName.substring(0, nextParamName.length - 1).trim();
+                }
+                if (nextParamName.startsWith('[')) {
+                    nextParamName = nextParamName.substring(1).trim();
+                    required = false;
+                }
+                if (nextParamName.endsWith(']')) {
+                    nextParamName = nextParamName.substring(0, nextParamName.length - 1).trim();
+                    required = false;
+                }
+
+                console.log(nextParamName);
+                console.log(required);
+
+                paramsFromSyntax.push({ name: nextParamName, required: required });
+                start = nextCommaOrEnd + 1;
+            }
+
             let table = detailPage('table:has(tr td:contains("Argument")), table:has(tr td strong:contains("Argument")), table:has(tr th:contains("Argument")), table:has(tr th strong:contains("Argument"))')
 
             if (table.length === 1) {
@@ -214,6 +244,7 @@ trs.each((_, tr) => {
 
                         if (arg === 'basis' && desc.startsWith('The basis determines how many days exist in a year.')) {
                             // TODO: Think up a good summary description for the basis since the standard one is very long
+                            // TODO: Handle any descriptions that are very long
                         }
 
                         let format: string | undefined;
@@ -221,19 +252,31 @@ trs.each((_, tr) => {
                             format = detailPage(cells[formatIndex]).text().trim();
                         }
 
-                        paramInfo.push(new ParameterInfo(arg, desc, format, required));
+                        paramInfo.push(new GeneratedParameterInfo(paramsFromSyntax[rowIndex - 1].name, desc, format, required ?? (rowIndex - 1 < paramsFromSyntax.length ? paramsFromSyntax[rowIndex - 1].required : undefined)));
                     }
                 }
             }
 
-            function addParamInfo(paramIndex: number, text: string, paramInfo: ParameterInfo[]) {
+            function addParamInfo(paramIndex: number, text: string, paramInfo: GeneratedParameterInfo[]) {
                 console.log(text);
                 let required: boolean | undefined = undefined;
                 if (text.includes('(optional)')) required = false;
                 if (text.includes('(required)')) required = true;
 
-                // TODO: Compare param name with syntax
-                paramInfo.push(new ParameterInfo(text.substring(0, text.indexOf(':')), text.substring(text.indexOf(':') + 1), undefined, required));
+                let paramName = text.substring(0, text.indexOf(':'));
+                let paramDesc = text.substring(text.indexOf(':') + 1);
+
+
+                if (paramIndex >= paramsFromSyntax.length) {
+                    throw Error('Found more paramters than could be parsed from syntax');
+                }
+
+                paramInfo.push(
+                    new GeneratedParameterInfo(
+                        paramsFromSyntax[paramIndex].name, // use the parsed parameter name
+                        paramDesc,
+                        undefined,
+                        required ?? (paramIndex < paramsFromSyntax.length ? paramsFromSyntax[paramIndex].required : undefined)));
             }
 
             let syntaxArgumentsList = detailPage('h2:contains("Syntax") + * + p:contains("where:") + ul, h2:contains("Syntax") + p:contains("where:") + ul');
@@ -268,26 +311,14 @@ trs.each((_, tr) => {
                 throw Error('Could not work out arguments table for ' + functionName);
             }
         }
-
-        // TODO: record function details
+        functions.set(functionName, new GeneratedFunctionInfo(functionName, briefDescription, syntax, type, linkHref, paramInfo));
     }
 });
 
-output += `    ['SELECT', 'SELECT explanation')],\r\n`
+let serialisedFunctions = JSON.stringify(Array.from(functions.entries()));
 
-output += `])`;
+//de-serialise JSON to Map:
+let output = `import { GeneratedFunctionInfo } from "../GeneratedFunctionInfo"
+export let deserialisedFunctions: Map<string, GeneratedFunctionInfo> = new Map(JSON.parse(\`${serialisedFunctions}\`));`
 
-`export let AggregationFunctionsInfo = new Map([
-        ['SELECT', new FunctionInfo('The SELECT function is used to identify a list item to use from one or more hierarchy lists to filter the source module data. This function works in conjunction with the other dimensions in the module to return dependent values.', 'Logical', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) })],
-        ['LOOKUP', new FunctionInfo('The function looks up a number, Boolean, time period, list item, text, or date value in a list or a time period from a source module using one or more common mappings.', 'Logical', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) })],
-        ['SUM', new FunctionInfo('The SUM aggregation function sums values in a result module based on mapping from a source module.', 'Aggregation', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xSUM_y')],
-        ['AVERAGE', new FunctionInfo('Calculates the average for a range of values in a list.', 'Aggregation', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xAVERAGE_y')],
-        ['MIN', new FunctionInfo('The MIN aggregation function returns the minimum value from a line item in a source module.', 'Aggregation', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xMIN_y')],
-        ['MAX', new FunctionInfo('The MAX aggregation function returns the maximum value from a line item in a source module.', 'Aggregation', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xMAX_y')],
-        ['ANY', new FunctionInfo('The ANY aggregation function returns a TRUE result for any value that matches specific Boolean criteria in a source module.', 'Logical', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xANY_y')],
-        ['ALL', new FunctionInfo('The ALL aggregation function returns a TRUE result for all values that match specific Boolean criteria in a source module.', 'Logical', (visitor, ctx) => { return visitor.visit(ctx.expression()[0]) }, 'xALL_y')],
-    ])`
-
-console.log(output);
-
-//fs.writeFileSync(outputFile, output);
+fs.writeFileSync(outputFile, output);

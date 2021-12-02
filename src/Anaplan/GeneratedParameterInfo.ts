@@ -1,4 +1,4 @@
-export class ParameterInfo {
+export class GeneratedParameterInfo {
     public readonly name: string;
     public readonly details: string;
     public readonly format: string | undefined;
