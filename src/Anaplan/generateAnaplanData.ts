@@ -67,20 +67,22 @@ if (!fs.existsSync(path.parse(outputFile).dir)) {
 
 
 let functions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>();
+let aggregateFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>();
 
 const $ = cheerio.load(request('GET', 'https://help.anaplan.com/186d3858-241b-4b78-8aa5-006fc4260546-All-Functions').getBody());
 const trs = $("table tr");
 trs.each((_, tr) => {
+    let tr2 = cheerio.load(tr);
     let tds = cheerio.load(tr)("td");
     let aElement = tds.first().find("a:not(:empty)");
     if (aElement.length != 0) {
-        let functionName = aElement.text();
+        let functionName = aElement.text().trim();
 
         // We have a row with a link in the first cell
         console.log(functionName);
 
-        let briefDescription = tds.get(1).children[0].data;
-        let type = tds.get(2).children[0].data;
+        let briefDescription = tr2(tds.get(1)).text().trim();
+        let type = tr2(tds.get(2)).text().trim();
 
         let linkHref = 'https://help.anaplan.com' + aElement.attr('href');
 
@@ -92,26 +94,44 @@ trs.each((_, tr) => {
 
         let detailPage = cheerio.load(detailPageBody); // Why is this so slow, can anything be done to speed up the parsing?
 
+        let isAggregateFunction = detailPage('.anapedia-breadcrumb__link:contains("Aggregation Functions")').length != 0 || ["SELECT", "LOOKUP"].includes(functionName);
+
+        if (isAggregateFunction) {
+            if (functionName.includes(":")) {
+                functionName = functionName.match(/x\[(.*): ?y\]/)![1];
+            }
+        }
 
         let syntax: string | undefined = undefined;
+
         let paramInfo: GeneratedParameterInfo[] = [];
 
         let titleText = detailPage('h1').text();
+
+        if (titleText.includes(":")) {
+            titleText = titleText.match(/x\[(.*): ?y\]/)![1];
+        }
+
+        switch (functionName) {
+            case 'IF ISNOTBLANK':
+            case 'IF ISBLANK':
+            case 'IF AND':
+            case 'IF NOT':
+            case 'IF OR':
+            case 'IF THEN ELSE':
+            case 'NOT':
+            case 'OR':
+            case 'SELECT & LOOKUP':
+            case 'SUM & LOOKUP':
+            case 'BLANK':
+            case 'SUM & SELECT': console.log('Generic page or not a function, not needed'); return;
+        }
 
         if (!functionName.includes(titleText) && !["COUPDAYBS", 'LENGTH'].includes(titleText)) {
             // If the linked page doesn't have a header matching the name function, skip it
 
             switch (functionName) {
-                case 'IF ISNOTBLANK':
-                case 'IF ISBLANK':
-                case 'IF AND':
-                case 'IF NOT':
-                case 'IF OR':
-                case 'SELECT & LOOKUP':
-                case 'SUM & LOOKUP':
-                case 'SUM & SELECT': console.log('Generic page, not needed'); return;
                 case 'AND': syntax = 'x AND y'; break;
-                case 'BLANK': syntax = 'BLANK'; break;
                 case 'NOT': syntax = 'NOT x'; break;
                 case 'OR': syntax = 'x OR y'; break;
                 default: throw Error(`Generic page detected for '${functionName}', title text: '${titleText}', 'href: ${linkHref}`);
@@ -141,7 +161,7 @@ trs.each((_, tr) => {
 
             for (let i = 0; i < syntaxSelectors.length; i++) {
                 let matches = detailPage(syntaxSelectors[i]);
-                let matchedText = matches.first().text();
+                let matchedText = matches.first().text().trim();
                 if (matchedText != '') {
                     syntax = matchedText;
                     break;
@@ -154,6 +174,16 @@ trs.each((_, tr) => {
         }
 
         console.log(syntax);
+
+        if (syntax === "DAYINYEAR(Year)") {
+            syntax = "DAYSINYEAR(Year)";
+        } else if (syntax === "CUMULATE (Values to add, Boolean, List)") {
+            syntax = "CUMULATE(Values to add, Boolean, List)";
+        }
+
+        if (syntax.includes('(')) {
+            functionName = syntax.substr(0, syntax.indexOf('('));
+        }
 
         // Now try and get the arguments
         if (syntax.includes('(') && !syntax.includes('()')) {
@@ -263,8 +293,8 @@ trs.each((_, tr) => {
                 if (text.includes('(optional)')) required = false;
                 if (text.includes('(required)')) required = true;
 
-                let paramName = text.substring(0, text.indexOf(':'));
-                let paramDesc = text.substring(text.indexOf(':') + 1);
+                let paramName = text.substring(0, text.indexOf(':')).trim();
+                let paramDesc = text.substring(text.indexOf(':') + 1).trim();
 
 
                 if (paramIndex >= paramsFromSyntax.length) {
@@ -311,14 +341,49 @@ trs.each((_, tr) => {
                 throw Error('Could not work out arguments table for ' + functionName);
             }
         }
-        functions.set(functionName, new GeneratedFunctionInfo(functionName, briefDescription, syntax, type, linkHref, paramInfo));
+
+        if (isAggregateFunction) {
+            aggregateFunctions.set(functionName, new GeneratedFunctionInfo(functionName, briefDescription, syntax, type, linkHref, paramInfo));
+        } else {
+            functions.set(functionName, new GeneratedFunctionInfo(functionName, briefDescription, syntax, type, linkHref, paramInfo));
+        }
     }
 });
 
-let serialisedFunctions = JSON.stringify(Array.from(functions.entries()));
+// Replace undefined with '__undefined' then back again for stringify s otherwise it's removed.
+let serialisedFunctions = JSON.stringify(Array.from(functions.entries()), (k, v) => (v === undefined) ? '__undefined' : v).replace(/"__undefined"/g, 'undefined');
+
+// Sort out invalid characters
+serialisedFunctions = serialisedFunctions.replace(/\\n/g, "\\n")
+    .replace(/\\'/g, "\\'")
+    .replace(/\\"/g, '\\"')
+    .replace(/\\&/g, "\\&")
+    .replace(/\\r/g, "\\r")
+    .replace(/\\t/g, "\\t")
+    .replace(/\\b/g, "\\b")
+    .replace(/\\f/g, "\\f");
+// remove non-printable and other non-valid JSON chars
+serialisedFunctions = serialisedFunctions.replace(/[\u0000-\u0019]+/g, "");
+
+// Replace undefined with '__undefined' then back again for stringify s otherwise it's removed.
+let serialisedAggregateFunctions = JSON.stringify(Array.from(aggregateFunctions.entries()), (k, v) => (v === undefined) ? '__undefined' : v).replace(/"__undefined"/g, 'undefined');
+
+// Sort out invalid characters
+serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/\\n/g, "\\n")
+    .replace(/\\'/g, "\\'")
+    .replace(/\\"/g, '\\"')
+    .replace(/\\&/g, "\\&")
+    .replace(/\\r/g, "\\r")
+    .replace(/\\t/g, "\\t")
+    .replace(/\\b/g, "\\b")
+    .replace(/\\f/g, "\\f");
+// remove non-printable and other non-valid JSON chars
+serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/[\u0000-\u0019]+/g, "");
+
 
 //de-serialise JSON to Map:
 let output = `import { GeneratedFunctionInfo } from "../GeneratedFunctionInfo"
-export let deserialisedFunctions: Map<string, GeneratedFunctionInfo> = new Map(JSON.parse(\`${serialisedFunctions}\`));`
+export let deserialisedFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>(${serialisedFunctions});
+export let deserialisedAggregateFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>(${serialisedAggregateFunctions});`
 
 fs.writeFileSync(outputFile, output);

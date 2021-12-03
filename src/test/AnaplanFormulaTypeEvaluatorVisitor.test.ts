@@ -1,6 +1,8 @@
 import { getAnaplanMetaData, getFormulaErrors } from '../Anaplan/AnaplanHelpers'
 import { Random } from '../Random';
 import ts = require("typescript");
+import { FunctionsInfo } from '../Anaplan/FunctionInfo';
+import { deserialisedFunctions } from '../Anaplan/.generateAnaplanData/FunctionInfo';
 
 
 
@@ -12,7 +14,19 @@ let modelInfoJson = `{"modelDefinitionSerialNumber":224452392287419,"metadataId"
 // There's lots of newlines before and after this, since when debugging any isuses with code show the lines before and after it, which means this line gets printed to the console.
 
 
+describe('Ensure anaplan function docs cover all known functions and visa-versa', () => {
+    for (let e in FunctionsInfo.keys()) {
+        expect(deserialisedFunctions.has(e)).toBeTruthy();
+    }
 
+    it.each(Array.from(FunctionsInfo.keys()))('%s', (key) => {
+        expect(deserialisedFunctions.has(key)).toBeTruthy();
+    });
+
+    it.each(Array.from(deserialisedFunctions.keys()))('%s', (key) => {
+        expect(FunctionsInfo.has(key)).toBeTruthy();
+    });
+});
 
 
 

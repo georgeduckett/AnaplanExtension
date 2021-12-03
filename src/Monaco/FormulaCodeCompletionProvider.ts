@@ -8,7 +8,8 @@ import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer
 import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
 import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
-import { AggregationFunctionsInfo, FunctionsInfo } from "../Anaplan/FunctionInfo";
+import { FunctionsInfo } from "../Anaplan/FunctionInfo";
+import { deserialisedAggregateFunctions, deserialisedFunctions } from "../Anaplan/.generateAnaplanData/FunctionInfo";
 
 type TokenPosition = { index: number, context: ParseTree };
 
@@ -133,14 +134,14 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     break;
                 }
                 case AnaplanFormulaParser.RULE_dimensionmappingselector: {
-                    for (let e of AggregationFunctionsInfo) {
-                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], e[1].type, new MarkdownString(e[1].description + "  \r\n[Anaplan Documentation](https://help.anaplan.com/Calculation_Functions/All/" + e[0] + ".html)")));
+                    for (let e of deserialisedAggregateFunctions.keys()) {
+                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e[0])!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e[0])!.htmlPageName + ")")));
                     }
                     break;
                 }
                 case AnaplanFormulaParser.RULE_functionname: {
                     for (let e of FunctionsInfo) {
-                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], e[1].type, new MarkdownString(e[1].description + "  \r\n[Anaplan Documentation](https://help.anaplan.com/Calculation_Functions/All/" + e[0] + ".html)")));
+                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], deserialisedFunctions.get(e[0])!.type, new MarkdownString(deserialisedFunctions.get(e[0])!.description + "  \r\n[Anaplan Documentation](" + deserialisedFunctions.get(e[0])!.htmlPageName + ")")));
                     }
                     break;
                 }

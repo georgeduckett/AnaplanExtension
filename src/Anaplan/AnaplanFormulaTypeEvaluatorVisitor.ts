@@ -10,6 +10,7 @@ import { ParseTree } from 'antlr4ts/tree/ParseTree';
 import { FunctionsInfo } from './FunctionInfo';
 import { AnaplanDataTypeStrings } from './AnaplanDataTypeStrings';
 import { Format } from './Format';
+import { deserialisedAggregateFunctions } from './.generateAnaplanData/FunctionInfo';
 
 export let entitySpecialCharSelector = '[^A-z\s%£\?]';
 
@@ -245,7 +246,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
           break;
         default: // If it's an aggregation we check the target entity mappings
-          if (!["MIN", "MAX", "SUM", "AVERAGE", "ANY", "ALL", "TEXTLIST"].includes(selectorType.toUpperCase())) {
+          if (!deserialisedAggregateFunctions.has(selectorType.toUpperCase())) {
             this.addFormulaError(dimensionMapping.dimensionmappingselector(), `Unknown aggregation function '${selectorType}'`);
           }
 
