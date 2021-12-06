@@ -273,11 +273,6 @@ trs.each((_, tr) => {
                             arg = arg.replace('(optional)', '').trim()
                         }
 
-                        if (arg === 'basis' && desc.startsWith('The basis determines how many days exist in a year.')) {
-                            // TODO: Think up a good summary description for the basis since the standard one is very long
-                            // TODO: Handle any descriptions that are very long
-                        }
-
                         let format: string | undefined;
                         if (formatIndex != undefined) {
                             format = detailPage(cells[formatIndex]).text().trim();
