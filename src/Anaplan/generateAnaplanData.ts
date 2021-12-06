@@ -120,6 +120,7 @@ trs.each((_, tr) => {
             case 'IF OR':
             case 'IF THEN ELSE':
             case 'NOT':
+            case 'AND':
             case 'OR':
             case 'SELECT & LOOKUP':
             case 'SUM & LOOKUP':

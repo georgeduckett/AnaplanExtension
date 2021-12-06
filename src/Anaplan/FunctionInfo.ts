@@ -54,7 +54,6 @@ export let FunctionsInfo = new Map([
     ['ADDYEARS', new FunctionInfo(AnaplanDataTypeStrings.DATE)],
     ['AGENTS', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
     ['AGENTSB', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
-    ['AND', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
     ['ANSWERTIME', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
     ['ARRIVALRATE', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
     ['AVGDURATION', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
