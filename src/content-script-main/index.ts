@@ -12,12 +12,15 @@ import { FormulaHoverProvider } from "../Monaco/FormulaHoverProvider";
 import { getAnaplanMetaData, setModelErrors } from "../Anaplan/AnaplanHelpers";
 import he = require("he");
 import { FormulaCompletionItemProvider } from "../Monaco/FormulaCodeCompletionProvider";
+import { FormulaSignatureHelpProvider } from "../Monaco/FormulaSignatureHelpProvider";
 
 export let hoverProvider: FormulaHoverProvider;
 export let completionItemProvider: FormulaCompletionItemProvider;
+export let signatureHelpProvider: FormulaSignatureHelpProvider;
 
 hoverProvider = new FormulaHoverProvider();
 completionItemProvider = new FormulaCompletionItemProvider();
+signatureHelpProvider = new FormulaSignatureHelpProvider();
 
 async function main() {
 	const settings = JSON.parse(
@@ -31,6 +34,7 @@ async function main() {
 	monaco.languages.setTokensProvider('anaplanformula', new FormulaTokensProvider());
 	monaco.languages.registerHoverProvider('anaplanformula', hoverProvider);
 	monaco.languages.registerCompletionItemProvider('anaplanformula', completionItemProvider);
+	monaco.languages.registerSignatureHelpProvider('anaplanformula', signatureHelpProvider);
 
 	function updateDocument() {
 		// Add any monaco editors as needed
@@ -182,7 +186,8 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 			// Anaplan have their own token provider
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
-			monaco.languages.registerCompletionItemProvider('anaplanguage', completionItemProvider)
+			monaco.languages.registerCompletionItemProvider('anaplanguage', completionItemProvider);
+			monaco.languages.registerSignatureHelpProvider('anaplanguage', signatureHelpProvider);
 
 			let models = monaco.editor.getModels();
 			onCreateModel(models[0]);
