@@ -5,58 +5,6 @@ import cheerio = require('cheerio');
 import { GeneratedParameterInfo } from "./GeneratedParameterInfo"
 import { GeneratedFunctionInfo } from './GeneratedFunctionInfo';
 
-
-
-// TODO: Use function signatures properly
-/*monaco.languages.registerSignatureHelpProvider('csharp', {
-
-   signatureHelpTriggerCharacters: ['('],
-   signatureHelpRetriggerCharacters: [','],
-   provideSignatureHelp: function(model, position) {
-
-      var textUntilPosition = model.getValueInRange({
-         startLineNumber: 1,
-         startColumn: 1,
-         endLineNumber: position.lineNumber,
-         endColumn: position.column
-      });
-
-      var match = textUntilPosition.includes("(");
-
-      if (match) {
-         return {value:{
-            signatures: [{
-               label: "parameter1",
-               documentation: " this method does blah",
-               parameters: [{
-                  label: "ParamInfo1",
-                  documentation: "this param does blah"
-               }],
-               activeParameter: 0,
-            }],
-
-            activeSignature: 0,
-            activeParameter: 0
-         }};
-      }
-      return [];
-   }
-});
-
-monaco.editor.create(document.getElementById("container"), {
-   value: "",
-   language: "csharp",
-   parameterHints: true
-});*/
-
-
-
-
-
-
-
-
-
 let filePath = process.argv[1];
 let outputFile = `${path.parse(filePath).dir}\\.${path.parse(filePath).name}\\FunctionInfo.ts`;
 console.log(outputFile);
