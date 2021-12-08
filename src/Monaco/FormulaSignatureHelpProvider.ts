@@ -47,11 +47,11 @@ export class FormulaSignatureHelpProvider implements monaco.languages.SignatureH
             return new SignatureHelpResultClass({
                 signatures: [{
                     label: funcInfo.syntax,
-                    documentation: { value: funcInfo?.description + "  \r\n[Anaplan Documentation](" + textUntilPosition + ")" },
+                    documentation: { value: funcInfo?.description + "  \r\n[Anaplan Documentation](" + funcInfo.htmlPageName + ")" },
                     parameters: funcInfo?.paramInfo.map(paramInfo => {
                         return {
                             label: paramInfo.name,
-                            documentation: { value: paramInfo.details },
+                            documentation: { value: paramInfo.details }, // TODO: Why aren't bulletpoints rendered as markdown?
                         };
                     })!,
                     activeParameter: commaCount,

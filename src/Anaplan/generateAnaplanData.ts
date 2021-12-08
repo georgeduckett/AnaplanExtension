@@ -1,9 +1,13 @@
 import fs = require('fs');
 import path = require('path');
+import TurndownService = require('turndown');
+var turndownPluginGfm = require('turndown-plugin-gfm')
 var request = require('sync-request');
+
 import cheerio = require('cheerio');
 import { GeneratedParameterInfo } from "./GeneratedParameterInfo"
 import { GeneratedFunctionInfo } from './GeneratedFunctionInfo';
+
 
 let filePath = process.argv[1];
 let outputFile = `${path.parse(filePath).dir}\\.${path.parse(filePath).name}\\FunctionInfo.ts`;
@@ -19,6 +23,12 @@ let aggregateFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, Gen
 
 const $ = cheerio.load(request('GET', 'https://help.anaplan.com/186d3858-241b-4b78-8aa5-006fc4260546-All-Functions').getBody());
 const trs = $("table tr");
+
+
+var gfm = turndownPluginGfm.gfm;
+var turndownService = new TurndownService({ hr: '---', bulletListMarker: '-' });
+turndownService.use(gfm);
+
 trs.each((_, tr) => {
     let tr2 = cheerio.load(tr);
     let tds = cheerio.load(tr)("td");
@@ -41,6 +51,14 @@ trs.each((_, tr) => {
         let detailPageBody = request('GET', linkHref).getBody();
 
         let detailPage = cheerio.load(detailPageBody); // Why is this so slow, can anything be done to speed up the parsing?
+
+        // Make relative urls absolute, and url-encode spaces so markdown accepts them
+        detailPage('a').each(function (_, element) {
+            var oldHref = detailPage(element).attr('href');
+            if (oldHref != undefined && oldHref[0] === '/') {
+                detailPage(element).attr('href', 'https://help.anaplan.com' + oldHref.replace(/ /g, '%20'));
+            }
+        });
 
         let isAggregateFunction = detailPage('.anapedia-breadcrumb__link:contains("Aggregation Functions")').length != 0 || ["SELECT", "LOOKUP"].includes(functionName);
 
@@ -208,7 +226,8 @@ trs.each((_, tr) => {
                         }
 
                         let arg = detailPage(cells[argIndex]).text().trim();
-                        let desc = detailPage(cells[descIndex]).text().trim();
+                        // Add a horizontal rule after the parameter description, so the function description is separated from it
+                        let desc = turndownService.turndown(detailPage(cells[descIndex]).html()! + '<hr>');
 
                         let required: boolean | undefined;
 
@@ -323,7 +342,6 @@ serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/\\n/g, "\\n
     .replace(/\\f/g, "\\f");
 // remove non-printable and other non-valid JSON chars
 serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/[\u0000-\u0019]+/g, "");
-
 
 //de-serialise JSON to Map:
 let output = `import { GeneratedFunctionInfo } from "../GeneratedFunctionInfo"
