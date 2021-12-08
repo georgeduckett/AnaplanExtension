@@ -43,7 +43,6 @@ async function main() {
 				"formulaEditorText"
 			) as any),
 		]) {
-			console.debug('Created editor wrapper for TextArea.formulaEditorText')
 			EditorWrapper.wrap(
 				textArea,
 				monaco,

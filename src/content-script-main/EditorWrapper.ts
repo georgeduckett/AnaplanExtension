@@ -3,7 +3,7 @@ import type { MonacoOptions } from '../settings';
 import { editor, KeyCode } from "monaco-editor";
 import { Monaco } from "../monaco-loader";
 import { getAnaplanMetaData, setModelErrors } from '../Anaplan/AnaplanHelpers';
-import { hoverProvider } from '.';
+import { hoverProvider, completionItemProvider } from '.';
 import he = require('he');
 
 export interface MonacoNode extends HTMLDivElement {
@@ -24,10 +24,13 @@ export class EditorWrapper {
 		monaco: Monaco,
 		settings: MonacoOptions,
 	) {
-		hoverProvider.updateMetaData(getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!), he.decode(document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!)));
+		let metaData = getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!), he.decode(document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!));
+		hoverProvider.updateMetaData(metaData);
+		completionItemProvider.updateMetaData(metaData);
 		if (textArea.hedietEditorWrapper) {
 			return textArea.hedietEditorWrapper;
 		}
+		console.debug('Created editor wrapper for TextArea.formulaEditorText');
 		return new EditorWrapper(
 			textArea,
 			monaco,
@@ -91,8 +94,13 @@ export class EditorWrapper {
 			clearTimeout(handle);
 
 			handle = setTimeout(() => {
+				let metaData = getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!), he.decode(document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!));
+				hoverProvider.updateMetaData(metaData);
+				completionItemProvider.updateMetaData(metaData);
 				setModelErrors(model, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!);
 			}, 250);
+
+			setModelErrors(model, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), he.decode(document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!));
 		});
 
 		const interval = setInterval(() => {
@@ -102,6 +110,13 @@ export class EditorWrapper {
 			if (!document.body.contains(this.textArea)) {
 				this.dispose();
 			}
+
+			// Set read-only flag
+
+			let isAcceptRejectVisible = document.querySelectorAll('.formulaEditorButtonsCell')[0].children[0].getAttribute('style') != 'visibility: hidden;';
+
+			this.editor.updateOptions({ readOnly: !isAcceptRejectVisible });
+
 		}, 100);
 		this.disposables.push(() => clearInterval(interval));
 
@@ -118,17 +133,54 @@ export class EditorWrapper {
 
 
 		this.editor.addAction({
-			id: "github.submit",
+			id: "Submit",
 			label: "Submit",
 			run: () => {
-				const ctrlEnterEvent = new KeyboardEvent("keydown", {
+				const enterDownEvent = new KeyboardEvent("keydown", {
 					key: "Enter",
 					code: "Enter",
-					ctrlKey: true,
+					keyCode: 13, // Existing anaplan code looks for this property so we include it even if it's depreciated
 				});
-				this.textArea.dispatchEvent(ctrlEnterEvent);
+				this.textArea.dispatchEvent(enterDownEvent);
+				const enterPressEvent = new KeyboardEvent("keypress", {
+					key: "Enter",
+					code: "Enter",
+					keyCode: 13, // Existing anaplan code looks for this property so we include it even if it's depreciated
+				});
+				this.textArea.dispatchEvent(enterPressEvent);
+				const enterUpEvent = new KeyboardEvent("keyup", {
+					key: "Enter",
+					code: "Enter",
+					keyCode: 13, // Existing anaplan code looks for this property so we include it even if it's depreciated
+				});
+				this.textArea.dispatchEvent(enterUpEvent);
 			},
-			keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+			keybindings: [monaco.KeyCode.Enter],
+		});
+		this.editor.addAction({
+			id: "Cancel",
+			label: "Cancel",
+			run: () => {
+				const escapeDownEvent = new KeyboardEvent("keydown", {
+					key: "Escape",
+					code: "Escape",
+					keyCode: 27, // Existing anaplan code looks for this property so we include it even if it's depreciated
+				});
+				this.textArea.dispatchEvent(escapeDownEvent);
+				const escapePressEvent = new KeyboardEvent("keypress", {
+					key: "Escape",
+					code: "Escape",
+					keyCode: 27, // Existing anaplan code looks for this property so we include it even if it's depreciated
+				});
+				this.textArea.dispatchEvent(escapePressEvent);
+				const escapeUpEvent = new KeyboardEvent("keydown", {
+					key: "Escape",
+					code: "Escape",
+					keyCode: 27, // Existing anaplan code looks for this property so we include it even if it's depreciated
+				});
+				this.textArea.dispatchEvent(escapeUpEvent);
+			},
+			keybindings: [monaco.KeyCode.Escape],
 		});
 
 		this.editor.addAction({
