@@ -1,7 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext } from './antlrclasses/AnaplanFormulaParser';
-import { getOriginalText } from './AnaplanHelpers';
+import { findAncestor, getOriginalText } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData } from './AnaplanMetaData';
@@ -353,7 +353,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext) &&
-      !(ctx.parent instanceof FuncParameterisedContext && ctx.parent.functionname().text === "YEARVALUE")) {
+      !(findAncestor(ctx, FuncParameterisedContext)?.functionname()?.text === "YEARVALUE")) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       // Also, if we're in a YEARVALUE function we assume it's ok since we can't SELECT a top level item within this function
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
