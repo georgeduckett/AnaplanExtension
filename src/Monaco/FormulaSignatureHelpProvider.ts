@@ -17,7 +17,7 @@ export class FormulaSignatureHelpProvider implements monaco.languages.SignatureH
         let modelText = model.getValue();
         let commaCount = 0;
         // Loop backwards looking for an opening or closing bracket.
-        while (textIndex != 0) {
+        while (textIndex > 0) {
             if (modelText[textIndex] === ')') {
                 // If we find a closing one first, then we return nothing as we're not in a method.
                 return null;
