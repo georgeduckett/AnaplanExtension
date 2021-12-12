@@ -38,8 +38,6 @@ describe('Check anaplan formulas are all considered valid', () => {
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos.length; j++) {
 
-            if (i != 32 || j != 0) continue;
-
             let formula = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula;
             if (formula != undefined) {
                 cases.push([
