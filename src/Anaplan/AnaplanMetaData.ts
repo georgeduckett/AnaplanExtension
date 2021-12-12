@@ -244,6 +244,10 @@ export class AnaplanMetaData {
     areCompatibleDimensions(entityIdA: number, entityIdB: number | undefined) {
         if (entityIdB === undefined) return false;
 
+
+        let entityAName = this.getEntityNameFromId(entityIdA);
+        let entityBName = this.getEntityNameFromId(entityIdB);
+
         // If the subset normalised values are the same, then that's a match
         if (this.getSubsetNormalisedEntityId(entityIdA) === this.getSubsetNormalisedEntityId(entityIdB)) {
             return true;
@@ -256,6 +260,11 @@ export class AnaplanMetaData {
             return true;
         }
 
+        // If both are time dimensions that's ok
+        if (this.getEntityNameFromId(entityIdA).toUpperCase().startsWith("TIME.") &&
+            this.getEntityNameFromId(entityIdB).toUpperCase().startsWith("TIME.")) {
+            return true;
+        }
 
         // Handle list subsets
         let entityAModules = this.getSubsetModules(entityIdA);
@@ -265,6 +274,7 @@ export class AnaplanMetaData {
             // If there's an intersection of modules used for these line item subsets, then that's ok
             return entityAModules.filter(value => entityBModules!.includes(value)).length != 0;
         }
+
 
         return false;
     }
@@ -283,6 +293,8 @@ export class AnaplanMetaData {
         // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
         extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 121000000021);
         extraTargetEntityMappings = extraTargetEntityMappings.filter(e => e != 121000000021);
+
+        extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 20000000020); // Version in source is never an extra, as that's fine
 
         return { extraSourceEntityMappings, extraTargetEntityMappings };
     }

@@ -261,6 +261,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             id: -1, // TODO: What should this be?
             type: 'time'
         });
+    entityNames.set(-1, 'TIME.All Periods');
 
     let allPeriodsFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined);
     allPeriodsFormat.periodType = { entityIndex: -1 };// TODO: What should this be?
