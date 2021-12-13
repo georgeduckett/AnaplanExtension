@@ -110,6 +110,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             });
     }
 
+    let subsetMainHierachyMap = new Map<number, number>();
+
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0].length; i++) {
         entityNames.set(
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i],
@@ -123,6 +125,11 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         hierarchyParents.set(
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId,
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].parentHierarchyEntityLongId);
+
+        for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].subsetEntityLongIds.length; j++) {
+            subsetMainHierachyMap.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].subsetEntityLongIds[j],
+                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.entityLongIds[0][i]);
+        }
 
         // Add in the hierarchy properties as an entity
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesInfo.length; j++) {
@@ -293,12 +300,17 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     entityIds.set('Version', { id: 20000000020, type: 'version' });
 
 
-
     let subsetParentDimensionId = new Map<number, SubsetInfo>();
     // Regular subsets (of hierarchies)
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos.length; i++) {
         subsetParentDimensionId.set(anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].entityLongId,
-            anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i]);
+            {
+                entityLongId: anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].entityLongId,
+                parentHierarchyEntityLongId: subsetMainHierachyMap.get(anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].entityLongId)!,
+                topLevelMainHierarchyEntityLongId: subsetMainHierachyMap.get(anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].entityLongId)!,
+                applicableModuleEntityLongIds: anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetInfos[i].applicableModuleEntityLongIds
+            }
+        );
     }
 
     // Line item subsets (of measures)
