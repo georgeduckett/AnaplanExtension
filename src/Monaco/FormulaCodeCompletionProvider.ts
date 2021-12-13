@@ -69,7 +69,7 @@ function computeTokenIndexOfChildNode(parseTree: ParseTree, caretLine: number, c
 }
 
 export class FormulaCompletionItemProvider implements monaco.languages.CompletionItemProvider {
-    triggerCharacters?: string[] = ['.'];
+    triggerCharacters?: string[] = ['.', ':', ',', '['];
     _anaplanMetaData: AnaplanMetaData | undefined;
 
     updateMetaData(newMetaData: AnaplanMetaData) { this._anaplanMetaData = newMetaData; }
@@ -135,7 +135,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                 }
                 case AnaplanFormulaParser.RULE_dimensionmappingselector: {
                     for (let e of deserialisedAggregateFunctions.keys()) {
-                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e[0])!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e[0])!.htmlPageName + ")")));
+                        entityNames.push(new AutoCompleteInfo(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
                     }
                     break;
                 }
@@ -151,7 +151,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         // Finally combine all found lists into one for the UI.
         // We do that in separate steps so that you can apply some ordering to each of your sub lists.
         // Then you also can order symbols groups as a whole depending their importance.
-        // TODO: Be more intelligent about how we work out what to replace
+        // TODO: Be more intelligent about how we work out what to replace (maybe start at the beginning of the match parsed context?)
         const word = model.getWordUntilPosition(position);
         const range = {
             startLineNumber: position.lineNumber,
