@@ -126,6 +126,20 @@ describe("Check no program errors are produced with an incorrect formula", () =>
                     "'",
                     alteredformula,
                     formula]);
+
+                if (j % 15 === 0) {
+                    for (let k = 0; k < formula.length; k += 5) {
+                        cases.push([
+                            i,
+                            j,
+                            "'" + anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] +
+                            "'.'" +
+                            anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j] +
+                            "'",
+                            formula.substring(0, k),
+                            formula]);
+                    }
+                }
             }
         }
     }
