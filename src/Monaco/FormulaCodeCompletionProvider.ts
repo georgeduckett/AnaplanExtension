@@ -5,7 +5,7 @@ import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { UriComponents } from "monaco-editor";
 import { AnaplanMetaData, AutoCompleteInfo } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
 import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
@@ -153,14 +153,44 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         // Then you also can order symbols groups as a whole depending their importance.
         // TODO: Be more intelligent about how we work out what to replace (maybe start at the beginning of the match parsed context?)
         const word = model.getWordUntilPosition(position);
-        const range = {
+
+        let range = {
             startLineNumber: position.lineNumber,
             endLineNumber: position.lineNumber,
             startColumn: word.startColumn,
             endColumn: word.endColumn,
         };
 
+        let currentContext: ParseTree | undefined = tokenPosition.context
 
+        while (currentContext != undefined && !(currentContext instanceof ParserRuleContext)) {
+            currentContext = currentContext.parent;
+        }
+
+        if (currentContext instanceof DotQualifiedEntityRightPartEmptyContext) {
+            // The parser treated this as incomplete, so we want everything from the prior dot
+            let dotIndex = model.getValue().lastIndexOf('.', (currentContext.stop ?? currentContext.start).stopIndex);
+
+            if (dotIndex != -1) {
+                dotIndex++;
+                range = {
+                    startLineNumber: model.getPositionAt(dotIndex).lineNumber,
+                    startColumn: model.getPositionAt(dotIndex).column,
+                    endLineNumber: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).lineNumber,
+                    endColumn: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).column,
+                }
+            }
+        }
+        else if (currentContext != undefined && currentContext instanceof ParserRuleContext) {
+            range = {
+                startLineNumber: model.getPositionAt(currentContext.start.startIndex).lineNumber,
+                startColumn: model.getPositionAt(currentContext.start.startIndex).column,
+                endLineNumber: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).lineNumber,
+                endColumn: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).column,
+            };
+        }
+
+        console.log(tokenPosition.context);
 
         let suggestions: CompletionItem[] = [];
         suggestions.push(...entityNames.map(s => {
@@ -168,6 +198,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             result.commitCharacters = s.autoInsertChars;
             result.detail = s.detail;
             result.documentation = s.documentation;
+            result.filterText = s.text;
             return result;
         }));
 

@@ -120,7 +120,7 @@ export class AnaplanMetaData {
                         lineItem[1].name,
                         this.quoteIfNeeded(lineItem[1].name),
                         monaco.languages.CompletionItemKind.Constant,
-                        [' ', '[', ']', '+', '-', '*', '/'],
+                        ['[', ']', '+', '-', '*', '/'],
                         EntityType[lineItem[1].entityType],
                         undefined));
                 }
