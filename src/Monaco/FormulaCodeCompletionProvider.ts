@@ -190,8 +190,6 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             };
         }
 
-        console.log(tokenPosition.context);
-
         let suggestions: CompletionItem[] = [];
         suggestions.push(...entityNames.map(s => {
             let result = new CompletionItem(s.label, s.kind, s.text, range);

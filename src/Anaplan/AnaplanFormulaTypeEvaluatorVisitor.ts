@@ -227,11 +227,18 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     for (let i = 0; i < dimensionMappings.length; i++) {
       let dimensionMapping = dimensionMappings[i];
 
+      this.visit(dimensionMapping);
+
       let selectorType = dimensionMapping.dimensionmappingselector().text;
-      let selector = this._anaplanMetaData.getEntityName(dimensionMapping.entity());
+      let entity = dimensionMapping.entity();
+
+      if (entity instanceof DotQualifiedEntityIncompleteContext) {
+        continue;
+      }
+
+      let selector = this._anaplanMetaData.getEntityName(entity);
       let lineitem = this._anaplanMetaData.getItemInfoFromEntityName(selector)!;
 
-      this.visit(dimensionMapping);
 
       if (lineitem === undefined) {
         continue;
