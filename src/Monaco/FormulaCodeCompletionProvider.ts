@@ -151,7 +151,6 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         // Finally combine all found lists into one for the UI.
         // We do that in separate steps so that you can apply some ordering to each of your sub lists.
         // Then you also can order symbols groups as a whole depending their importance.
-        // TODO: Be more intelligent about how we work out what to replace (maybe start at the beginning of the match parsed context?)
         const word = model.getWordUntilPosition(position);
 
         let range = {

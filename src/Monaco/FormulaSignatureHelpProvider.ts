@@ -51,7 +51,7 @@ export class FormulaSignatureHelpProvider implements monaco.languages.SignatureH
                     parameters: funcInfo?.paramInfo.map(paramInfo => {
                         return {
                             label: paramInfo.name,
-                            documentation: { value: paramInfo.details }, // TODO: Why aren't bulletpoints rendered as markdown?
+                            documentation: { value: paramInfo.details },
                         };
                     })!,
                     activeParameter: commaCount,
