@@ -87,12 +87,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 	window.addEventListener('message', event => {
 		if (event.data.data != undefined && event.data.data.ModelContentCache != undefined) {
 			console.log('set anaplan from event.data using ' + window.location.href + ' message from ' + event.origin);
-			if (window.anaplan === undefined) {
-				window.anaplan = event.data;
-			}
-			else {
-				console.log('window.anaplan already defined');
-			}
+			window.anaplan = event.data;
 		}
 	});
 
@@ -100,7 +95,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 	const send = XHR.send
 	XHR.send = function (body?: any): void {
-		if (body?.toString().includes('"fetchAllModelSummaries":true')) {
+		if (body?.toString().includes('"fetchAllModelSummaries":true') || body?.toString().includes('modelChanges')) {
 			this.addEventListener('load', function () {
 				try {
 					if (this.responseType != 'blob') {
