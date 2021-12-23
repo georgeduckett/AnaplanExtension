@@ -39,6 +39,7 @@ describe('Check anaplan formulas are all considered valid', () => {
         for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos.length; j++) {
 
             let formula = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula;
+
             if (formula != undefined) {
                 cases.push([
                     i,
@@ -98,19 +99,6 @@ describe("Check incomplete dimensionselector doesn't cause an error", () => {
 
     expect(errors).toHaveLength(1);
     let desiredErrorStart = "mismatched input '<EOF>' expecting {WO";
-    expect(errors[0].message.substring(0, desiredErrorStart.length)).toEqual(desiredErrorStart);
-});
-
-describe("Check missing dimension selectors causes error", () => {
-    let i = 10;
-    let j = 0;
-    let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
-        anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
-    let formula = "'SMV01 Saved Margin Versions'.Gross Revenue";
-    let errors = getFormulaErrors(formula, metaData, 1, formula.length);
-
-    expect(errors).toHaveLength(1);
-    let desiredErrorStart = "Missing mappings";
     expect(errors[0].message.substring(0, desiredErrorStart.length)).toEqual(desiredErrorStart);
 });
 

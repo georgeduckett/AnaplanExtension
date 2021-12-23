@@ -244,7 +244,6 @@ export class AnaplanMetaData {
     areCompatibleDimensions(entityIdA: number, entityIdB: number | undefined) {
         if (entityIdB === undefined) return false;
 
-
         let entityAName = this.getEntityNameFromId(entityIdA);
         let entityBName = this.getEntityNameFromId(entityIdB);
 
@@ -253,7 +252,7 @@ export class AnaplanMetaData {
             return true;
         }
 
-        // If one is a parent of the other (not sure which way round, or both) then that's ok (B is parent of A I think)
+        // If one is a parent of the other then that's ok
         if (this.entityIsAncestorOfEntity(
             this.getSubsetNormalisedEntityId(entityIdB),
             this.getSubsetNormalisedEntityId(entityIdA))) {
@@ -280,6 +279,10 @@ export class AnaplanMetaData {
     }
 
     getMissingDimensions(sourceDimensions: number[], targetDimensions: number[]) {
+        let sourceDimensionNames = sourceDimensions.map(n => this.getEntityNameFromId(n));
+        let targetDimensionNames = targetDimensions.map(n => this.getEntityNameFromId(n));
+
+
         let extraSourceEntityMappings = sourceDimensions.slice();
         for (let i = 0; i < targetDimensions.length; i++) {
             extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, targetDimensions[i]));
