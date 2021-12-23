@@ -69,7 +69,7 @@ function computeTokenIndexOfChildNode(parseTree: ParseTree, caretLine: number, c
 }
 
 export class FormulaCompletionItemProvider implements monaco.languages.CompletionItemProvider {
-    triggerCharacters?: string[] = ['.', ':', ',', '['];
+    triggerCharacters?: string[] = ['.', ':', '['];
     _anaplanMetaData: AnaplanMetaData | undefined;
 
     updateMetaData(newMetaData: AnaplanMetaData) { this._anaplanMetaData = newMetaData; }
