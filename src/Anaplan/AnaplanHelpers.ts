@@ -410,9 +410,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
     return monacoErrors;
 }
 
-export function setModelErrors(model: monaco.editor.ITextModel, currentModuleId: number, lineItemName: string) {
-    let anaplanMetaData = getAnaplanMetaData(currentModuleId, lineItemName);
-
+export function setModelErrors(model: monaco.editor.ITextModel, anaplanMetaData: AnaplanMetaData) {
     hoverProvider.updateMetaData(anaplanMetaData);
 
     let modelLineCount = model.getLineCount();

@@ -97,10 +97,11 @@ export class EditorWrapper {
 				let metaData = getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!), he.decode(document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!));
 				hoverProvider.updateMetaData(metaData);
 				completionItemProvider.updateMetaData(metaData);
-				setModelErrors(model, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!);
+				setModelErrors(model, metaData);
 			}, 250);
 
-			setModelErrors(model, parseInt(textArea.closest(".managedTab")?.id.substring(1)!), he.decode(document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!));
+			let metaData = getAnaplanMetaData(parseInt(textArea.closest(".managedTab")?.id.substring(1)!), he.decode(document.querySelectorAll(".dijitVisible .formulaEditorRowLabelCell")[0].getAttribute("title")!));
+			setModelErrors(model, metaData);
 		});
 
 		const interval = setInterval(() => {

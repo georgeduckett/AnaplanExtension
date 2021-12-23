@@ -209,8 +209,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 					handle = setTimeout(() => {
 						// When the formula changes, after a delay update the metadata.
-						let metadata = getEditorMetaData();
-						setModelErrors(model, metadata.getEntityIdFromName(currentModuleName)!, currentLineItemName);
+						setModelErrors(model, getEditorMetaData());
 					}, 250);
 				});
 
