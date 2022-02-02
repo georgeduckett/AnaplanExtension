@@ -204,6 +204,48 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 					completionItemProvider.updateMetaData(metaData);
 				}, false)
 
+				// Make sure that if the suggest widget is up we don't submit the formula when pressing Enter
+				let areaElement = document.querySelectorAll(".react-monaco-editor-container")[0];
+				areaElement.addEventListener('keydown', (e: any) => {
+					if (e.keyCode === 13 && !e.shiftKey) {
+						if (areaElement.querySelectorAll(".editor-widget.suggest-widget.visible").length != 0) {
+							// Only cancel when a menu is open
+							e.stopImmediatePropagation();
+							e.preventDefault();
+							// Trigger a <tab> to select the completion item
+							const tabEvent = new KeyboardEvent("keydown", {
+								bubbles: true,
+								cancelable: true,
+								key: "Tab",
+								shiftKey: false,
+								keyCode: 9
+							});
+							areaElement.dispatchEvent(tabEvent);
+							return false;
+						}
+					}
+				}, true);
+
+				// Make sure that if any widget is up we don't cancel editing the formula when pressing Escape
+				areaElement.addEventListener('keydown', (e: any) => {
+					if (e.keyCode === 27 && !e.shiftKey) {
+						if (areaElement.querySelectorAll(".editor-widget.visible").length != 0) {
+							// If a widget is visible stop the event bubbling up so we don't go back to readonly mode
+							e.stopPropagation();
+
+							// Send an escape key event with shift pressed since this prompts monaco to close the widget, but doesn't make the editor go to readonly mode 
+							const escEvent = new KeyboardEvent("keydown", {
+								bubbles: true,
+								cancelable: true,
+								key: "Escape",
+								shiftKey: true,
+								keyCode: 27
+							});
+							areaElement.dispatchEvent(escEvent);
+						}
+					}
+				}, true);
+
 				model.onDidChangeContent(function (e) {
 					clearTimeout(handle);
 
@@ -243,6 +285,7 @@ const mutationObserver = new MutationObserver(() => {
 			window.document.querySelectorAll('.formula-editor__body, .formula-editor__text-area, .formula-editor__monaco-wrapper').forEach(el => {
 				(el as any).style.overflow = 'visible';
 			});
+
 			formulaTimeout = undefined;
 		}, 50);
 	}
