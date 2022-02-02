@@ -13,6 +13,7 @@ import { getAnaplanMetaData, setModelErrors } from "../Anaplan/AnaplanHelpers";
 import he = require("he");
 import { FormulaCompletionItemProvider } from "../Monaco/FormulaCodeCompletionProvider";
 import { FormulaSignatureHelpProvider } from "../Monaco/FormulaSignatureHelpProvider";
+import FormulaFormattingProvider from "../Monaco/FormulaFormattingProvider";
 
 export let hoverProvider: FormulaHoverProvider;
 export let completionItemProvider: FormulaCompletionItemProvider;
@@ -182,6 +183,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 			monaco.languages.registerCompletionItemProvider('anaplanguage', completionItemProvider);
 			monaco.languages.registerSignatureHelpProvider('anaplanguage', signatureHelpProvider);
+			monaco.languages.registerDocumentFormattingEditProvider('anaplanguage', new FormulaFormattingProvider())
 
 			let models = monaco.editor.getModels();
 			onCreateModel(models[0]);
