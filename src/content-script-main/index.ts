@@ -183,7 +183,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 			monaco.languages.registerCompletionItemProvider('anaplanguage', completionItemProvider);
 			monaco.languages.registerSignatureHelpProvider('anaplanguage', signatureHelpProvider);
-			monaco.languages.registerDocumentFormattingEditProvider('anaplanguage', new FormulaFormattingProvider())
+			monaco.languages.registerDocumentFormattingEditProvider('anaplanguage', new FormulaFormattingProvider());
 
 			let models = monaco.editor.getModels();
 			onCreateModel(models[0]);
