@@ -200,11 +200,13 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 				// Add custom logic to when the user clicks the "Edit" button, since before doing that they could add line items etc.
 				let editButtonElement = document.querySelectorAll(".formula-editor__button-widget--edit")[0];
 
-				editButtonElement.addEventListener("click", () => {
-					let metaData = getEditorMetaData();
-					hoverProvider.updateMetaData(metaData);
-					completionItemProvider.updateMetaData(metaData);
-				}, false)
+				if (editButtonElement != undefined) {
+					editButtonElement.addEventListener("click", () => {
+						let metaData = getEditorMetaData();
+						hoverProvider.updateMetaData(metaData);
+						completionItemProvider.updateMetaData(metaData);
+					}, false);
+				}
 
 				// Make sure that if the suggest widget is up we don't submit the formula when pressing Enter
 				let areaElement = document.querySelectorAll(".react-monaco-editor-container")[0];
