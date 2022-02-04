@@ -184,7 +184,6 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			monaco.languages.registerCompletionItemProvider('anaplanguage', completionItemProvider);
 			monaco.languages.registerSignatureHelpProvider('anaplanguage', signatureHelpProvider);
 			monaco.languages.registerDocumentFormattingEditProvider('anaplanguage', new FormulaFormattingProvider());
-			// TODO: Add registerFoldingRangeProvider to collapse IF THEN ELSE blocks
 			// TODO: Maybe add registerDocumentLinkProvider to make other lineitems links (to their module, ideally opening within a tab in Anaplan). Alternatively create a link in their popup with dimension info
 
 			let models = monaco.editor.getModels();
