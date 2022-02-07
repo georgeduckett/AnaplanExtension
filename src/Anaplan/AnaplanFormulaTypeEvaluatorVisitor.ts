@@ -198,7 +198,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitFuncParameterised(ctx: FuncParameterisedContext): Format {
-    // TODO: Somewhere check that the parameters of the function are the correct type (or not, since Anaplan does that anyway)
+    // TODO: Somewhere check that the parameters of the function are the correct type (or not, since Anaplan does that anyway - but it doesn't do this in all cases, so we should)
     let functionName = ctx.functionname().text.toUpperCase();
 
     if (FunctionsInfo.has(functionName)) {
