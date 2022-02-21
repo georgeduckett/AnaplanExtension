@@ -10,9 +10,9 @@ import { ParseTree } from 'antlr4ts/tree/ParseTree';
 import { FunctionsInfo } from './FunctionInfo';
 import { AnaplanDataTypeStrings } from './AnaplanDataTypeStrings';
 import { Format } from './Format';
-import { deserialisedAggregateFunctions } from './.generateAnaplanData/FunctionInfo';
+import { deserialisedAggregateFunctions, deserialisedFunctions, deserialisedKeywords } from './.generateAnaplanData/FunctionInfo';
 
-export let entitySpecialCharSelector = '[^A-z\s%£\?]';
+export let entitySpecialCharSelector = '[^A-z\s%#£\?]';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   public readonly _anaplanMetaData: AnaplanMetaData;
@@ -198,10 +198,35 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   }
 
   visitFuncParameterised(ctx: FuncParameterisedContext): Format {
-    // TODO: Somewhere check that the parameters of the function are the correct type (or not, since Anaplan does that anyway - but it doesn't do this in all cases, so we should)
     let functionName = ctx.functionname().text.toUpperCase();
 
     if (FunctionsInfo.has(functionName)) {
+      let funcInfo = deserialisedFunctions.get(functionName);
+      // Check function parameters
+      let signatureParams = funcInfo?.paramInfo ?? [];
+      let actualParams = ctx.expression();
+      for (let i = 0; i < actualParams.length; i++) {
+        if (signatureParams.length <= i) {
+          break;
+        }
+
+        let requiredFormat = signatureParams[i].format;
+        let actualFormat = this.visit(actualParams[i]); // We still get the actual format even if we don't have one to check against as we want to get any errors in the params
+        if (requiredFormat != undefined) {
+          if (actualFormat.dataType === AnaplanDataTypeStrings.KEYWORD.dataType) {
+            if (!requiredFormat.some(s => s === "KEYWORD:" + actualParams[i].text.toUpperCase())) {
+              // It's a keyword but the text of this param doesn't match an allowed keyword for this function
+              this.addFormulaError(actualParams[i], `Invalid keyword for parameter in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat.filter(s => s.startsWith("KEYWORD:")).map(s => s.substring("KEYWORD:".length))}), found (${actualParams[i].text}).`);
+            }
+          }
+          else if (actualFormat.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
+            requiredFormat.indexOf(actualFormat.dataType) === -1) {
+            // The format of this param doesn't match one of the required formats
+            this.addFormulaError(actualParams[i], `Invalid parameter type in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat}), found (${actualFormat.dataType}).`);
+          }
+        }
+      }
+
       let func = FunctionsInfo.get(functionName)?.returnType;
       if (func instanceof Format) {
         return func;
@@ -294,9 +319,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitQuotedEntity(ctx: QuotedEntityContext): Format {
     // Check whether the entity is known
     if (!this._anaplanMetaData.isKnownEntity(ctx)) {
-      this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
+      if (ctx.parent?.parent?.parent?.parent instanceof FuncParameterisedContext) {
+        this.addFormulaError(ctx, `Unrecognised keyword \'${getOriginalText(ctx)}\'`);
+      }
+      else {
+        this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
+      }
     }
-
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext) &&
       !(ctx.parent instanceof FuncParameterisedContext && ctx.parent.functionname().text === "YEARVALUE")) {
@@ -327,9 +356,20 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       return this._anaplanMetaData.getCurrentItem().format;
     }
 
+    if (deserialisedKeywords.some(k => k === getOriginalText(ctx).toUpperCase()) &&
+      ctx.parent?.parent?.parent?.parent instanceof FuncParameterisedContext) {
+      return AnaplanDataTypeStrings.KEYWORD; // Keywords are only valid as a function parameter
+    }
+
     // Check whether the entity is known
     if (!this._anaplanMetaData.isKnownEntity(ctx)) {
-      this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
+      // If we're in the context where we need a keyword complain about that instead.
+      if (ctx.parent?.parent?.parent?.parent instanceof FuncParameterisedContext) {
+        this.addFormulaError(ctx, `Unrecognised keyword \'${getOriginalText(ctx)}\'`);
+      }
+      else {
+        this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
+      }
     }
 
     if (ctx.text.match(entitySpecialCharSelector) != null && !(ctx.text.endsWith("'") && ctx.text.startsWith("'"))) {

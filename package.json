@@ -15,7 +15,8 @@
 		"build-jsdev": "webpack --mode development",
 		"bundle": "yarn shx rm -rf ./dist/extension.zip && yarn jszip-cli add -o ./dist/extension.zip dist manifest.json logo.drawio.png",
 		"extract": "yarn shx rm -rf ./dist/extension && yarn jszip-cli extract -o ./dist/extension ./dist/extension.zip",
-		"test": "npm install && jest"
+		"test": "npm install && jest",
+		"all-dev": "yarn anaplandata && yarn build-dev"
 	},
 	"devDependencies": {
 		"@ffflorian/jszip-cli": "^3.1.6",

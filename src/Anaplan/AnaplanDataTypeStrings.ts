@@ -8,6 +8,7 @@ export class AnaplanDataTypeStrings {
     static ENTITY(entityId: number | undefined): Format { return new Format("ENTITY", entityId); }
     static TIME_ENTITY: Format = new Format("TIME_ENTITY");
     static DATE: Format = new Format("DATE");
+    static KEYWORD: Format = new Format("KEYWORD");
 
     static UNKNOWN: Format = new Format("UNKNOWN");
 }

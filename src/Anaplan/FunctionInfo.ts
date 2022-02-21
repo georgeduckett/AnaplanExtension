@@ -90,7 +90,7 @@ export let FunctionsInfo = new Map([
     ['FIRSTNONZERO', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
     ['FV', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
     ['HALFYEARTODATE', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
-    ['HALFYEAR', new FunctionInfo((visitor, ctx) => { return visitor.visit(ctx.expression()[0]) })],
+    ['HALFYEARVALUE', new FunctionInfo((visitor, ctx) => { return visitor.visit(ctx.expression()[0]) })],
     ['INPERIOD', new FunctionInfo(AnaplanDataTypeStrings.BOOLEAN)],
     ['IPMT', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],
     ['IRR', new FunctionInfo(AnaplanDataTypeStrings.NUMBER)],

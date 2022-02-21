@@ -195,6 +195,8 @@ trs.each((_, tr) => {
                 let formatIndex: number | undefined = undefined;
                 let descIndex: number | undefined = undefined;
 
+                let firstFunctionParamIndex = paramInfo.length;
+
                 for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
                     let cells = cheerio.load(rows[rowIndex])('td, th');
                     if (rowIndex === 0) {
@@ -218,6 +220,8 @@ trs.each((_, tr) => {
                         }
                     }
                     else {
+                        let paramIndex = rowIndex - 1;
+
                         if (argIndex === undefined) {
                             throw Error('ArgIndex for parameter table undefined');
                         }
@@ -240,12 +244,142 @@ trs.each((_, tr) => {
                             arg = arg.replace('(optional)', '').trim()
                         }
 
-                        let format: string | undefined;
+                        let formatArr: string[] | undefined;
                         if (formatIndex != undefined) {
-                            format = detailPage(cells[formatIndex]).text().trim();
+                            formatArr = [];
+
+                            if (functionName === "NAME") {
+                                // Documentation for this function isn't correct
+                                formatArr.push("ENTITY");
+                                formatArr.push("TIME_ENTITY");
+                            }
+                            else if (functionName === "RIGHT" || functionName === "LEFT") {
+                                // Documentation isn't a simple data type
+                                if (paramIndex === 0) {
+                                    formatArr.push("TEXT");
+                                }
+                                else {
+                                    formatArr.push("NUMBER");
+                                }
+                            }
+                            else {
+                                if ((functionName === "LEAD" || functionName === "LAG" || functionName === "OFFSET") && paramIndex === 2) {
+                                    // Param index 2 should be same as index 0. We don't enforce that, but at least restrict the types to be same as the first param
+                                    formatArr = paramInfo[firstFunctionParamIndex + 0].format;
+                                }
+                                else if (functionName === "CUMULATE" && paramIndex === 2) {
+                                    formatArr.push("ENTITY");
+                                }
+                                else if (functionName === "LN" && paramIndex === 0) {
+                                    formatArr.push("NUMBER");
+                                }
+                                else if (functionName === "POST" && paramIndex === 1) {
+                                    formatArr.push("NUMBER");
+                                }
+                                else if (functionName === "LAG" && paramIndex === 3) {
+                                    formatArr.push("KEYWORD:NONSTRICT");
+                                    formatArr.push("KEYWORD:SEMISTRICT");
+                                    formatArr.push("KEYWORD:STRICT");
+                                }
+                                else if ((functionName === "MONTH" || functionName === "YEAR") && paramIndex === 1) {
+                                    formatArr.push("KEYWORD:START");
+                                    formatArr.push("KEYWORD:MID");
+                                    formatArr.push("KEYWORD:END");
+                                }
+                                else if (functionName === "TEXTLIST" && paramIndex === 3) {
+                                    // Param index 3 doesn't have keywords we're able to parse
+                                    formatArr.push("KEYWORD:ALL");
+                                    formatArr.push("KEYWORD:UNIQUE");
+                                }
+                                else if (functionName === "MOVINGSUM" && paramIndex === 2) {
+                                    // Incorrect docs
+                                    formatArr.push("NUMBER");
+                                }
+                                else if (functionName === "TIMESUM" && paramIndex === 3) {
+                                    // Param index 3 doesn't have keywords we're able to parse
+                                    formatArr.push("KEYWORD:SUM");
+                                    formatArr.push("KEYWORD:AVERAGE");
+                                    formatArr.push("KEYWORD:MIN");
+                                    formatArr.push("KEYWORD:MAX");
+                                    formatArr.push("KEYWORD:ANY");
+                                    formatArr.push("KEYWORD:ALL");
+                                    formatArr.push("KEYWORD:FIRSTNONBLANK");
+                                    formatArr.push("KEYWORD:LASTNONBLANK");
+                                    formatArr.push("KEYWORD:TEXTLIST");
+                                }
+                                else {
+                                    let formatText = detailPage(cells[formatIndex]).text().trim().toUpperCase().replace(" OR ", ",");
+                                    if (formatText.indexOf('CAN BE ') != -1) {
+                                        let trimmedFormatText = formatText.substring(0, formatText.indexOf('CAN BE ')).trim();
+
+                                        if (trimmedFormatText.length != 0) {
+                                            formatText = trimmedFormatText;
+                                        }
+                                    }
+                                    let format = formatText.split(',').map(f => {
+                                        if (f.trim().startsWith("OR ")) {
+                                            return f.substring("OR ".length);
+                                        }
+                                        return f.trim().replace('.', '');
+                                    });
+
+                                    if (arg.toLowerCase() === "locale") {
+                                        const languageCodes = ["ab", "aa", "af", "ak", "sq", "am", "ar", "an", "hy", "as", "av", "ae", "ay", "az", "bm", "ba", "eu", "be", "bn", "bi", "bs", "br", "bg", "my", "ca", "km", "ch", "ce", "ny", "zh", "cu", "cv", "kw", "co", "cr", "hr", "cs", "da", "dv", "nl", "dz", "en", "eo", "et", "ee", "fo", "fj", "fi", "fr", "ff", "gd", "gl", "lg", "ka", "de", "el", "gn", "gu", "ht", "ha", "he", "hz", "hi", "ho", "hu", "is", "io", "ig", "id", "ia", "ie", "iu", "ik", "ga", "it", "ja", "jv", "kl", "kn", "kr", "ks", "kk", "ki", "rw", "ky", "kv", "kg", "ko", "kj", "ku", "lo", "la", "lv", "li", "ln", "lt", "lu", "lb", "mk", "mg", "ms", "ml", "mt", "gv", "mi", "mr", "mh", "mn", "na", "nv", "ng", "ne", "nd", "se", "no", "nb", "nn", "oc", "oj", "or", "om", "os", "pi", "ps", "fa", "pl", "pt", "pa", "qu", "ro", "rm", "rn", "ru", "sm", "sg", "sa", "sc", "sr", "sn", "ii", "sd", "si", "sk", "sl", "so", "nr", "st", "es", "su", "sw", "ss", "sv", "tl", "ty", "tg", "ta", "tt", "te", "th", "bo", "ti", "to", "ts", "tn", "tr", "tk", "tw", "ug", "uk", "ur", "uz", "ve", "vi", "vo", "wa", "cy", "fy", "wo", "xh", "yi", "yo", "za", "zu"];
+                                        const countryCodes = ["AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BQ", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "CV", "KH", "CM", "CA", "KY", "CF", "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CD", "CG", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO", "EC", "EG", "SV", "GQ", "ER", "EE", "SZ", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH", "GI", "GR", "GL", "GD", "GP", "GU", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX", "FM", "MD", "MC", "MN", "ME", "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS", "PA", "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS", "SM", "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS", "ES", "LK", "SD", "SR", "SJ", "SE", "CH", "SY", "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "UM", "US", "UY", "UZ", "VU", "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"];
+                                        for (let i = 0; i < languageCodes.length; i++) {
+                                            formatArr.push("KEYWORD:" + languageCodes[i].toUpperCase());
+                                            for (let j = 0; j < countryCodes.length; j++) {
+                                                formatArr.push("KEYWORD:" + languageCodes[i].toUpperCase() + "_" + countryCodes[j].toUpperCase());
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        // Parse the format properly into proper Format.DataType strings
+                                        for (let i = 0; i < format.length; i++) {
+                                            if (format[i] === "LIST") {
+                                                formatArr.push("ENTITY");
+                                            }
+                                            else if (format[i] === "TIME PERIOD") {
+                                                formatArr.push("TIME_ENTITY");
+                                            }
+                                            else if (format[i] === "KEYWORD") {
+                                                // Find any capatilised words and have them as keywords
+                                                let capatilisedWords = Array.from(desc.matchAll(/\b[A-Z]+\b/g)).flat();
+                                                if (capatilisedWords.length === 0) {
+                                                    throw new Error("No keywords where able to be parsed");
+                                                }
+                                                for (let i = 0; i < capatilisedWords.length; i++) {
+                                                    if (capatilisedWords[i] != functionName) {
+                                                        formatArr.push("KEYWORD:" + capatilisedWords[i]);
+                                                    }
+                                                }
+                                            }
+                                            else if (format[i] === "NUMERIC LINE ITEM") {
+                                                formatArr.push("NUMBER");
+                                            }
+                                            else if (format[i] === "NUMBER (PERCENTAGE)") {
+                                                formatArr.push("NUMBER");
+                                            }
+                                            else if (format[i] === "TEXT LINE ITEM") {
+                                                formatArr.push("TEXT");
+                                            }
+                                            else if (format[i] === "TEXT LINE ITEM") {
+                                                formatArr.push("TEXT");
+                                            }
+                                            else if (format[i] === "PERCENTAGE") {
+                                                formatArr.push("NUMBER");
+                                            }
+                                            else if (format[i] != "") {
+                                                formatArr.push(format[i]);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
 
-                        paramInfo.push(new GeneratedParameterInfo(paramsFromSyntax[rowIndex - 1].name, desc, format, required ?? (rowIndex - 1 < paramsFromSyntax.length ? paramsFromSyntax[rowIndex - 1].required : undefined)));
+
+                        paramInfo.push(new GeneratedParameterInfo(paramsFromSyntax[rowIndex - 1].name, desc, formatArr, required ?? (rowIndex - 1 < paramsFromSyntax.length ? paramsFromSyntax[rowIndex - 1].required : undefined)));
                     }
                 }
             }
@@ -346,6 +480,8 @@ serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/[\u0000-\u0
 //de-serialise JSON to Map:
 let output = `import { GeneratedFunctionInfo } from "../GeneratedFunctionInfo"
 export let deserialisedFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>(${serialisedFunctions});
-export let deserialisedAggregateFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>(${serialisedAggregateFunctions});`
+export let deserialisedAggregateFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>(${serialisedAggregateFunctions});
+
+export let deserialisedKeywords = [...new Set(Array.from(Array.from(deserialisedFunctions).flatMap(f => f[1].paramInfo).filter(p => p.format != undefined)).flatMap(p => p.format!.filter(f => f.startsWith("KEYWORD:")).map(f => f.substring("KEYWORD:".length))))];`
 
 fs.writeFileSync(outputFile, output);

@@ -5,7 +5,7 @@ import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { UriComponents } from "monaco-editor";
 import { AnaplanMetaData, AutoCompleteInfo } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
 import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
@@ -98,52 +98,92 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             AnaplanFormulaParser.RULE_functionname,
         ]);
 
+        let entityNames: AutoCompleteInfo[] = [];
+
         let tokenPosition = computeTokenIndex(tree, position.lineNumber, position.column - 1)!;
 
-        let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
+        let parameterisedFuncCtx = findAncestor(tokenPosition.context, FuncParameterisedContext);
 
-        let entityNames: AutoCompleteInfo[] = [];
-        for (let candidate of candidates.rules) {
-            switch (candidate[0]) {
-                case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
-                    // anything that could be before a qualifying dot, i.e. modules, list names, subsets
-                    for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedLeftPart()) {
-                        entityNames.push(e);
-                    }
-                    break;
+        let foundKeyword = false;
+
+        if (parameterisedFuncCtx != undefined) {
+            let functionName = parameterisedFuncCtx.functionname().text.toUpperCase();
+
+            if (FunctionsInfo.has(functionName)) {
+                let funcInfo = deserialisedFunctions.get(functionName);
+                // We have function info for this function, so work out which parameter we're within then whether that has keywords
+                let params = parameterisedFuncCtx.expression();
+
+                let possibleParamExpression: ParseTree | undefined = tokenPosition.context;
+                while (possibleParamExpression != undefined && params.indexOf(possibleParamExpression as ExpressionContext) === -1) {
+                    possibleParamExpression = possibleParamExpression.parent;
                 }
-                case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart:
-                case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPartEmpty: {
-                    // anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered acording to before the qualifying dot)
-                    let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext) ?? findAncestor(tokenPosition.context, DotQualifiedEntityIncompleteContext);
-                    if (node != undefined) {
-                        let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
-                        if (leftPartText != undefined) {
-                            for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedRightPart(leftPartText)) {
-                                entityNames.push(e);
+
+                if (possibleParamExpression != undefined) {
+                    let param = funcInfo?.paramInfo[params.indexOf(possibleParamExpression as ExpressionContext)];
+                    if (param != undefined) {
+                        let keywords = param.format?.filter(f => f.startsWith("KEYWORD:"));
+
+                        if (keywords != undefined && keywords.length != 0) {
+                            for (let i = 0; i < keywords.length; i++) {
+                                entityNames.push(new AutoCompleteInfo(
+                                    keywords[i].substring("KEYWORD:".length),
+                                    keywords[i].substring("KEYWORD:".length),
+                                    monaco.languages.CompletionItemKind.Keyword,
+                                    [',', ')'], undefined, undefined));
                             }
+                            foundKeyword = true;
                         }
                     }
-                    break;
                 }
-                case AnaplanFormulaParser.RULE_wordsEntityRule: {
-                    // Any entity that doesn't need to be qualified (e.g. line items of the current module)
-                    for (let e of this._anaplanMetaData!.getAutoCompleteWords()) {
-                        entityNames.push(e);
+            }
+        }
+
+        if (!foundKeyword) {
+            let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
+
+            for (let candidate of candidates.rules) {
+                switch (candidate[0]) {
+                    case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
+                        // anything that could be before a qualifying dot, i.e. modules, list names, subsets
+                        for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedLeftPart()) {
+                            entityNames.push(e);
+                        }
+                        break;
                     }
-                    break;
-                }
-                case AnaplanFormulaParser.RULE_dimensionmappingselector: {
-                    for (let e of deserialisedAggregateFunctions.keys()) {
-                        entityNames.push(new AutoCompleteInfo(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
+                    case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart:
+                    case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPartEmpty: {
+                        // anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered acording to before the qualifying dot)
+                        let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext) ?? findAncestor(tokenPosition.context, DotQualifiedEntityIncompleteContext);
+                        if (node != undefined) {
+                            let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
+                            if (leftPartText != undefined) {
+                                for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedRightPart(leftPartText)) {
+                                    entityNames.push(e);
+                                }
+                            }
+                        }
+                        break;
                     }
-                    break;
-                }
-                case AnaplanFormulaParser.RULE_functionname: {
-                    for (let e of FunctionsInfo) {
-                        entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], deserialisedFunctions.get(e[0])!.type, new MarkdownString(deserialisedFunctions.get(e[0])!.description + "  \r\n[Anaplan Documentation](" + deserialisedFunctions.get(e[0])!.htmlPageName + ")")));
+                    case AnaplanFormulaParser.RULE_wordsEntityRule: {
+                        // Any entity that doesn't need to be qualified (e.g. line items of the current module)
+                        for (let e of this._anaplanMetaData!.getAutoCompleteWords()) {
+                            entityNames.push(e);
+                        }
+                        break;
                     }
-                    break;
+                    case AnaplanFormulaParser.RULE_dimensionmappingselector: {
+                        for (let e of deserialisedAggregateFunctions.keys()) {
+                            entityNames.push(new AutoCompleteInfo(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
+                        }
+                        break;
+                    }
+                    case AnaplanFormulaParser.RULE_functionname: {
+                        for (let e of FunctionsInfo) {
+                            entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], deserialisedFunctions.get(e[0])!.type, new MarkdownString(deserialisedFunctions.get(e[0])!.description + "  \r\n[Anaplan Documentation](" + deserialisedFunctions.get(e[0])!.htmlPageName + ")")));
+                        }
+                        break;
+                    }
                 }
             }
         }
