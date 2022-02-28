@@ -66,19 +66,8 @@ module.exports = (env: any, argv: any) => {
 			],
 		},
 		optimization: {
-			splitChunks: { // TODO: Try and get the below working, so we can split the content-script-main script up in case it gets too large for firefox
-				// Maybe we have to try and split up index.ts to have different entry points / be different files and try and reduce the size that way
-				/*cacheGroups: { // Splitting up like this doesn't work, even when we include all chunks in contet-script.ts
-					entrypoints: {
-						name: 'entry',
-						chunks: 'initial',
-						maxSize: 4000000,
-						maxInitialSize: 4000000,
-						minSize: 3000000,
-						minRemainingSize: 3000000,
-					},
-				},*/
-			},
+			// If the below still doesn't make the file small enough for firefox,
+			// maybe we have to try and split up index.ts to have different entry points / be different files and try and reduce the size that way
 			minimize: true,
 			minimizer: [new TerserPlugin({
 				test: /\.js$/,
