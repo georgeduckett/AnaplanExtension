@@ -4,11 +4,11 @@ import { CleanWebpackPlugin } from "clean-webpack-plugin";
 import MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 import ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 import MiniCssExtractPlugin = require("mini-css-extract-plugin");
-import CopyWebpackPlugin = require("copy-webpack-plugin");
+import TerserPlugin = require("terser-webpack-plugin");
 
 const r = (file: string) => path.resolve(__dirname, file);
 
-module.exports = (env: any) => {
+module.exports = (env: any, argv: any) => {
 	const useCdnForMonaco = !!env["use-cdn-for-monaco"];
 	return {
 		entry: {
@@ -17,10 +17,11 @@ module.exports = (env: any) => {
 			styles: r("./src/styles.scss"),
 		},
 		output: {
-			path: r("./dist"),
+			path: r("./bin"),
 			filename: "[name].js",
+			publicPath: '',
 		},
-		devtool: "inline-source-map", // Use inline-source-map 
+		devtool: argv.mode === "production" ? false : "inline-source-map", // Use inline-source-map 
 		externals: {
 			vscode: "commonjs vscode",
 		},
@@ -42,8 +43,12 @@ module.exports = (env: any) => {
 				},
 				{
 					test: /\.scss$/,
-					use: [
-						MiniCssExtractPlugin.loader,
+					use: [{
+						loader: MiniCssExtractPlugin.loader,
+						options: {
+							publicPath: ''
+						}
+					},
 						"css-loader",
 						"sass-loader",
 					],
@@ -59,6 +64,28 @@ module.exports = (env: any) => {
 					options: { transpileOnly: true },
 				},
 			],
+		},
+		optimization: {
+			splitChunks: { // TODO: Try and get the below working, so we can split the content-script-main script up in case it gets too large for firefox
+				// Maybe we have to try and split up index.ts to have different entry points / be different files and try and reduce the size that way
+				/*cacheGroups: { // Splitting up like this doesn't work, even when we include all chunks in contet-script.ts
+					entrypoints: {
+						name: 'entry',
+						chunks: 'initial',
+						maxSize: 4000000,
+						maxInitialSize: 4000000,
+						minSize: 3000000,
+						minRemainingSize: 3000000,
+					},
+				},*/
+			},
+			minimize: true,
+			minimizer: [new TerserPlugin({
+				test: /\.js$/,
+				terserOptions: {
+					compress: true,
+				}
+			})]
 		},
 		plugins: [
 			new MiniCssExtractPlugin(),

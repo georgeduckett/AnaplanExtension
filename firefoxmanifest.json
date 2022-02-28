@@ -1,5 +1,5 @@
 {
-	"manifest_version": 3,
+	"manifest_version": 2,
 	"name": "Better Formula Editor for Anaplan",
 	"version": "1.2.0",
 	"description": "This extension enhances Anaplan formula editing in several ways; providing code completion, hover info and validity checks.",
@@ -12,24 +12,17 @@
 				"https://*.app.anaplan.com/*"
 			],
 			"js": [
-				"/dist/content-script.js"
+				"/bin/content-script.js"
 			],
 			"run_at": "document_end",
 			"all_frames": true
 		}
 	],
-	"host_permissions": [
+	"permissions": [
 		"https://*.app.anaplan.com/*/anaplan/*",
 		"https://*.app.anaplan.com/a/modeling/*"
 	],
 	"web_accessible_resources": [
-		{
-			"resources": [
-				"dist/*"
-			],
-			"matches": [
-				"<all_urls>"
-			]
-		}
+		"bin/*"
 	]
 }

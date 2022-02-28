@@ -79,6 +79,7 @@ typings/
 # DynamoDB Local files
 .dynamodb/
 
+bin/
 dist/
 out/
 src/Anaplan/antlrclasses/
