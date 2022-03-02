@@ -86,6 +86,16 @@ export class AnaplanMetaData {
         }
     }
 
+    getAllLineItems(): Set<EntityMetaData> {
+        let result = new Set<EntityMetaData>();
+        for (let lineItem of this._lineItemInfo) {
+            if (lineItem[1].entityType === EntityType.LineItem) {
+                result.add(lineItem[1]);
+            }
+        }
+        return result;
+    }
+
     getAutoCompleteQualifiedLeftPart(): Set<AutoCompleteInfo> {
         let keys = new Set<string>();
         let result = new Set<AutoCompleteInfo>();

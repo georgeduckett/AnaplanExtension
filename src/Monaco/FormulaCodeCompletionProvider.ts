@@ -5,7 +5,7 @@ import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { UriComponents } from "monaco-editor";
 import { AnaplanMetaData, AutoCompleteInfo } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext, FuncSquareBracketsContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
 import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
@@ -173,6 +173,36 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         break;
                     }
                     case AnaplanFormulaParser.RULE_dimensionmappingselector: {
+                        // TODO: Try and autocomplete the whole thing. The general form is for a missing dimension is:
+                        // "LOOKUP: source.target" or "SUM: target.source", where before the dot is the module matching the line item's dimension and the target is an entity type matching the other dimension
+                        // for example SUM: PROP C10.P6 when the line item is P6 and the source is C10, or LOOKUP: PROP C10.P6 when the line item is C10 and the source is P6. We know which way around it is based on what mapping modules are available (C10.P6 exists, but no P6.C10)
+
+                        //TODO:  Find the dimensions we're missing, then for each one look for modules without type that are either dimensioned based on the target and have a line item of type source, or visa-versa. If just one of these is found, autocomplete that.
+
+                        let referenceContext = findAncestor(tokenPosition.context, FuncSquareBracketsContext);
+
+                        if (referenceContext != undefined) {
+                            let missingDimensions = this._anaplanMetaData?.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(referenceContext.entity()), this._anaplanMetaData.getCurrentItemFullAppliesTo());
+                            // TODO: Remove any dimensions we've already got selectors for within this reference context
+
+                            if (missingDimensions != undefined) {
+                                let extraSelectorStrings: string[] = [];
+
+                                for (let i = 0; i < missingDimensions?.extraSourceEntityMappings.length; i++) {
+                                    // TODO: For each missing dimension, work out what mapping we need to add, look for line items with one dimension that matches 'a dimension this line item has' with the data type that matches the 'missing one', or visa-versa
+                                    // TODO: Depending on which way around we find it, either add that line item as a LOOKUP or as a SUM
+                                    this._anaplanMetaData?.getAllLineItems().forEach(li => {
+                                        console.log(li);
+                                    });
+                                }
+
+
+                                entityNames.push(new AutoCompleteInfo('FoundReferenceContext', 'FoundReferenceContext', monaco.languages.CompletionItemKind.Reference, [']'], undefined, undefined));
+
+                                console.log(missingDimensions);
+                            }
+                        }
+
                         for (let e of deserialisedAggregateFunctions.keys()) {
                             entityNames.push(new AutoCompleteInfo(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
                         }
