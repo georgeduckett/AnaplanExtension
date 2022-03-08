@@ -197,7 +197,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                 }
 
 
-                                entityNames.push(new AutoCompleteInfo('FoundReferenceContext', 'FoundReferenceContext', monaco.languages.CompletionItemKind.Reference, [']'], undefined, undefined));
+                                //entityNames.push(new AutoCompleteInfo('FoundReferenceContext', 'FoundReferenceContext', monaco.languages.CompletionItemKind.Reference, [']'], undefined, undefined));
 
                                 console.log(missingDimensions);
                             }

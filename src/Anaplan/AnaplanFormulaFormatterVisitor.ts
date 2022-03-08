@@ -1,13 +1,17 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { Stack } from 'stack-typescript'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
+import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DotQualifiedEntityLeftPartContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
 import { ContextSensitivityInfo } from 'antlr4ts/atn/ContextSensitivityInfo';
 import { Interval } from 'antlr4ts/misc/Interval';
+import { ParseTree } from 'antlr4ts/tree/ParseTree';
+import { TerminalNode } from 'antlr4ts/tree/TerminalNode';
+import { CharStream } from 'antlr4ts';
 
 export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<string> implements AnaplanFormulaVisitor<string> {
   readonly indentationStep: number = 2;
   readonly indentationLevels: Stack<number> = new Stack<number>();
+  readonly inputStream: CharStream;
 
   defaultResult(): string {
     return ''
@@ -21,10 +25,11 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
     return ' '.repeat(this.indentationLevels.top);
   }
 
-  constructor(indentationStep: number) {
+  constructor(indentationStep: number, inputStream: CharStream) {
     super();
     this.indentationStep = indentationStep;
     this.indentationLevels.push(0);
+    this.inputStream = inputStream;
   }
 
   addIndentationString(indentation: number | null = null): string {
@@ -172,5 +177,11 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): string {
     return this.visit(ctx._left) + ctx.DOT().text + this.visit(ctx._right);
+  }
+
+  visit(tree: ParseTree): string {
+    if (tree.sourceInterval == undefined) return '';
+
+    return this.inputStream.getText(tree.sourceInterval);
   }
 }

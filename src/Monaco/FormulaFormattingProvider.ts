@@ -13,7 +13,7 @@ export default class FormulaFormattingProvider implements monaco.languages.Docum
             const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
             myparser.removeErrorListeners();
 
-            let formatter = new AnaplanFormulaFormatterVisitor(options.tabSize);
+            let formatter = new AnaplanFormulaFormatterVisitor(options.tabSize, myparser.inputStream);
             let formulaCtx = myparser.formula();
 
             if (myparser.numberOfSyntaxErrors === 0) {
