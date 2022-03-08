@@ -224,30 +224,25 @@ describe("Check formatting a formula with no IF...ELSE results in no change", ()
 
             let formula = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula;
             if (formula != undefined) {
-                if (formula.indexOf('IF') === -1 || formula.indexOf('ELSE') === -1) {
-                    cases.push([
-                        i,
-                        j,
-                        "'" + anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] +
-                        "'.'" +
-                        anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j] +
-                        "'",
-                        formula]);
-                }
+                cases.push([
+                    i,
+                    j,
+                    "'" + anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] +
+                    "'.'" +
+                    anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j] +
+                    "'",
+                    formula]);
             }
         }
     }
 
     it.each(cases)('%i, %i, Check formula for %s: %s.', (i, j, _, formula) => {
-        let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
-            anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
-
         const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(formula));
         mylexer.removeErrorListeners();
         const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
         myparser.removeErrorListeners();
 
-        let formatter = new AnaplanFormulaFormatterVisitor(2, myparser.inputStream);
+        let formatter = new AnaplanFormulaFormatterVisitor(2);
         let formulaCtx = myparser.formula();
         let text = formula;
 
@@ -255,6 +250,6 @@ describe("Check formatting a formula with no IF...ELSE results in no change", ()
             text = formatter.visit(formulaCtx);
         }
 
-        expect(text).toBe(formula);
+        expect(text.replace(/\s/g, '')).toBe(formula.replace(/ /g, ''));
     });
 });
