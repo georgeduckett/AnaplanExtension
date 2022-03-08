@@ -3,6 +3,12 @@ import { Random } from '../Random';
 import { FunctionsInfo } from '../Anaplan/FunctionInfo';
 import { deserialisedFunctions, deserialisedKeywords } from '../Anaplan/.generateAnaplanData/FunctionInfo';
 import { AnaplanDataTypeStrings } from '../Anaplan/AnaplanDataTypeStrings';
+import { CharStreams, CommonTokenStream } from 'antlr4ts';
+import options from 'cheerio/lib/options';
+import { text } from 'cheerio/lib/static';
+import { AnaplanFormulaFormatterVisitor } from '../Anaplan/AnaplanFormulaFormatterVisitor';
+import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
+import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
 
 
 
@@ -202,5 +208,53 @@ describe("Check no program errors are produced with an incorrect formula", () =>
             let errors = getFormulaErrors(formula, metaData, 1, formula.length);
             expect(errors).toBeDefined();
         }
+    });
+});
+
+
+describe("Check formatting a formula with no IF...ELSE results in no change", () => {
+    global.anaplan = { data: { ModelContentCache: { _modelInfo: JSON.parse(modelInfoJson) } } };
+
+    let cases: any[][] = [];
+
+    let rnd = new Random(1);
+
+    for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.moduleInfos.length; i++) {
+        for (let j = 0; j < anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos.length; j++) {
+
+            let formula = anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j].formula;
+            if (formula != undefined) {
+                if (formula.indexOf('IF') === -1 || formula.indexOf('ELSE') === -1) {
+                    cases.push([
+                        i,
+                        j,
+                        "'" + anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i] +
+                        "'.'" +
+                        anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j] +
+                        "'",
+                        formula]);
+                }
+            }
+        }
+    }
+
+    it.each(cases)('%i, %i, Check formula for %s: %s.', (i, j, _, formula) => {
+        let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
+            anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
+
+        const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(formula));
+        mylexer.removeErrorListeners();
+        const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+        myparser.removeErrorListeners();
+
+        let formatter = new AnaplanFormulaFormatterVisitor(2, myparser.inputStream);
+        let formulaCtx = myparser.formula();
+        let text = formula;
+
+        if (myparser.numberOfSyntaxErrors === 0) {
+            text = formatter.visit(formulaCtx);
+        }
+
+        expect(text).toBe(formula);
     });
 });

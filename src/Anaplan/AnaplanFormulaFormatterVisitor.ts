@@ -1,11 +1,8 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { Stack } from 'stack-typescript'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DotQualifiedEntityLeftPartContext, EntityContext } from './antlrclasses/AnaplanFormulaParser';
-import { ContextSensitivityInfo } from 'antlr4ts/atn/ContextSensitivityInfo';
-import { Interval } from 'antlr4ts/misc/Interval';
+import { ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, NumberAtomContext, ExpressionAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
 import { ParseTree } from 'antlr4ts/tree/ParseTree';
-import { TerminalNode } from 'antlr4ts/tree/TerminalNode';
 import { CharStream } from 'antlr4ts';
 
 export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<string> implements AnaplanFormulaVisitor<string> {
@@ -45,10 +42,6 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
     this.indentationLevels.pop();
 
     return addNewLine ? '\n' + ' '.repeat(this.indentationLevels.top) : '';
-  }
-
-  visitFormula(ctx: FormulaContext): string {
-    return this.visit(ctx.expression());
   }
 
   visitParenthesisExp(ctx: ParenthesisExpContext): string {
@@ -92,10 +85,6 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
     return ctx.STRINGLITERAL().text;
   }
 
-  visitAtomExp(ctx: AtomExpContext): string {
-    return this.visit(ctx.signedAtom());
-  }
-
   visitPlusSignedAtom(ctx: PlusSignedAtomContext): string {
     return ctx.PLUS().text + this.visit(ctx.signedAtom());
   }
@@ -107,20 +96,12 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
     return this.visit(ctx.func_());
   }
 
-  visitAtomAtom(ctx: AtomAtomContext): string {
-    return this.visit(ctx.atom());
-  }
-
   visitNumberAtom(ctx: NumberAtomContext): string {
     return ctx.SCIENTIFIC_NUMBER().text;
   }
 
   visitExpressionAtom(ctx: ExpressionAtomContext): string {
     return ctx.LPAREN().text + this.visit(ctx.expression()) + ctx.RPAREN().text;
-  }
-
-  visitEntityAtom(ctx: EntityAtomContext): string {
-    return this.visit(ctx.entity());
   }
 
   visitFuncParameterised(ctx: FuncParameterisedContext): string {
@@ -167,12 +148,6 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
 
   visitQuotedEntity(ctx: QuotedEntityContext): string {
     return ctx.quotedEntityRule().text;
-  }
-
-  visitWordsEntity(ctx: WordsEntityContext): string {
-    if (ctx.start.inputStream == undefined || ctx.stop == undefined) return '';
-
-    return ctx.start.inputStream.getText(new Interval(ctx.start.startIndex, ctx.stop.stopIndex));
   }
 
   visitDotQualifiedEntity(ctx: DotQualifiedEntityContext): string {
