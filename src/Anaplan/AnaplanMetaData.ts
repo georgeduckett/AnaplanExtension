@@ -11,14 +11,16 @@ export class AutoCompleteInfo {
     public autoInsertChars: string[] | undefined;
     public detail: string | undefined;
     public documentation: IMarkdownString | undefined;
+    public sortText: string | undefined;
 
-    constructor(label: string, text: string, kind: monaco.languages.CompletionItemKind, autoInsertChars: string[] | undefined, detail: string | undefined, documentation: IMarkdownString | undefined) {
+    constructor(label: string, text: string, kind: monaco.languages.CompletionItemKind, autoInsertChars?: string[], detail?: string, documentation?: IMarkdownString, sortText?: string) {
         this.label = label;
         this.text = text;
         this.kind = kind;
         this.autoInsertChars = autoInsertChars;
         this.detail = detail
         this.documentation = documentation;
+        this.sortText = sortText;
     }
 }
 
@@ -83,6 +85,15 @@ export class AnaplanMetaData {
         }
         else {
             return entityName;
+        }
+    }
+
+    getNameFromComponents(entityMetaData: EntityMetaData) {
+        if (entityMetaData.qualifier === undefined) {
+            return this.quoteIfNeeded(entityMetaData.name);
+        }
+        else {
+            return `${this.quoteIfNeeded(entityMetaData.qualifier)}.${this.quoteIfNeeded(entityMetaData.name)}`;
         }
     }
 

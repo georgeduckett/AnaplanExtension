@@ -1,9 +1,9 @@
 import { CodeCompletionCore, Symbol, SymbolTable, VariableSymbol } from "antlr4-c3";
-import { CharStreams, CommonTokenStream, DefaultErrorStrategy, ParserRuleContext } from "antlr4ts";
+import { CharStreams, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrategy, ParserRuleContext } from "antlr4ts";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { UriComponents } from "monaco-editor";
-import { AnaplanMetaData, AutoCompleteInfo } from "../Anaplan/AnaplanMetaData";
+import { AnaplanMetaData, AutoCompleteInfo, EntityMetaData } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
 import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext, FuncSquareBracketsContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
@@ -130,7 +130,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                     keywords[i].substring("KEYWORD:".length),
                                     keywords[i].substring("KEYWORD:".length),
                                     monaco.languages.CompletionItemKind.Keyword,
-                                    [',', ')'], undefined, undefined));
+                                    [',', ')']));
                             }
                             foundKeyword = true;
                         }
@@ -180,26 +180,48 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         //TODO:  Find the dimensions we're missing, then for each one look for modules without type that are either dimensioned based on the target and have a line item of type source, or visa-versa. If just one of these is found, autocomplete that.
 
                         let referenceContext = findAncestor(tokenPosition.context, FuncSquareBracketsContext);
-
                         if (referenceContext != undefined) {
-                            let missingDimensions = this._anaplanMetaData?.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(referenceContext.entity()), this._anaplanMetaData.getCurrentItemFullAppliesTo());
+                            let entityDimensions = this._anaplanMetaData?.getEntityDimensions(referenceContext.entity());
+                            let missingDimensions = this._anaplanMetaData?.getMissingDimensions(entityDimensions!, this._anaplanMetaData.getCurrentItemFullAppliesTo());
                             // TODO: Remove any dimensions we've already got selectors for within this reference context
 
                             if (missingDimensions != undefined) {
                                 let extraSelectorStrings: string[] = [];
 
-                                for (let i = 0; i < missingDimensions?.extraSourceEntityMappings.length; i++) {
+                                for (let i = 0; i < missingDimensions.extraTargetEntityMappings.length; i++) {
+                                    let possibleEntities: { entityMetaData: EntityMetaData, aggregateFunction: string }[] = [];
                                     // TODO: For each missing dimension, work out what mapping we need to add, look for line items with one dimension that matches 'a dimension this line item has' with the data type that matches the 'missing one', or visa-versa
                                     // TODO: Depending on which way around we find it, either add that line item as a LOOKUP or as a SUM
+
                                     this._anaplanMetaData?.getAllLineItems().forEach(li => {
-                                        console.log(li);
+                                        // Don't consider line items with more than one dimension
+                                        if (li.lineItemInfo.fullAppliesTo.length != 1) {
+                                            return;
+                                        }
+
+                                        if (li.lineItemInfo.format.hierarchyEntityLongId == missingDimensions?.extraTargetEntityMappings[i]) {
+                                            // Found a line item referring to an entity that exists in the target mapping, but not the source
+                                            let intersection = entityDimensions?.filter(ed => li.lineItemInfo.fullAppliesTo.includes(ed));
+                                            if ((intersection?.length ?? 0) != 0) {
+                                                // This line item's dimensionality overlaps with this one's
+                                                possibleEntities.push({ entityMetaData: li, aggregateFunction: "SUM" }); // TODO: Is this always SUM? if not, when should it be LOOKUP?
+                                            }
+                                        }
                                     });
+
+                                    let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
+                                    // If we only have one then use that, if we have more than one and there's a single PROP one, then use that, otherwise don't use any
+                                    if (possibleEntities.length === 1) {
+                                        extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
+                                    }
+                                    else if (possibleEntitiesPropOnly.length === 1) {
+                                        extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);
+                                    }
                                 }
 
-
-                                //entityNames.push(new AutoCompleteInfo('FoundReferenceContext', 'FoundReferenceContext', monaco.languages.CompletionItemKind.Reference, [']'], undefined, undefined));
-
-                                console.log(missingDimensions);
+                                if (extraSelectorStrings.length != 0) {
+                                    entityNames.push(new AutoCompleteInfo(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], undefined, undefined, '*' + extraSelectorStrings.join(', ')));
+                                }
                             }
                         }
 
