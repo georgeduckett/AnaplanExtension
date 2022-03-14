@@ -205,8 +205,8 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                             let intersection = entityDimensions?.filter(ed => li.lineItemInfo.fullAppliesTo.includes(ed));
                                             if ((intersection?.length ?? 0) != 0) {
                                                 // This line item's dimensionality overlaps with this one's
-                                                // TODO: Try and work out what sort of aggregation they may want (don't just assume SUM, try and take it from the aggregation of the current line item maybe)
 
+                                                // Ideally we would take the aggregation method from the aggregation of the current line item, but that data is not available, so we just have defaults depending on the line item format's data type
                                                 possibleEntities.push({ entityMetaData: li, aggregateFunction: DefaultCodeCompleteAggregation(this._anaplanMetaData!.getCurrentItem().format) }); // TODO: Is this always SUM? if not, when should it be LOOKUP?
                                             }
                                         }
