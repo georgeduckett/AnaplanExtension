@@ -1,3 +1,5 @@
+import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
+
 export class Format {
     hierarchyEntityLongId?: number;
     entityFormatFilter?: any;
@@ -6,4 +8,16 @@ export class Format {
     dataType: string;
     periodType: any;
     constructor(dataType: string, hierarchyEntityLongId?: number) { this.dataType = dataType; this.hierarchyEntityLongId = hierarchyEntityLongId; }
+}
+
+export function DefaultCodeCompleteAggregation(format: Format): string {
+    switch (format.dataType) {
+        case AnaplanDataTypeStrings.BOOLEAN.dataType: return "ANY";
+        case AnaplanDataTypeStrings.DATE.dataType: return "MAX";
+        case AnaplanDataTypeStrings.TIME_ENTITY.dataType:
+        case AnaplanDataTypeStrings.ENTITY(undefined).dataType: return "FIRSTNONBLANK";
+        case AnaplanDataTypeStrings.NUMBER.dataType: return "SUM";
+        case AnaplanDataTypeStrings.TEXT.dataType: return "TEXTLIST";
+        default: return "SUM"
+    };
 }

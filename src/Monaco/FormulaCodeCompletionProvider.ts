@@ -10,6 +10,7 @@ import { CompletionItem } from "./CompletionItem";
 import { findAncestor, findDescendents, tryGetChild } from "../Anaplan/AnaplanHelpers";
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
 import { deserialisedAggregateFunctions, deserialisedFunctions } from "../Anaplan/.generateAnaplanData/FunctionInfo";
+import { DefaultCodeCompleteAggregation, Format } from "../Anaplan/Format";
 
 type TokenPosition = { index: number, context: ParseTree };
 
@@ -205,7 +206,8 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                             if ((intersection?.length ?? 0) != 0) {
                                                 // This line item's dimensionality overlaps with this one's
                                                 // TODO: Try and work out what sort of aggregation they may want (don't just assume SUM, try and take it from the aggregation of the current line item maybe)
-                                                possibleEntities.push({ entityMetaData: li, aggregateFunction: "SUM" }); // TODO: Is this always SUM? if not, when should it be LOOKUP?
+
+                                                possibleEntities.push({ entityMetaData: li, aggregateFunction: DefaultCodeCompleteAggregation(this._anaplanMetaData!.getCurrentItem().format) }); // TODO: Is this always SUM? if not, when should it be LOOKUP?
                                             }
                                         }
                                     });
