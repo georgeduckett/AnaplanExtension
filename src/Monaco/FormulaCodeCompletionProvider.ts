@@ -204,13 +204,14 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                             let intersection = entityDimensions?.filter(ed => li.lineItemInfo.fullAppliesTo.includes(ed));
                                             if ((intersection?.length ?? 0) != 0) {
                                                 // This line item's dimensionality overlaps with this one's
+                                                // TODO: Try and work out what sort of aggregation they may want (don't just assume SUM, try and take it from the aggregation of the current line item maybe)
                                                 possibleEntities.push({ entityMetaData: li, aggregateFunction: "SUM" }); // TODO: Is this always SUM? if not, when should it be LOOKUP?
                                             }
                                         }
                                     });
 
 
-                                    let possibleEntitiesExisting = possibleEntities.filter(pe => this._anaplanMetaData!.getAggregateEntries().filter(ee => ee.aggregateFunction === pe.aggregateFunction && ee.entityMetaData === pe.entityMetaData).length != 0);
+                                    let possibleEntitiesExisting = possibleEntities.filter(pe => this._anaplanMetaData!.getAggregateEntries().filter(ee => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
 
                                     let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
                                     // If we only have one then use that, if we have more than one and there's a single PROP one, then use that, otherwise don't use any
@@ -226,7 +227,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                 }
 
                                 if (extraSelectorStrings.length != 0) {
-                                    entityNames.push(new AutoCompleteInfo(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], undefined, undefined, '*' + extraSelectorStrings.join(', ')));
+                                    entityNames.push(new AutoCompleteInfo(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], 'Missing dimensions', new MarkdownString('```\r\n' + extraSelectorStrings.join('  \r\n') + '\r\n```'), '*' + extraSelectorStrings.join(', ')));
                                 }
                             }
                         }
@@ -294,6 +295,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             result.detail = s.detail;
             result.documentation = s.documentation;
             result.filterText = s.text;
+            result.sortText = s.sortText;
             return result;
         }));
 
