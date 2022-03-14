@@ -1,8 +1,10 @@
+import { CharStreams, CommonTokenStream } from "antlr4ts";
 import { IMarkdownString } from "monaco-editor";
 import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor";
-import { unQuoteEntity, getOriginalText, anaplanTimeEntityBaseId } from "./AnaplanHelpers";
-import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext } from "./antlrclasses/AnaplanFormulaParser";
+import { unQuoteEntity, getOriginalText, anaplanTimeEntityBaseId, findDescendents } from "./AnaplanHelpers";
+import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
+import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext, AnaplanFormulaParser } from "./antlrclasses/AnaplanFormulaParser";
 
 export class AutoCompleteInfo {
     public label: string;
@@ -69,6 +71,9 @@ export class AnaplanMetaData {
     private readonly _currentLineItem: LineItemInfo;
     private readonly _subsetInfo: Map<number, SubsetInfo>;
 
+
+    private readonly _aggregateEntries: { entityMetaData: EntityMetaData, aggregateFunction: string }[] = [];
+
     constructor(lineItemInfo: Map<string, EntityMetaData>, subsetInfo: Map<number, SubsetInfo>, entityNames: Map<number, string>, entityIds: Map<string, { id: number, type: string }>, hierarchyParents: Map<number, number>, moduleName: string, currentLineItem: LineItemInfo) {
         this._moduleName = moduleName;
         this._subsetInfo = subsetInfo;
@@ -77,6 +82,26 @@ export class AnaplanMetaData {
         this._entityNames = entityNames;
         this._entityIds = entityIds;
         this._currentLineItem = currentLineItem;
+
+        this?.getAllLineItems().forEach(li => {
+            if (li.lineItemInfo.formula === undefined || li.lineItemInfo.formula === null || !li.lineItemInfo.formula.includes(':')) {
+                return;
+            }
+
+            const mylexer = new AnaplanFormulaLexer(CharStreams.fromString(li.lineItemInfo.formula));
+            mylexer.removeErrorListeners();
+            const myparser = new AnaplanFormulaParser(new CommonTokenStream(mylexer));
+            myparser.removeErrorListeners();
+
+            let dimensionMappings = findDescendents(myparser.formula(), DimensionmappingContext);
+            for (let j = 0; j < dimensionMappings.length; j++) {
+                this._aggregateEntries.push({ entityMetaData: this.getItemInfoFromEntityContext(dimensionMappings[j].entity())!, aggregateFunction: dimensionMappings[j].dimensionmappingselector().text });
+            }
+        });
+    }
+
+    getAggregateEntries(): { entityMetaData: EntityMetaData, aggregateFunction: string }[] {
+        return this._aggregateEntries;
     }
 
     quoteIfNeeded(entityName: string): string {
@@ -229,16 +254,19 @@ export class AnaplanMetaData {
     getItemInfoFromEntityName(entityName: string): EntityMetaData | undefined {
         return this._lineItemInfo.get(entityName);
     }
+    getItemInfoFromEntityContext(entityContext: EntityContext, currentModuleName: string | undefined = undefined): EntityMetaData | undefined {
+        return this._lineItemInfo.get(this.getEntityName(entityContext, currentModuleName));
+    }
 
     getEntityNameFromId(entityId: number): string {
         return this._entityNames.get(entityId) ?? entityId.toString();
     }
 
-    getEntityName(ctx: EntityContext): string {
+    getEntityName(ctx: EntityContext, currentModuleName: string | undefined = undefined): string {
         if (ctx instanceof QuotedEntityContext) {
-            return this._moduleName + "." + unQuoteEntity(ctx.quotedEntityRule().text);
+            return (currentModuleName ?? this._moduleName) + "." + unQuoteEntity(ctx.quotedEntityRule().text);
         } else if (ctx instanceof WordsEntityContext) {
-            return this._moduleName + "." + getOriginalText(ctx);
+            return (currentModuleName ?? this._moduleName) + "." + getOriginalText(ctx);
         } else if (ctx instanceof DotQualifiedEntityContext) {
             let fullUnquotedEntityName = `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`;
             // If the dot qualified thing matches, use that
@@ -256,7 +284,7 @@ export class AnaplanMetaData {
 
             return fullUnquotedEntityName;
         } else if (ctx instanceof FuncSquareBracketsContext) {
-            return this.getEntityName(ctx.entity());
+            return this.getEntityName(ctx.entity(), currentModuleName);
         }
 
         throw new Error("Unknown EntityContext type. Has the grammar file been altered?     " + ctx.text);

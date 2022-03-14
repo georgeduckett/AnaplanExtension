@@ -5,9 +5,9 @@ import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { UriComponents } from "monaco-editor";
 import { AnaplanMetaData, AutoCompleteInfo, EntityMetaData } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext, FuncSquareBracketsContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AnaplanFormulaParser, DimensionmappingContext, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext, FuncSquareBracketsContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
-import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
+import { findAncestor, findDescendents, tryGetChild } from "../Anaplan/AnaplanHelpers";
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
 import { deserialisedAggregateFunctions, deserialisedFunctions } from "../Anaplan/.generateAnaplanData/FunctionInfo";
 
@@ -209,10 +209,16 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                         }
                                     });
 
+
+                                    let possibleEntitiesExisting = possibleEntities.filter(pe => this._anaplanMetaData!.getAggregateEntries().filter(ee => ee.aggregateFunction === pe.aggregateFunction && ee.entityMetaData === pe.entityMetaData).length != 0);
+
                                     let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
                                     // If we only have one then use that, if we have more than one and there's a single PROP one, then use that, otherwise don't use any
                                     if (possibleEntities.length === 1) {
                                         extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
+                                    }
+                                    else if (possibleEntitiesExisting.length === 1) {
+                                        extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);
                                     }
                                     else if (possibleEntitiesPropOnly.length === 1) {
                                         extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);

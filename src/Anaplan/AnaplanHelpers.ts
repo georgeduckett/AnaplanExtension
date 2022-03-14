@@ -41,6 +41,23 @@ export function findAncestor<T extends ParseTree>(node: ParseTree | undefined, T
 
     return findAncestor(node.parent, TName);
 }
+export function findDescendents<T extends ParseTree>(node: ParseTree | undefined, TName: Constructor<T>, results: T[] | undefined = undefined): T[] {
+    if (node === undefined) { return []; }
+
+    if (results === undefined) {
+        results = [];
+    }
+
+    if (node instanceof TName) {
+        results.push(node);
+    }
+
+    for (let i = 0; i < node?.childCount; i++) {
+        findDescendents(node.getChild(i), TName, results);
+    }
+
+    return results;
+}
 export function tryGetChild<T extends ParseTree>(node: ParseTree | undefined, TName: Constructor<T>): T | undefined {
     if (node === undefined) return undefined;
 
