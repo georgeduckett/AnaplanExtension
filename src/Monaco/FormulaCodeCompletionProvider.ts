@@ -210,17 +210,17 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                         }
                                     });
 
-
-                                    let possibleEntitiesExisting = possibleEntities.filter(pe => this._anaplanMetaData!.getAggregateEntries().filter(ee => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
+                                    // for existing posisble entries, filter the existing entries with possible ones, not the other way around. This way we use an existing aggregation function
+                                    let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
 
                                     let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
-                                    // If we only have one then use that, if we have more than one and there's a single PROP one, then use that, otherwise don't use any
-                                    if (possibleEntities.length === 1) {
-                                        extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
-                                    }
-                                    else if (possibleEntitiesExisting.length === 1) {
+                                    // Use an existing mapping if available since that would have the correct aggregation function
+                                    if (possibleEntitiesExisting.length === 1) {
                                         extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);
-                                    }
+                                    } // If not, then use the single valid one
+                                    else if (possibleEntities.length === 1) {
+                                        extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
+                                    } // If not, then use a single PROP... one
                                     else if (possibleEntitiesPropOnly.length === 1) {
                                         extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);
                                     }
