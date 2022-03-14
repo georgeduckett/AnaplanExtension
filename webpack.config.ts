@@ -68,11 +68,11 @@ module.exports = (env: any, argv: any) => {
 		optimization: {
 			// If the below still doesn't make the file small enough for firefox,
 			// maybe we have to try and split up index.ts to have different entry points / be different files and try and reduce the size that way
-			minimize: true,
+			minimize: argv.mode === "production",
 			minimizer: [new TerserPlugin({
 				test: /\.js$/,
 				terserOptions: {
-					compress: true,
+					compress: argv.mode === "production",
 				}
 			})]
 		},
