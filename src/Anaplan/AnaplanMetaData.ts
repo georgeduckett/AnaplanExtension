@@ -156,7 +156,7 @@ export class AnaplanMetaData {
         return result;
     }
     getAutoCompleteQualifiedRightPart(leftPartText: string): Set<AutoCompleteInfo> {
-        let result = new Set<AutoCompleteInfo>();
+        let result = new Set<AutoCompleteInfo>(); // TODO: Handle using the 'code' of the line item
         // Add anything that needs to be qualified
         for (let lineItem of this._lineItemInfo) {
             if (lineItem[1].qualifier != undefined) {
@@ -177,7 +177,7 @@ export class AnaplanMetaData {
     }
 
     getAutoCompleteWords(): Set<AutoCompleteInfo> {
-        let result = new Set<AutoCompleteInfo>();
+        let result = new Set<AutoCompleteInfo>(); // TODO: Handle using the 'code' of the line item
         // Add anything that doesn't need to be qualified
         for (let lineItem of this._lineItemInfo) {
             if ((lineItem[1].qualifier === undefined || lineItem[1].qualifier === this._moduleName) && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
