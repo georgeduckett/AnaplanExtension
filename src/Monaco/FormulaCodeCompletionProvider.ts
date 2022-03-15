@@ -183,7 +183,8 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         let referenceContext = findAncestor(tokenPosition.context, FuncSquareBracketsContext);
                         if (referenceContext != undefined) {
                             let entityDimensions = this._anaplanMetaData?.getEntityDimensions(referenceContext.entity());
-                            let missingDimensions = this._anaplanMetaData?.getMissingDimensions(entityDimensions!, this._anaplanMetaData.getCurrentItemFullAppliesTo());
+                            let currentLineItemDimensions = this._anaplanMetaData?.getCurrentItemFullAppliesTo()!;
+                            let missingDimensions = this._anaplanMetaData?.getMissingDimensions(entityDimensions!, currentLineItemDimensions);
                             // TODO: Remove any dimensions we've already got selectors for within this reference context
 
                             if (missingDimensions != undefined) {
@@ -191,28 +192,25 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
 
                                 for (let i = 0; i < missingDimensions.extraTargetEntityMappings.length; i++) {
                                     let possibleEntities: { entityMetaData: EntityMetaData, aggregateFunction: string }[] = [];
-                                    // TODO: For each missing dimension, work out what mapping we need to add, look for line items with one dimension that matches 'a dimension this line item has' with the data type that matches the 'missing one', or visa-versa
-                                    // TODO: Depending on which way around we find it, either add that line item as a LOOKUP or as a SUM
-
                                     this._anaplanMetaData?.getAllLineItems().forEach(li => {
                                         // Don't consider line items with more than one dimension
                                         if (li.lineItemInfo.fullAppliesTo.length != 1) {
                                             return;
                                         }
 
-                                        if (li.lineItemInfo.format.hierarchyEntityLongId == missingDimensions?.extraTargetEntityMappings[i]) {
+                                        if (this._anaplanMetaData?.getSubsetNormalisedEntityId(li.lineItemInfo.format.hierarchyEntityLongId!) == this._anaplanMetaData?.getSubsetNormalisedEntityId(missingDimensions?.extraTargetEntityMappings[i]!)) {
                                             // Found a line item referring to an entity that exists in the target mapping, but not the source
-                                            let intersection = entityDimensions?.filter(ed => li.lineItemInfo.fullAppliesTo.includes(ed));
-                                            if ((intersection?.length ?? 0) != 0) {
-                                                // This line item's dimensionality overlaps with this one's
+                                            let entityDimensionsIntersection = entityDimensions?.filter(ed => li.lineItemInfo.fullAppliesTo.map(f => this._anaplanMetaData?.getSubsetNormalisedEntityId(f)).includes(this._anaplanMetaData?.getSubsetNormalisedEntityId(ed)!));
+                                            if ((entityDimensionsIntersection?.length ?? 0) != 0) {
+                                                // This line item's dimensionality overlaps with the target line item
 
                                                 // Ideally we would take the aggregation method from the aggregation of the current line item, but that data is not available, so we just have defaults depending on the line item format's data type
-                                                possibleEntities.push({ entityMetaData: li, aggregateFunction: DefaultCodeCompleteAggregation(this._anaplanMetaData!.getCurrentItem().format) }); // TODO: Is this always SUM? if not, when should it be LOOKUP?
+                                                possibleEntities.push({ entityMetaData: li, aggregateFunction: DefaultCodeCompleteAggregation(this._anaplanMetaData!.getCurrentItem().format) });
                                             }
                                         }
                                     });
 
-                                    // for existing posisble entries, filter the existing entries with possible ones, not the other way around. This way we use an existing aggregation function
+                                    // for existing possible entries, filter the existing entries with possible ones, not the other way around. This way we use an existing aggregation function
                                     let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
 
                                     let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
@@ -225,6 +223,46 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                     } // If not, then use a single PROP... one
                                     else if (possibleEntitiesPropOnly.length === 1) {
                                         extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);
+                                    }
+                                }
+
+                                for (let i = 0; i < missingDimensions.extraSourceEntityMappings.length; i++) {
+                                    let possibleEntities: { entityMetaData: EntityMetaData, aggregateFunction: string }[] = [];
+                                    this._anaplanMetaData?.getAllLineItems().forEach(li => {
+                                        // Don't consider line items with more than one dimension
+                                        if (li.lineItemInfo.fullAppliesTo.length != 1) {
+                                            return;
+                                        }
+
+                                        if (this._anaplanMetaData?.getSubsetNormalisedEntityId(li.lineItemInfo.format.hierarchyEntityLongId!) == this._anaplanMetaData?.getSubsetNormalisedEntityId(missingDimensions!.extraSourceEntityMappings[i])) {
+                                            // Found a line item referring to an entity that exists in the source mapping, but not the target
+                                            let currentLineItemDimensionsIntersection = currentLineItemDimensions?.filter(ed => li.lineItemInfo.fullAppliesTo.map(d => this._anaplanMetaData?.getSubsetNormalisedEntityId(d)).includes(this._anaplanMetaData?.getSubsetNormalisedEntityId(ed)!));
+                                            if ((currentLineItemDimensionsIntersection?.length ?? 0) != 0) {
+                                                // This line item's dimensionality overlaps with the target line item
+
+                                                // Ideally we would take the aggregation method from the aggregation of the current line item, but that data is not available, so we just have defaults depending on the line item format's data type
+                                                possibleEntities.push({ entityMetaData: li, aggregateFunction: "LOOKUP" });
+                                            }
+                                        }
+                                    });
+
+                                    // for existing possible entries, filter the existing entries with possible ones, not the other way around. This way we use an existing aggregation function
+                                    let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
+
+                                    let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
+                                    // Use an existing mapping if available since that would have the correct aggregation function
+                                    if (possibleEntitiesExisting.length === 1) {
+                                        extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);
+                                    } // If not, then use the single valid one
+                                    else if (possibleEntities.length === 1) {
+                                        extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
+                                    } // If not, then use a single PROP... one
+                                    else if (possibleEntitiesPropOnly.length === 1) {
+                                        extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);
+                                    }
+                                    else {
+                                        console.log("Couldn't find a single good match for " + this._anaplanMetaData?.getEntityNameFromId(missingDimensions?.extraSourceEntityMappings[i]) + ', found matches:');
+                                        console.log(possibleEntities.map(pe => pe.aggregateFunction + ": " + pe.entityMetaData.qualifier + "." + pe.entityMetaData.name).join('\r\n'));
                                     }
                                 }
 
