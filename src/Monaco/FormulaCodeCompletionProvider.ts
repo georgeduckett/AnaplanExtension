@@ -174,11 +174,11 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         break;
                     }
                     case AnaplanFormulaParser.RULE_dimensionmappingselector: {
-                        // TODO: Try and autocomplete the whole thing. The general form is for a missing dimension is:
+                        // Try and autocomplete the whole thing. The general form is for a missing dimension is:
                         // "LOOKUP: source.target" or "SUM: target.source", where before the dot is the module matching the line item's dimension and the target is an entity type matching the other dimension
                         // for example SUM: PROP C10.P6 when the line item is P6 and the source is C10, or LOOKUP: PROP C10.P6 when the line item is C10 and the source is P6. We know which way around it is based on what mapping modules are available (C10.P6 exists, but no P6.C10)
 
-                        //TODO:  Find the dimensions we're missing, then for each one look for modules without type that are either dimensioned based on the target and have a line item of type source, or visa-versa. If just one of these is found, autocomplete that.
+                        // Find the dimensions we're missing, then for each one look for modules without type that are either dimensioned based on the target and have a line item of type source, or visa-versa. If just one of these is found, autocomplete that.
 
                         let referenceContext = findAncestor(tokenPosition.context, FuncSquareBracketsContext);
                         if (referenceContext != undefined) {
@@ -211,19 +211,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                     });
 
                                     // for existing possible entries, filter the existing entries with possible ones, not the other way around. This way we use an existing aggregation function
-                                    let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
-
-                                    let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
-                                    // Use an existing mapping if available since that would have the correct aggregation function
-                                    if (possibleEntitiesExisting.length === 1) {
-                                        extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);
-                                    } // If not, then use the single valid one
-                                    else if (possibleEntities.length === 1) {
-                                        extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
-                                    } // If not, then use a single PROP... one
-                                    else if (possibleEntitiesPropOnly.length === 1) {
-                                        extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);
-                                    }
+                                    this.TryAddPossibleEntry(possibleEntities, extraSelectorStrings);
                                 }
 
                                 for (let i = 0; i < missingDimensions.extraSourceEntityMappings.length; i++) {
@@ -246,24 +234,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                         }
                                     });
 
-                                    // for existing possible entries, filter the existing entries with possible ones, not the other way around. This way we use an existing aggregation function
-                                    let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
-
-                                    let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
-                                    // Use an existing mapping if available since that would have the correct aggregation function
-                                    if (possibleEntitiesExisting.length === 1) {
-                                        extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);
-                                    } // If not, then use the single valid one
-                                    else if (possibleEntities.length === 1) {
-                                        extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
-                                    } // If not, then use a single PROP... one
-                                    else if (possibleEntitiesPropOnly.length === 1) {
-                                        extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);
-                                    }
-                                    else {
-                                        console.log("Couldn't find a single good match for " + this._anaplanMetaData?.getEntityNameFromId(missingDimensions?.extraSourceEntityMappings[i]) + ', found matches:');
-                                        console.log(possibleEntities.map(pe => pe.aggregateFunction + ": " + pe.entityMetaData.qualifier + "." + pe.entityMetaData.name).join('\r\n'));
-                                    }
+                                    this.TryAddPossibleEntry(possibleEntities, extraSelectorStrings);
                                 }
 
                                 if (extraSelectorStrings.length != 0) {
@@ -344,5 +315,21 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         };
     }
 
+
+    private TryAddPossibleEntry(possibleEntities: { entityMetaData: EntityMetaData; aggregateFunction: string; }[], extraSelectorStrings: string[]) {
+        let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
+
+        let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
+        // Use an existing mapping if available since that would have the correct aggregation function
+        if (possibleEntitiesExisting.length === 1) {
+            extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);
+        } // If not, then use the single valid one
+        else if (possibleEntities.length === 1) {
+            extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
+        } // If not, then use a single PROP... one
+        else if (possibleEntitiesPropOnly.length === 1) {
+            extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);
+        }
+    }
 }
 
