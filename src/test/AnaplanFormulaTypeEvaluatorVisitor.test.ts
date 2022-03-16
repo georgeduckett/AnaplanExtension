@@ -4,8 +4,6 @@ import { FunctionsInfo } from '../Anaplan/FunctionInfo';
 import { deserialisedFunctions, deserialisedKeywords } from '../Anaplan/.generateAnaplanData/FunctionInfo';
 import { AnaplanDataTypeStrings } from '../Anaplan/AnaplanDataTypeStrings';
 import { CharStreams, CommonTokenStream } from 'antlr4ts';
-import options from 'cheerio/lib/options';
-import { text } from 'cheerio/lib/static';
 import { AnaplanFormulaFormatterVisitor } from '../Anaplan/AnaplanFormulaFormatterVisitor';
 import { AnaplanFormulaLexer } from '../Anaplan/antlrclasses/AnaplanFormulaLexer';
 import { AnaplanFormulaParser } from '../Anaplan/antlrclasses/AnaplanFormulaParser';
