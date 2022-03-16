@@ -28,10 +28,7 @@ signedAtom:
 	| func_				# funcAtom
 	| atom				# atomAtom;
 
-atom:
-	entity						# entityAtom
-	| LPAREN expression RPAREN	# expressionAtom // Do we need this?
-	| SCIENTIFIC_NUMBER			# numberAtom;
+atom: entity # entityAtom | SCIENTIFIC_NUMBER # numberAtom;
 
 func_:
 	functionname LPAREN (expression (',' expression)*)? RPAREN			# funcParameterised

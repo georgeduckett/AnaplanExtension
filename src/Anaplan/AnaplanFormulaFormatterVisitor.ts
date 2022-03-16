@@ -1,7 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { Stack } from 'stack-typescript'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, ExpressionAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityPartContext, QuotedEntityPartContext, WordsEntityPartContext } from './antlrclasses/AnaplanFormulaParser';
+import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, AtomExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityPartContext, QuotedEntityPartContext, WordsEntityPartContext } from './antlrclasses/AnaplanFormulaParser';
 import { ContextSensitivityInfo } from 'antlr4ts/atn/ContextSensitivityInfo';
 import { Interval } from 'antlr4ts/misc/Interval';
 
@@ -108,10 +108,6 @@ export class AnaplanFormulaFormatterVisitor extends AbstractParseTreeVisitor<str
 
   visitNumberAtom(ctx: NumberAtomContext): string {
     return ctx.SCIENTIFIC_NUMBER().text;
-  }
-
-  visitExpressionAtom(ctx: ExpressionAtomContext): string {
-    return ctx.LPAREN().text + this.visit(ctx.expression()) + ctx.RPAREN().text;
   }
 
   visitEntityAtom(ctx: EntityAtomContext): string {
