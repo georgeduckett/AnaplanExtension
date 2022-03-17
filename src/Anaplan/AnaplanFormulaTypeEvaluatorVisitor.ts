@@ -4,7 +4,7 @@ import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExp
 import { findAncestor, getOriginalText } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
-import { AnaplanMetaData } from './AnaplanMetaData';
+import { AnaplanMetaData, EntityType } from './AnaplanMetaData';
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode';
 import { ParseTree } from 'antlr4ts/tree/ParseTree';
 import { FunctionsInfo } from './FunctionInfo';
@@ -316,7 +316,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     // Check whether the entity is known
     if (!this._anaplanMetaData.isKnownEntity(ctx)) {
       if (ctx.parent?.parent?.parent?.parent instanceof FuncParameterisedContext) {
-        this.addFormulaError(ctx, `Unrecognised keyword \'${getOriginalText(ctx)}\'`);
+        this.addFormulaError(ctx, `Unrecognised entity or keyword \'${getOriginalText(ctx)}\'`);
       }
       else {
         this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
@@ -361,7 +361,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if (!this._anaplanMetaData.isKnownEntity(ctx)) {
       // If we're in the context where we need a keyword complain about that instead.
       if (ctx.parent?.parent?.parent?.parent instanceof FuncParameterisedContext) {
-        this.addFormulaError(ctx, `Unrecognised keyword \'${getOriginalText(ctx)}\'`);
+        this.addFormulaError(ctx, `Unrecognised keyword or entity \'${getOriginalText(ctx)}\'`);
       }
       else {
         this.addFormulaError(ctx, `Cannot find entity \'${getOriginalText(ctx)}\'`);
@@ -373,9 +373,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext) &&
-      !(ctx.parent instanceof FuncParameterisedContext && ctx.parent.functionname().text === "YEARVALUE")) {
+      !(ctx.parent instanceof FuncParameterisedContext && ["YEARVALUE", "FINDITEM"].includes(ctx.parent.functionname().text)) &&
+      (this._anaplanMetaData.getItemInfoFromEntityName(this._anaplanMetaData.getEntityName(ctx))?.entityType != EntityType.Hierarchy)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       // Also, if we're in a YEARVALUE function we assume it's ok since we can't SELECT a top level item within this function
+      // If we're in FINDITEM then that's ok
+      // If we're a hierarchy list item that's ok too
+
       let missingDimensions = this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
       if (missingDimensions.extraSourceEntityMappings.length != 0) {// && missingDimensions.extraTargetEntityMappings.length != 0) {
         this.addMissingDimensionsFormulaError(ctx, missingDimensions.extraSourceEntityMappings, missingDimensions.extraTargetEntityMappings);

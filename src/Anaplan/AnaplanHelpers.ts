@@ -168,7 +168,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
         moduleLineItems.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i], new EntityMetaData({
             parentLineItemEntityLongId: -1,
-            fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
+            //fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
+            fullAppliesTo: [],
             formulaScope: '',
             isSummary: false,
             format: format,
@@ -177,6 +178,19 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             undefined,
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]));
     }
+
+    let timeFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined);
+    timeFormat.periodType = { entityIndex: -1 };// TODO: What should this be?
+    moduleLineItems.set("Time", new EntityMetaData({
+        parentLineItemEntityLongId: -1,
+        fullAppliesTo: [],
+        formulaScope: '',
+        isSummary: false,
+        format: timeFormat
+    },
+        EntityType.Hierarchy,
+        undefined,
+        "Time"));
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
         entityNames.set(
@@ -224,6 +238,22 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                 }
             }
         }
+
+
+        // Add in the lineitem subset itself as an entity
+        let format = AnaplanDataTypeStrings.ENTITY(anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetInfos[i].entityLongId);
+
+        moduleLineItems.set(anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i], new EntityMetaData({
+            parentLineItemEntityLongId: -1,
+            //fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
+            fullAppliesTo: [],
+            formulaScope: '',
+            isSummary: false,
+            format: format,
+        },
+            EntityType.LineItemSubSet,
+            undefined,
+            anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]));
     }
 
     // Add the versions

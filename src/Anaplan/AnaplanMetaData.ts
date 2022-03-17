@@ -194,7 +194,17 @@ export class AnaplanMetaData {
     }
     getEntityType(ctx: EntityContext): Format {
         let entityName = this.getEntityName(ctx);
-        return this.getItemInfoFromEntityName(entityName)?.lineItemInfo?.format ?? AnaplanDataTypeStrings.UNKNOWN;
+
+        let wholeStringEntityType = this.getItemInfoFromEntityName(entityName)?.lineItemInfo?.format;
+
+        if (wholeStringEntityType === undefined && entityName.includes('.')) {
+            // If the entity name is like <Hierarchy>.<something> then assume the <something> is an item in that hierarchy
+            if (this.getItemInfoFromEntityName(entityName.substring(0, entityName.indexOf('.')))?.entityType === EntityType.Hierarchy) {
+                return this.getItemInfoFromEntityName(entityName.substring(0, entityName.indexOf('.')))?.lineItemInfo?.format ?? AnaplanDataTypeStrings.UNKNOWN;
+            }
+        }
+
+        return wholeStringEntityType ?? AnaplanDataTypeStrings.UNKNOWN;
     }
     getEntityDimensions(ctx: EntityContext): number[] {
         let entityName = this.getEntityName(ctx);
@@ -208,6 +218,13 @@ export class AnaplanMetaData {
 
     isKnownEntity(ctx: EntityContext): boolean {
         let entityName = this.getEntityName(ctx);
+        if (entityName.includes('.')) {
+            // If the entity name is like <Hierarchy>.<something> then assume the <something> is an item in that hierarchy
+            if (this.getItemInfoFromEntityName(entityName.substring(0, entityName.indexOf('.')))?.entityType === EntityType.Hierarchy) {
+                return true;
+            }
+        }
+
         return this.getItemInfoFromEntityName(entityName) != undefined;
     }
 
@@ -264,8 +281,14 @@ export class AnaplanMetaData {
 
     getEntityName(ctx: EntityContext, currentModuleName: string | undefined = undefined): string {
         if (ctx instanceof QuotedEntityContext) {
+            if (this.getItemInfoFromEntityName(unQuoteEntity(ctx.quotedEntityRule().text)) != undefined) {
+                return unQuoteEntity(ctx.quotedEntityRule().text);
+            }
             return (currentModuleName ?? this._moduleName) + "." + unQuoteEntity(ctx.quotedEntityRule().text);
         } else if (ctx instanceof WordsEntityContext) {
+            if (this.getItemInfoFromEntityName(getOriginalText(ctx)) != undefined) {
+                return getOriginalText(ctx);
+            }
             return (currentModuleName ?? this._moduleName) + "." + getOriginalText(ctx);
         } else if (ctx instanceof DotQualifiedEntityContext) {
             let fullUnquotedEntityName = `${unQuoteEntity(getOriginalText(ctx._left))}.${unQuoteEntity(getOriginalText(ctx._right))}`;

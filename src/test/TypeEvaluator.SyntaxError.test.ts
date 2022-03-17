@@ -1,0 +1,14 @@
+import { getAnaplanMetaData, getFormulaErrors } from '../Anaplan/AnaplanHelpers';
+import { modelInfoJson } from './AnaplanModelString';
+it('Check formula with syntax error gives the correct error', () => {
+    global.anaplan = { data: { ModelContentCache: { _modelInfo: JSON.parse(modelInfoJson) } } };
+    let i = 10;
+    let j = 0;
+    let metaData = getAnaplanMetaData(anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.entityIds[0][i],
+        anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.entityIds[0][j]);
+    let formula = 'lalkasndad.,asdaskdjn'
+    let errors = getFormulaErrors(formula, metaData, 1, formula.length);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toEqual("mismatched input ',' expecting {WORD, '.'}");
+});

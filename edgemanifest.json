@@ -6,7 +6,6 @@
 	"icons": {
 		"128": "logo.drawio.png"
 	},
-	"update_URL": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
 	"content_scripts": [
 		{
 			"matches": [
