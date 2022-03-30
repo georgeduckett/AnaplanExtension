@@ -239,7 +239,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitFuncSquareBrackets(ctx: FuncSquareBracketsContext): Format {
     // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
     let { extraSourceEntityMappings, extraTargetEntityMappings } =
-      this._anaplanMetaData.getMissingDimensions(this._anaplanMetaData.getEntityDimensions(ctx), this._anaplanMetaData.getCurrentItemFullAppliesTo());
+      this._anaplanMetaData.getMissingDimensions(ctx, undefined);
 
     let dimensionMappings = ctx.dimensionmapping();
 
@@ -266,13 +266,6 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       }
 
       switch (selectorType.toUpperCase()) {
-        case "SELECT":
-          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, this._anaplanMetaData.getEntityIdFromName(lineitem.qualifier + '.' + lineitem.name) ?? this._anaplanMetaData.getEntityIdFromName(lineitem.qualifier ?? lineitem.name)!));
-          break;
-        case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
-          var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem.lineItemInfo);
-          extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
-          break;
         default: // If it's an aggregation we check the target entity mappings
           if (!deserialisedAggregateFunctions.has(selectorType.toUpperCase())) {
             this.addFormulaError(dimensionMapping.dimensionmappingselector(), `Unknown aggregation function '${selectorType}'`);
@@ -286,13 +279,6 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
           }
           if (["TEXTLIST"].includes(selectorType.toUpperCase()) && visitEntityResult.dataType != AnaplanDataTypeStrings.TEXT.dataType) {
             this.addFormulaError(dimensionMapping.dimensionmappingselector(), `'${selectorType}' must be used with a TEXT entity`);
-          }
-
-          var lineItemEntityId = this._anaplanMetaData.getLineItemEntityId(lineitem.lineItemInfo);
-          extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineItemEntityId));
-          // We also remove any of this line item's dimensions from the source
-          for (let j = 0; j < lineitem.lineItemInfo.fullAppliesTo.length; j++) {
-            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this._anaplanMetaData.areCompatibleDimensions(e, lineitem.lineItemInfo.fullAppliesTo[j]));
           }
       }
     }

@@ -70,7 +70,7 @@ function computeTokenIndexOfChildNode(parseTree: ParseTree, caretLine: number, c
 }
 
 export class FormulaCompletionItemProvider implements monaco.languages.CompletionItemProvider {
-    triggerCharacters?: string[] = ['.', ':', '['];
+    triggerCharacters?: string[] = ['.', ':', '[', ','];
     _anaplanMetaData: AnaplanMetaData | undefined;
 
     updateMetaData(newMetaData: AnaplanMetaData) { this._anaplanMetaData = newMetaData; }
@@ -184,8 +184,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         if (referenceContext != undefined) {
                             let entityDimensions = this._anaplanMetaData?.getEntityDimensions(referenceContext.entity());
                             let currentLineItemDimensions = this._anaplanMetaData?.getCurrentItemFullAppliesTo()!;
-                            let missingDimensions = this._anaplanMetaData?.getMissingDimensions(entityDimensions!, currentLineItemDimensions);
-                            // TODO: Remove any dimensions we've already got selectors for within this reference context
+                            let missingDimensions = this._anaplanMetaData?.getMissingDimensions(referenceContext, undefined);
 
                             if (missingDimensions != undefined) {
                                 let extraSelectorStrings: string[] = [];

@@ -4,7 +4,7 @@ import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { unQuoteEntity, getOriginalText, anaplanTimeEntityBaseId, findDescendents } from "./AnaplanHelpers";
 import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
-import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext, AnaplanFormulaParser } from "./antlrclasses/AnaplanFormulaParser";
+import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext, AnaplanFormulaParser, DotQualifiedEntityIncompleteContext } from "./antlrclasses/AnaplanFormulaParser";
 
 export class AutoCompleteInfo {
     public label: string;
@@ -350,27 +350,81 @@ export class AnaplanMetaData {
         return false;
     }
 
-    getMissingDimensions(sourceDimensions: number[], targetDimensions: number[]) {
-        let sourceDimensionNames = sourceDimensions.map(n => this.getEntityNameFromId(n));
-        let targetDimensionNames = targetDimensions.map(n => this.getEntityNameFromId(n));
+    getMissingDimensions(sourceDimensions: number[] | FuncSquareBracketsContext, targetDimensions: number[] | undefined): { extraSourceEntityMappings: number[], extraTargetEntityMappings: number[] } {
+        if (sourceDimensions instanceof FuncSquareBracketsContext) {
+            // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
+            let { extraSourceEntityMappings, extraTargetEntityMappings } =
+                this.getMissingDimensions(this.getEntityDimensions(sourceDimensions), this.getCurrentItemFullAppliesTo());
+
+            let dimensionMappings = sourceDimensions.dimensionmapping();
+
+            for (let i = 0; i < dimensionMappings.length; i++) {
+                let dimensionMapping = dimensionMappings[i];
+
+                if (dimensionMapping.childCount < 2) continue;
+
+                let selectorType = dimensionMapping.dimensionmappingselector().text;
+                let entity = dimensionMapping.entity();
+
+                if (entity instanceof DotQualifiedEntityIncompleteContext) {
+                    continue;
+                }
+
+                let selector = this.getEntityName(entity);
+                let lineitem = this.getItemInfoFromEntityName(selector)!;
 
 
-        let extraSourceEntityMappings = sourceDimensions.slice();
-        for (let i = 0; i < targetDimensions.length; i++) {
-            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, targetDimensions[i]));
+                if (lineitem === undefined) {
+                    continue;
+                }
+
+                switch (selectorType.toUpperCase()) {
+                    case "SELECT":
+                        extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, this.getEntityIdFromName(lineitem.qualifier + '.' + lineitem.name) ?? this.getEntityIdFromName(lineitem.qualifier ?? lineitem.name)!));
+                        break;
+                    case "LOOKUP": // In this case the selector is a line item, so we check the type of that line item and remove the missing dimension if there is one
+                        var lineItemEntityId = this.getLineItemEntityId(lineitem.lineItemInfo);
+                        extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, lineItemEntityId));
+                        break;
+                    default: // If it's an aggregation we check the target entity mappings
+
+
+                        var lineItemEntityId = this.getLineItemEntityId(lineitem.lineItemInfo);
+                        extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, lineItemEntityId));
+                        // We also remove any of this line item's dimensions from the source
+                        for (let j = 0; j < lineitem.lineItemInfo.fullAppliesTo.length; j++) {
+                            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, lineitem.lineItemInfo.fullAppliesTo[j]));
+                        }
+                }
+            }
+
+            return { extraSourceEntityMappings, extraTargetEntityMappings };
+
         }
-
-        let extraTargetEntityMappings = targetDimensions.slice();
-        for (let i = 0; i < sourceDimensions.length; i++) {
-            extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, sourceDimensions[i]));
+        else if (targetDimensions === undefined) {
+            throw new Error('getMissingDimensions called with invalid parameters');
         }
+        else {
+            let sourceDimensionNames = sourceDimensions.map(n => this.getEntityNameFromId(n));
+            let targetDimensionNames = targetDimensions.map(n => this.getEntityNameFromId(n));
 
-        // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
-        extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 121000000021);
-        extraTargetEntityMappings = extraTargetEntityMappings.filter(e => e != 121000000021);
+            let extraSourceEntityMappings = sourceDimensions.slice();
+            for (let i = 0; i < targetDimensions.length; i++) {
+                extraSourceEntityMappings = extraSourceEntityMappings.filter(e => !this.areCompatibleDimensions(e, targetDimensions[i]));
+            }
 
-        extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 20000000020); // Version in source is never an extra, as that's fine
+            let extraTargetEntityMappings = targetDimensions.slice();
+            for (let i = 0; i < sourceDimensions.length; i++) {
+                extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, sourceDimensions[i]));
+            }
 
-        return { extraSourceEntityMappings, extraTargetEntityMappings };
+            // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
+            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 121000000021);
+            extraTargetEntityMappings = extraTargetEntityMappings.filter(e => e != 121000000021);
+
+            extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 20000000020); // Version in source is never an extra, as that's fine
+
+            return { extraSourceEntityMappings, extraTargetEntityMappings };
+        }
     }
 }
