@@ -192,9 +192,9 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                 for (let i = 0; i < missingDimensions.extraTargetEntityMappings.length; i++) {
                                     let possibleEntities: { entityMetaData: EntityMetaData, aggregateFunction: string }[] = [];
                                     this._anaplanMetaData?.getAllLineItems().forEach(li => {
-                                        // Don't consider line items with more than one dimension
-                                        if (li.lineItemInfo.fullAppliesTo.length != 1) {
-                                            return;
+                                        // Don't consider line items with more than one dimension unless the dimensions match the current line item
+                                        if (li.lineItemInfo.fullAppliesTo.length != 1 && !li.lineItemInfo.fullAppliesTo.every(d => entityDimensions?.includes(d))) {
+                                            return; // TODO: Check matching applies to being ok
                                         }
 
                                         if (this._anaplanMetaData?.getSubsetNormalisedEntityId(li.lineItemInfo.format.hierarchyEntityLongId!) == this._anaplanMetaData?.getSubsetNormalisedEntityId(missingDimensions?.extraTargetEntityMappings[i]!)) {
@@ -216,9 +216,9 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                 for (let i = 0; i < missingDimensions.extraSourceEntityMappings.length; i++) {
                                     let possibleEntities: { entityMetaData: EntityMetaData, aggregateFunction: string }[] = [];
                                     this._anaplanMetaData?.getAllLineItems().forEach(li => {
-                                        // Don't consider line items with more than one dimension
-                                        if (li.lineItemInfo.fullAppliesTo.length != 1) {
-                                            return;
+                                        // Don't consider line items with more than one dimension unless the dimensions match the current line item
+                                        if (li.lineItemInfo.fullAppliesTo.length != 1 && !li.lineItemInfo.fullAppliesTo.every(d => entityDimensions?.includes(d))) {
+                                            return; // TODO: Check matching applies to being ok
                                         }
 
                                         if (this._anaplanMetaData?.getSubsetNormalisedEntityId(li.lineItemInfo.format.hierarchyEntityLongId!) == this._anaplanMetaData?.getSubsetNormalisedEntityId(missingDimensions!.extraSourceEntityMappings[i])) {
@@ -316,9 +316,9 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
 
 
     private TryAddPossibleEntry(possibleEntities: { entityMetaData: EntityMetaData; aggregateFunction: string; }[], extraSelectorStrings: string[]) {
-        let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData === pe.entityMetaData).length != 0);
-
+        let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData.qualifier === pe.entityMetaData.qualifier && ee.entityMetaData.name === pe.entityMetaData.name).length != 0);
         let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
+
         // Use an existing mapping if available since that would have the correct aggregation function
         if (possibleEntitiesExisting.length === 1) {
             extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);

@@ -95,7 +95,20 @@ export class AnaplanMetaData {
 
             let dimensionMappings = findDescendents(myparser.formula(), DimensionmappingContext);
             for (let j = 0; j < dimensionMappings.length; j++) {
-                this._aggregateEntries.push({ entityMetaData: this.getItemInfoFromEntityContext(dimensionMappings[j].entity())!, aggregateFunction: dimensionMappings[j].dimensionmappingselector().text });
+                let aggregateFunction = dimensionMappings[j].dimensionmappingselector().text;
+                let entityLineItem = this.getItemInfoFromEntityContext(dimensionMappings[j].entity(), li.qualifier);
+
+                if (entityLineItem === undefined) {
+                    throw new Error("Could not find entity: " + dimensionMappings[j].entity().text + " in formula: " + li.lineItemInfo.formula);
+                }
+                else {
+                    if (this._aggregateEntries.find(ae => ae.aggregateFunction === aggregateFunction &&
+                        entityLineItem!.name === ae.entityMetaData.name &&
+                        entityLineItem!.qualifier === ae.entityMetaData.qualifier) === undefined) {
+                        // If it's not already in there, add it in
+                        this._aggregateEntries.push({ entityMetaData: entityLineItem, aggregateFunction: aggregateFunction });
+                    }
+                }
             }
         });
     }
