@@ -194,7 +194,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                     this._anaplanMetaData?.getAllLineItems().forEach(li => {
                                         // Don't consider line items with more than one dimension unless the dimensions match the current line item
                                         if (li.lineItemInfo.fullAppliesTo.length != 1 && !li.lineItemInfo.fullAppliesTo.every(d => entityDimensions?.includes(d))) {
-                                            return; // TODO: Check matching applies to being ok
+                                            return;
                                         }
 
                                         if (this._anaplanMetaData?.getSubsetNormalisedEntityId(li.lineItemInfo.format.hierarchyEntityLongId!) == this._anaplanMetaData?.getSubsetNormalisedEntityId(missingDimensions?.extraTargetEntityMappings[i]!)) {
@@ -218,7 +218,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                     this._anaplanMetaData?.getAllLineItems().forEach(li => {
                                         // Don't consider line items with more than one dimension unless the dimensions match the current line item
                                         if (li.lineItemInfo.fullAppliesTo.length != 1 && !li.lineItemInfo.fullAppliesTo.every(d => entityDimensions?.includes(d))) {
-                                            return; // TODO: Check matching applies to being ok
+                                            return;
                                         }
 
                                         if (this._anaplanMetaData?.getSubsetNormalisedEntityId(li.lineItemInfo.format.hierarchyEntityLongId!) == this._anaplanMetaData?.getSubsetNormalisedEntityId(missingDimensions!.extraSourceEntityMappings[i])) {
