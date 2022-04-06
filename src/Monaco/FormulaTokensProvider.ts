@@ -39,7 +39,7 @@ class FormulaToken implements IToken {
     startIndex: number;
 
     constructor(ruleName: String, startIndex: number) {
-        this.scopes = ruleName.toLowerCase() + ".calc";
+        this.scopes = ruleName.toLowerCase() + ".formula";
         this.startIndex = startIndex;
     }
 }
