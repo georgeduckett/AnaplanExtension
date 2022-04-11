@@ -198,27 +198,34 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
     if (FunctionsInfo.has(functionName)) {
       let funcInfo = deserialisedFunctions.get(functionName);
-      // Check function parameters
-      let signatureParams = funcInfo?.paramInfo ?? [];
-      let actualParams = ctx.expression();
-      for (let i = 0; i < actualParams.length; i++) {
-        if (signatureParams.length <= i) {
-          break;
-        }
+      if (funcInfo != undefined) {
 
-        let requiredFormat = signatureParams[i].format;
-        let actualFormat = this.visit(actualParams[i]); // We still get the actual format even if we don't have one to check against as we want to get any errors in the params
-        if (requiredFormat != undefined) {
-          if (actualFormat.dataType === AnaplanDataTypeStrings.KEYWORD.dataType) {
-            if (!requiredFormat.some(s => s === "KEYWORD:" + actualParams[i].text.toUpperCase())) {
-              // It's a keyword but the text of this param doesn't match an allowed keyword for this function
-              this.addFormulaError(actualParams[i], `Invalid keyword for parameter in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat.filter(s => s.startsWith("KEYWORD:")).map(s => s.substring("KEYWORD:".length))}), found (${actualParams[i].text}).`);
+        // Check function parameters
+        let actualParams = ctx.expression();
+        let actualFormats = actualParams.map(param => this.visit(param)); // We still get the actual format even if we don't have one to check against as we want to get any errors in the params
+
+        for (let funcIndex = 0; funcIndex < funcInfo?.length; funcIndex++) {
+          let signatureParams = funcInfo[funcIndex]?.paramInfo ?? [];
+          for (let i = 0; i < actualParams.length; i++) {
+            if (signatureParams.length <= i) {
+              break;
             }
-          }
-          else if (actualFormat.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
-            requiredFormat.indexOf(actualFormat.dataType) === -1) {
-            // The format of this param doesn't match one of the required formats
-            this.addFormulaError(actualParams[i], `Invalid parameter type in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat}), found (${actualFormat.dataType}).`);
+
+            let requiredFormat = signatureParams[i].format;
+            let actualFormat = actualFormats[i];
+            if (requiredFormat != undefined) {
+              if (actualFormat.dataType === AnaplanDataTypeStrings.KEYWORD.dataType) {
+                if (!requiredFormat.some(s => s === "KEYWORD:" + actualParams[i].text.toUpperCase())) {
+                  // It's a keyword but the text of this param doesn't match an allowed keyword for this function
+                  this.addFormulaError(actualParams[i], `Invalid keyword for parameter in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat.filter(s => s.startsWith("KEYWORD:")).map(s => s.substring("KEYWORD:".length))}), found (${actualParams[i].text}).`);
+                }
+              }
+              else if (actualFormat.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
+                requiredFormat.indexOf(actualFormat.dataType) === -1) {
+                // The format of this param doesn't match one of the required formats
+                this.addFormulaError(actualParams[i], `Invalid parameter type in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat}), found (${actualFormat.dataType}).`);
+              }
+            }
           }
         }
       }

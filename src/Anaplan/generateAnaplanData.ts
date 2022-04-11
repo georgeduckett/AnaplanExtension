@@ -18,7 +18,7 @@ if (!fs.existsSync(path.parse(outputFile).dir)) {
 }
 
 
-let functions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>();
+let functions: Map<string, GeneratedFunctionInfo[]> = new Map<string, GeneratedFunctionInfo[]>();
 let aggregateFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>();
 
 const $ = cheerio.load(request('GET', 'https://help.anaplan.com/186d3858-241b-4b78-8aa5-006fc4260546-All-Functions').getBody());
@@ -70,7 +70,9 @@ trs.each((_, tr) => {
             }
         });
 
-        let isAggregateFunction = detailPage('.anapedia-breadcrumb__link:contains("Aggregation Functions")').length != 0 || ["SELECT", "LOOKUP"].includes(functionName);
+        let isAggregateFunction = detailPage('.anapedia-breadcrumb__link:contains("Aggregation functions")').length != 0 || ["SELECT", "LOOKUP"].includes(functionName);
+
+        console.log("IsAggregationFunction: " + isAggregateFunction);
 
         if (isAggregateFunction) {
             if (functionName.includes(":")) {
@@ -78,9 +80,9 @@ trs.each((_, tr) => {
             }
         }
 
-        let syntax: string | undefined = undefined;
+        let syntaxs: string[] | undefined = undefined;
 
-        let paramInfo: GeneratedParameterInfo[] = [];
+        let paramInfos: GeneratedParameterInfo[][] = [];
 
         let titleText = detailPage('h1').text();
 
@@ -108,16 +110,28 @@ trs.each((_, tr) => {
             // If the linked page doesn't have a header matching the name function, skip it
 
             switch (functionName) {
-                case 'AND': syntax = 'x AND y'; break;
-                case 'NOT': syntax = 'NOT x'; break;
-                case 'OR': syntax = 'x OR y'; break;
+                case 'AND': syntaxs = ['x AND y']; break;
+                case 'NOT': syntaxs = ['NOT x']; break;
+                case 'OR': syntaxs = ['x OR y']; break;
                 default: throw Error(`Generic page detected for '${functionName}', title text: '${titleText}', 'href: ${linkHref}`);
             }
 
         }
 
-        if (syntax === undefined) {
+        if (syntaxs === undefined) {
             let syntaxSelectors = [
+                'h2:contains("SYNTAX"):not(:contains("example")) + p span',
+                'h2:contains("Syntax"):not(:contains("example")) + p span',
+                'h2:contains("Syntax"):not(:contains("example")) + p strong',
+                'h2:contains("SYNTAX"):not(:contains("example")) + p strong',
+                'h2:contains("Syntax"):not(:contains("example")) + p code',
+                'h2:contains("SYNTAX"):not(:contains("example")) + p code',
+                'h2:contains("Syntax"):not(:contains("example")) + p pre',
+                'h2:contains("SYNTAX"):not(:contains("example")) + p pre',
+                'h2:contains("Syntax"):not(:contains("example")) + pre',
+                'h2:contains("SYNTAX"):not(:contains("example")) + pre',
+                'h2:contains("Syntax"):not(:contains("example")) + code',
+                'h2:contains("SYNTAX"):not(:contains("example")) + code',
                 'h2:contains("SYNTAX") + p span',
                 'h2:contains("Syntax") + p span',
                 'h2:contains("Syntax") + p strong',
@@ -134,151 +148,172 @@ trs.each((_, tr) => {
                 'pre',
             ];
 
-
+            syntaxs = [];
 
             for (let i = 0; i < syntaxSelectors.length; i++) {
                 let matches = detailPage(syntaxSelectors[i]);
-                let matchedText = matches.first().text().trim();
-                if (matchedText != '') {
-                    syntax = matchedText;
-                    break;
-                }
+                matches.each((_index, element) => {
+                    let cheerioElement = detailPage(element);
+                    if (cheerioElement.closest('table').length === 0 &&
+                        (cheerioElement.prev(undefined).is('h2') || cheerioElement.parent(undefined).children().length === 1)) {
+                        let text = cheerioElement.text().trim();
+                        if (text.length > 0) {
+                            syntaxs!.push(text);
+                        }
+                    }
+                });
+                if (syntaxs.length != 0) break;
             }
 
-            if (syntax === undefined) {
+            if (syntaxs === [] || syntaxs === undefined) {
                 throw Error('Could not parse page for ' + functionName);
             }
         }
 
-        console.log(syntax);
-
-        if (syntax === "DAYINYEAR(Year)") {
-            syntax = "DAYSINYEAR(Year)";
-        } else if (syntax === "CUMULATE (Values to add, Boolean, List)") {
-            syntax = "CUMULATE(Values to add, Boolean, List)";
+        if (functionName === "COUPDAYSNC") { // Workaround for typo of COUPDAYSNC page
+            syntaxs[0] = syntaxs[0].replace("COUPDAYBS", "COUPDAYSNC");
         }
 
-        if (syntax.includes('(')) {
-            functionName = syntax.substr(0, syntax.indexOf('('));
+        if (syntaxs[0] === "DAYINYEAR(Year)") {
+            syntaxs[0] = "DAYSINYEAR(Year)";
+        }
+
+        console.log(syntaxs);
+
+        if (syntaxs[0].includes('(')) {
+            functionName = syntaxs[0].substring(0, syntaxs[0].indexOf('(')).trim();
         }
 
         // Now try and get the arguments
-        if (syntax.includes('(') && !syntax.includes('()')) {
-            let paramsFromSyntax: { name: string, required: boolean }[] = [];
+        if (syntaxs[0].includes('(') && !syntaxs[0].includes('()')) {
+            let paramsFromSyntax: { name: string, required: boolean }[][] = [];
+            for (let syntaxIndex = 0; syntaxIndex < syntaxs.length; syntaxIndex++) {
+                paramsFromSyntax.push([]);
 
-            let start = syntax.indexOf('(') + 1;
-            while (start < syntax.length - 1) {
-                let nextCommaOrEnd = syntax.indexOf(',', start);
-                if (nextCommaOrEnd === -1) {
-                    nextCommaOrEnd = syntax.indexOf(')', start);
-                }
+                let start = syntaxs[syntaxIndex].indexOf('(') + 1;
+                while (start < syntaxs[syntaxIndex].length - 1) {
+                    let nextCommaOrEnd = syntaxs[syntaxIndex].indexOf(',', start);
+                    if (nextCommaOrEnd === -1) {
+                        nextCommaOrEnd = syntaxs[syntaxIndex].indexOf(')', start);
+                    }
 
-                let nextParamName = syntax.substring(start, nextCommaOrEnd).trim();
-                let required = true;
-                if (nextParamName.endsWith('[')) {
-                    nextParamName = nextParamName.substring(0, nextParamName.length - 1).trim();
-                }
-                if (nextParamName.startsWith('[')) {
-                    nextParamName = nextParamName.substring(1).trim();
-                    required = false;
-                }
-                if (nextParamName.endsWith(']')) {
-                    nextParamName = nextParamName.substring(0, nextParamName.length - 1).trim();
-                    required = false;
-                }
+                    let nextParamName = syntaxs[syntaxIndex].substring(start, nextCommaOrEnd).trim();
+                    let required = true;
+                    if (nextParamName.endsWith('[')) {
+                        nextParamName = nextParamName.substring(0, nextParamName.length - 1).trim();
+                    }
+                    if (nextParamName.startsWith('[')) {
+                        nextParamName = nextParamName.substring(1).trim();
+                        required = false;
+                    }
+                    if (nextParamName.endsWith(']')) {
+                        nextParamName = nextParamName.substring(0, nextParamName.length - 1).trim();
+                        required = false;
+                    }
 
-                console.log(nextParamName);
-                console.log(required);
-
-                paramsFromSyntax.push({ name: nextParamName, required: required });
-                start = nextCommaOrEnd + 1;
+                    paramsFromSyntax[syntaxIndex].push({ name: nextParamName, required: required });
+                    start = nextCommaOrEnd + 1;
+                }
             }
 
-            let table = detailPage('table:has(tr td:contains("Argument")), table:has(tr td strong:contains("Argument")), table:has(tr th:contains("Argument")), table:has(tr th strong:contains("Argument"))')
+            let tables = detailPage('table:has(tr td:contains("Argument")), table:has(tr td strong:contains("Argument")), table:has(tr th:contains("Argument")), table:has(tr th strong:contains("Argument"))')
 
-            if (table.length === 1) {
-                console.log('Found arguments table.');
+            if (tables.length > 1 && syntaxs.length != tables.length) {
+                console.log('Found multiple arguments tables without the same number of syntax strings.');
+            }
+            else if (tables.length === 0) { }
+            else {
+                console.log('Found arguments table(s).');
 
-                let rows = table.find('tr');
+                for (let tableIndex = 0; tableIndex < tables.length; tableIndex++) {
+                    paramInfos.push([]);
 
-                let argIndex: number | undefined = undefined;
-                let formatIndex: number | undefined = undefined;
-                let descIndex: number | undefined = undefined;
+                    let table = cheerio.load(tables[tableIndex]);
 
-                let firstFunctionParamIndex = paramInfo.length;
+                    let rows = table('tr');
 
-                for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-                    let cells = cheerio.load(rows[rowIndex])('td, th');
-                    if (rowIndex === 0) {
-                        for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
-                            switch (detailPage(cells[cellIndex]).text().trim()) {
-                                case 'Argument':
-                                    argIndex = cellIndex;
-                                    break;
-                                case 'Data type':
-                                case 'Data Type':
-                                case 'Format':
-                                    formatIndex = cellIndex;
-                                    break;
-                                case 'Description':
-                                    descIndex = cellIndex;
-                                    break;
-                                case 'Available Sources':
-                                    break;
-                                default: throw Error(`Unknown table header: '${detailPage(cells[cellIndex]).text().trim()}'`)
-                            }
-                        }
-                    }
-                    else {
-                        let paramIndex = rowIndex - 1;
+                    let argIndex: number | undefined = undefined;
+                    let formatIndex: number | undefined = undefined;
+                    let descIndex: number | undefined = undefined;
 
-                        if (argIndex === undefined) {
-                            throw Error('ArgIndex for parameter table undefined');
-                        }
-                        if (descIndex === undefined) {
-                            throw Error('DescIndex for parameter table undefined');
-                        }
+                    let firstFunctionParamIndex = paramInfos.length;
 
-                        let arg = detailPage(cells[argIndex]).text().trim();
-                        // Add a horizontal rule after the parameter description, so the function description is separated from it
-                        let desc = turndownService.turndown(detailPage(cells[descIndex]).html()! + '<hr>');
-
-                        let required: boolean | undefined;
-
-                        if (arg.includes('(required)')) {
-                            required = true;
-                            arg = arg.replace('(required)', '').trim()
-                        }
-                        if (arg.includes('(optional)')) {
-                            required = false;
-                            arg = arg.replace('(optional)', '').trim()
-                        }
-
-                        let formatArr: string[] | undefined;
-                        if (formatIndex != undefined) {
-                            formatArr = [];
-
-                            if (functionName === "NAME") {
-                                // Documentation for this function isn't correct
-                                formatArr.push("ENTITY");
-                                formatArr.push("TIME_ENTITY");
-                            }
-                            else if (functionName === "RIGHT" || functionName === "LEFT") {
-                                // Documentation isn't a simple data type
-                                if (paramIndex === 0) {
-                                    formatArr.push("TEXT");
-                                }
-                                else {
-                                    formatArr.push("NUMBER");
+                    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                        let cells = cheerio.load(rows[rowIndex])('td, th');
+                        if (rowIndex === 0) {
+                            for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+                                switch (detailPage(cells[cellIndex]).text().trim()) {
+                                    case 'Argument':
+                                        argIndex = cellIndex;
+                                        break;
+                                    case 'Data type':
+                                    case 'Data Type':
+                                    case 'Format':
+                                        formatIndex = cellIndex;
+                                        break;
+                                    case 'Description':
+                                        descIndex = cellIndex;
+                                        break;
+                                    case 'Available Sources':
+                                        break;
+                                    default: throw Error(`Unknown table header: '${detailPage(cells[cellIndex]).text().trim()}'`)
                                 }
                             }
-                            else {
-                                if ((functionName === "LEAD" || functionName === "LAG" || functionName === "OFFSET") && paramIndex === 2) {
+                        }
+                        else {
+                            let paramIndex = rowIndex - 1;
+
+                            if (argIndex === undefined) {
+                                throw Error('ArgIndex for parameter table undefined');
+                            }
+                            if (descIndex === undefined) {
+                                throw Error('DescIndex for parameter table undefined');
+                            }
+
+                            let arg = detailPage(cells[argIndex]).text().trim();
+                            // Add a horizontal rule after the parameter description, so the function description is separated from it
+                            let desc = turndownService.turndown(detailPage(cells[descIndex]).html()! + '<hr>');
+
+                            let required: boolean | undefined;
+
+                            if (arg.includes('(required)')) {
+                                required = true;
+                                arg = arg.replace('(required)', '').trim()
+                            }
+                            if (arg.includes('(optional)')) {
+                                required = false;
+                                arg = arg.replace('(optional)', '').trim()
+                            }
+
+                            let formatArr: string[] | undefined;
+                            if (formatIndex != undefined) {
+                                formatArr = [];
+
+                                if (functionName === "NAME") {
+                                    // Documentation for this function isn't correct
+                                    formatArr.push("ENTITY");
+                                    formatArr.push("TIME_ENTITY");
+                                }
+                                else if (functionName === "RIGHT" || functionName === "LEFT") {
+                                    // Documentation isn't a simple data type
+                                    if (paramIndex === 0) {
+                                        formatArr.push("TEXT");
+                                    }
+                                    else {
+                                        formatArr.push("NUMBER");
+                                    }
+                                }
+                                else if ((functionName === "LEAD" || functionName === "LAG" || functionName === "OFFSET") && paramIndex === 2) {
                                     // Param index 2 should be same as index 0. We don't enforce that, but at least restrict the types to be same as the first param
-                                    formatArr = paramInfo[firstFunctionParamIndex + 0].format;
+                                    formatArr = paramInfos[0][firstFunctionParamIndex + 0].format;
                                 }
                                 else if (functionName === "CUMULATE" && paramIndex === 2) {
                                     formatArr.push("ENTITY");
+                                }
+                                else if (functionName === "MONTH" && paramIndex === 1) {
+                                    formatArr.push("KEYWORD:START");
+                                    formatArr.push("KEYWORD:MID");
+                                    formatArr.push("KEYWORD:END");
                                 }
                                 else if (functionName === "LN" && paramIndex === 0) {
                                     formatArr.push("NUMBER");
@@ -319,6 +354,9 @@ trs.each((_, tr) => {
                                 }
                                 else {
                                     let formatText = detailPage(cells[formatIndex]).text().trim().toUpperCase().replace(" OR ", ",");
+
+                                    formatText = formatText.replace("This argument must be a line item.".toUpperCase(), "");
+
                                     if (formatText.indexOf('CAN BE ') != -1) {
                                         let trimmedFormatText = formatText.substring(0, formatText.indexOf('CAN BE ')).trim();
 
@@ -349,7 +387,7 @@ trs.each((_, tr) => {
                                                 // Find any capatilised words and have them as keywords
                                                 let capatilisedWords = Array.from(desc.matchAll(/\b[A-Z]+\b/g)).flat();
                                                 if (capatilisedWords.length === 0) {
-                                                    throw new Error("No keywords where able to be parsed");
+                                                    throw new Error(`No keywords where able to be parsed for function ${functionName}, index ${paramIndex}`);
                                                 }
                                                 for (let i = 0; i < capatilisedWords.length; i++) {
                                                     if (capatilisedWords[i] != functionName) {
@@ -372,6 +410,12 @@ trs.each((_, tr) => {
                                             else if (format[i] === "PERCENTAGE") {
                                                 formatArr.push("NUMBER");
                                             }
+                                            else if (format[i] === "TIME DIMENSION") {
+                                                formatArr.push("TIME_ENTITY");
+                                            }
+                                            else if (arg == "List") {
+                                                formatArr.push("ENTITY");
+                                            }
                                             else if (format[i] != "") {
                                                 formatArr.push(format[i]);
                                             }
@@ -379,16 +423,15 @@ trs.each((_, tr) => {
                                     }
                                 }
                             }
+
+                            paramInfos[tableIndex].push(new GeneratedParameterInfo(paramsFromSyntax[tableIndex][rowIndex - 1].name, desc, formatArr, required ?? (rowIndex - 1 < paramsFromSyntax.length ? paramsFromSyntax[tableIndex][rowIndex - 1].required : undefined)));
                         }
-
-
-                        paramInfo.push(new GeneratedParameterInfo(paramsFromSyntax[rowIndex - 1].name, desc, formatArr, required ?? (rowIndex - 1 < paramsFromSyntax.length ? paramsFromSyntax[rowIndex - 1].required : undefined)));
                     }
                 }
             }
 
+            // Only handles cases where there's only one syntax
             function addParamInfo(paramIndex: number, text: string, paramInfo: GeneratedParameterInfo[]) {
-                console.log(text);
                 let required: boolean | undefined = undefined;
                 if (text.includes('(optional)')) required = false;
                 if (text.includes('(required)')) required = true;
@@ -397,58 +440,75 @@ trs.each((_, tr) => {
                 let paramDesc = text.substring(text.indexOf(':') + 1).trim();
 
 
-                if (paramIndex >= paramsFromSyntax.length) {
+                if (paramIndex >= paramsFromSyntax[0].length) {
                     throw Error('Found more paramters than could be parsed from syntax');
                 }
 
                 paramInfo.push(
                     new GeneratedParameterInfo(
-                        paramsFromSyntax[paramIndex].name, // use the parsed parameter name
+                        paramsFromSyntax[0][paramIndex].name, // use the parsed parameter name
                         paramDesc,
                         undefined,
-                        required ?? (paramIndex < paramsFromSyntax.length ? paramsFromSyntax[paramIndex].required : undefined)));
+                        required ?? (paramIndex < paramsFromSyntax.length ? paramsFromSyntax[0][paramIndex].required : undefined)));
             }
 
             let syntaxArgumentsList = detailPage('h2:contains("Syntax") + * + p:contains("where:") + ul, h2:contains("Syntax") + p:contains("where:") + ul');
-            if (paramInfo.length === 0 && syntaxArgumentsList.length === 1) {
+            if (paramInfos.length === 0 && syntaxArgumentsList.length === 1) {
                 console.log('Found syntax arguments ul.');
                 let rows = syntaxArgumentsList.find('> li');
+                paramInfos.push([]);
                 for (let i = 0; i < rows.length; i++) {
-                    addParamInfo(i, detailPage(rows[i]).text(), paramInfo);
+                    addParamInfo(i, detailPage(rows[i]).text(), paramInfos[0]);
                 }
             }
 
             let syntaxArgumentsPSpanList = detailPage(' h2:contains("Syntax") + * + p:contains("where:") + p:has(span), h2:contains("Syntax") + p:contains("where:") + p:has(span)');
-            if (paramInfo.length === 0 && syntaxArgumentsPSpanList.length === 1) {
+            if (paramInfos.length === 0 && syntaxArgumentsPSpanList.length === 1) {
                 console.log('Found syntax arguments p span list.');
                 let ps = syntaxArgumentsPSpanList.prev().nextUntil(':not(p:has(span))');
 
+                paramInfos.push([]);
                 for (let i = 0; i < ps.length; i++) {
-                    addParamInfo(i, detailPage(ps[i]).text(), paramInfo);
+                    addParamInfo(i, detailPage(ps[i]).text(), paramInfos[0]);
                 }
             }
 
             let argumentsList = detailPage('h2:contains("Arguments") + p + ul');
-            if (paramInfo.length === 0 && argumentsList.length === 1) {
+            if (paramInfos.length === 0 && argumentsList.length === 1) {
                 console.log('Found arguments ul.');
                 let rows = syntaxArgumentsList.find('> li');
+                paramInfos.push([]);
                 for (let i = 0; i < rows.length; i++) {
-                    addParamInfo(i, detailPage(rows[i]).text(), paramInfo);
+                    addParamInfo(i, detailPage(rows[i]).text(), paramInfos[0]);
                 }
             }
 
-            if (paramInfo.length === 0) {
+            if (paramInfos.length === 0) {
                 throw Error('Could not work out arguments table for ' + functionName);
             }
         }
-
+        console.log(`${isAggregateFunction}: ${functionName}`);
         if (isAggregateFunction) {
-            aggregateFunctions.set(functionName, new GeneratedFunctionInfo(functionName, briefDescription, syntax, type, linkHref, paramInfo));
-        } else {
-            functions.set(functionName, new GeneratedFunctionInfo(functionName, briefDescription, syntax, type, linkHref, paramInfo));
+            aggregateFunctions.set(functionName, new GeneratedFunctionInfo(functionName, briefDescription, syntaxs[0], type, linkHref, []));
+        }
+        else {
+            functions.set(functionName, []);
+            for (let i = 0; i < paramInfos.length; i++) {
+                functions.get(functionName)?.push(new GeneratedFunctionInfo(functionName, briefDescription, syntaxs[i], type, linkHref, paramInfos[i]));
+            }
         }
     }
 });
+
+
+functions.forEach((value) => {
+    if (value.length != 1) {
+        value.forEach(function (v) {
+            console.log(v);
+        });
+    }
+});
+
 
 // Replace undefined with '__undefined' then back again for stringify s otherwise it's removed.
 let serialisedFunctions = JSON.stringify(Array.from(functions.entries()), (k, v) => (v === undefined) ? '__undefined' : v).replace(/"__undefined"/g, 'undefined');
@@ -483,18 +543,19 @@ serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/[\u0000-\u0
 //de-serialise JSON to Map:
 let output = `import { GeneratedFunctionInfo } from "../GeneratedFunctionInfo"
 let languageKeywords = ${JSON.stringify(languageKeywords)};
-let tempDeserialisedFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>(${serialisedFunctions});
+let tempDeserialisedFunctions: Map<string, GeneratedFunctionInfo[]> = new Map<string, GeneratedFunctionInfo[]>(${serialisedFunctions});
 
-tempDeserialisedFunctions.forEach(t => t.paramInfo.forEach(p => {
+
+tempDeserialisedFunctions.forEach(t => t.forEach(f => f.paramInfo.forEach(p => {
     if (p.format?.length === 1 && p.format[0] === "KEYWORD:LANGUAGEKEYWORDS") {
         p.format = languageKeywords;
     }
-}));
+})));
 
-export let deserialisedFunctions: Map<string, GeneratedFunctionInfo> = tempDeserialisedFunctions;
+export let deserialisedFunctions: Map<string, GeneratedFunctionInfo[]> = tempDeserialisedFunctions;
 
 export let deserialisedAggregateFunctions: Map<string, GeneratedFunctionInfo> = new Map<string, GeneratedFunctionInfo>(${serialisedAggregateFunctions});
 
-export let deserialisedKeywords = [...new Set(Array.from(Array.from(deserialisedFunctions).flatMap(f => f[1].paramInfo).filter(p => p.format != undefined)).flatMap(p => p.format!.filter(f => f.startsWith("KEYWORD:")).map(f => f.substring("KEYWORD:".length))))];`
+export let deserialisedKeywords = [...new Set(Array.from(Array.from(deserialisedFunctions).flatMap(f => f[1].flatMap(fi => fi.paramInfo)).filter(p => p.format != undefined)).flatMap(p => p.format!.filter(f => f.startsWith("KEYWORD:")).map(f => f.substring("KEYWORD:".length))))];`
 
 fs.writeFileSync(outputFile, output);

@@ -45,19 +45,21 @@ export class FormulaSignatureHelpProvider implements monaco.languages.SignatureH
             let funcInfo = deserialisedFunctions.get(textUntilPosition)!;
 
             return new SignatureHelpResultClass({
-                signatures: [{
-                    label: funcInfo.syntax,
-                    documentation: { value: funcInfo?.description + "  \r\n[Anaplan Documentation](" + funcInfo.htmlPageName + ")" },
-                    parameters: funcInfo?.paramInfo.map(paramInfo => {
-                        return {
-                            label: paramInfo.name,
-                            documentation: { value: paramInfo.details },
-                        };
-                    })!,
-                    activeParameter: commaCount,
-                }],
+                signatures: funcInfo.map(info => {
+                    return {
+                        label: info.syntax,
+                        documentation: { value: info?.description + "  \r\n[Anaplan Documentation](" + info.htmlPageName + ")" },
+                        parameters: info?.paramInfo.map(paramInfo => {
+                            return {
+                                label: paramInfo.name,
+                                documentation: { value: paramInfo.details },
+                            };
+                        })!,
+                        activeParameter: commaCount,
+                    };
+                }),
 
-                activeSignature: 0,
+                activeSignature: 0, // TODO: How do we work out what one is active?
                 activeParameter: commaCount
             }
             );

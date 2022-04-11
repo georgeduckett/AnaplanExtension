@@ -89,12 +89,12 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
         else if (ctx instanceof FunctionnameContext) {
             if (FunctionsInfo.has(ctx.text)) {
                 let funcInfo = deserialisedFunctions.get(ctx.text);
-                let desc = funcInfo!.description;
+                let desc = funcInfo![0].description;
                 if (desc != undefined) {
                     return {
                         range: new monaco.Range(ctx.start.line, ctx.start.charPositionInLine + 1, ctx.stop!.line, ctx.stop!.charPositionInLine! + ctx.stop!.text!.length + 1),
                         contents: [
-                            { value: desc + "  \r\n[Anaplan Documentation](" + (funcInfo!.htmlPageName ?? ctx.text) + ")" }
+                            { value: desc + "  \r\n[Anaplan Documentation](" + (funcInfo![0].htmlPageName ?? ctx.text) + ")" }
                         ]
                     }
                 }
