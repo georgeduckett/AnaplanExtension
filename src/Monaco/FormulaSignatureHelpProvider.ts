@@ -39,10 +39,18 @@ export class FormulaSignatureHelpProvider implements monaco.languages.SignatureH
 
         textUntilPosition = textUntilPosition.toUpperCase();
 
-
-
         if (deserialisedFunctions.has(textUntilPosition)) {
             let funcInfo = deserialisedFunctions.get(textUntilPosition)!;
+
+            let activeSig = 0;
+
+            if (commaCount > funcInfo[activeSig].paramInfo.length - 1) {
+                activeSig++;
+            }
+
+            if (activeSig >= funcInfo.length) {
+                activeSig = 0;
+            }
 
             return new SignatureHelpResultClass({
                 signatures: funcInfo.map(info => {
@@ -59,7 +67,7 @@ export class FormulaSignatureHelpProvider implements monaco.languages.SignatureH
                     };
                 }),
 
-                activeSignature: 0, // TODO: How do we work out what one is active?
+                activeSignature: activeSig,
                 activeParameter: commaCount
             }
             );
