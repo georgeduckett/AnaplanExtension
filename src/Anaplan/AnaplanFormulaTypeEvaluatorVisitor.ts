@@ -199,7 +199,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if (FunctionsInfo.has(functionName)) {
       let funcInfo = deserialisedFunctions.get(functionName);
       if (funcInfo != undefined) {
-
+        // TODO: Warn that it makes no sense to get the CODE of a non-numbered list or NAME of a numbered list
         // Check function parameters
         let actualParams = ctx.expression();
         let actualFormats = actualParams.map(param => this.visit(param)); // We still get the actual format even if we don't have one to check against as we want to get any errors in the params
