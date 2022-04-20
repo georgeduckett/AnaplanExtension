@@ -276,19 +276,29 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             }
 
             if (targetTypes != undefined) {
-                // Loop through each entityName removing it if appropriate
-                console.log(targetTypes);
+                // If the target type is an entity then sort it first
                 if (targetTypes.length === 1 && targetTypes[0] === "ENTITY") {
                     for (let i = 0; i < entityNames.length; i++) {
                         if (entityNames[i].detail === EntityType[EntityType.Hierarchy]) {
                             entityNames[i].sortText = "*" + entityNames[i].sortText;
-                            entityNames[i].preselect = true;
                         }
                     }
                 }
             }
         }
 
+        let range = this.getRange(model, position, tokenPosition);
+
+        for (let i = 0; i < entityNames.length; i++) {
+            entityNames[i].range = range;
+        }
+
+        return {
+            suggestions: entityNames
+        };
+    }
+
+    private getRange(model: monaco.editor.ITextModel, position: monaco.Position, tokenPosition: TokenPosition) {
         const word = model.getWordUntilPosition(position);
 
         let range = {
@@ -298,7 +308,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             endColumn: word.endColumn,
         };
 
-        let currentContext: ParseTree | undefined = tokenPosition.context
+        let currentContext: ParseTree | undefined = tokenPosition.context;
 
         while (currentContext != undefined && !(currentContext instanceof ParserRuleContext)) {
             currentContext = currentContext.parent;
@@ -315,7 +325,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     startColumn: model.getPositionAt(dotIndex).column,
                     endLineNumber: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).lineNumber,
                     endColumn: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).column,
-                }
+                };
             }
         }
         else if (currentContext != undefined && currentContext instanceof ParserRuleContext) {
@@ -326,14 +336,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                 endColumn: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).column,
             };
         }
-
-        for (let i = 0; i < entityNames.length; i++) {
-            entityNames[i].range = range;
-        }
-
-        return {
-            suggestions: entityNames
-        };
+        return range;
     }
 
     private TryAddPossibleEntry(possibleEntities: { entityMetaData: EntityMetaData; aggregateFunction: string; }[], extraSelectorStrings: string[]) {
