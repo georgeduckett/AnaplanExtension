@@ -155,10 +155,10 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                 }
             }
         }
-        // TODO: Filter autocomplete types according to the param of the function we're in (if any)
+
         if (!foundKeyword) {
             let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
-
+            // TODO: Prefer line items that match missing dimension types when after a selector (e.g. LOOKUP: ....)
             for (let candidate of candidates.rules) {
                 switch (candidate[0]) {
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
@@ -258,7 +258,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                             }
                         }
 
-                        for (let e of deserialisedAggregateFunctions.keys()) { // TODO: Filter this according to line item type
+                        for (let e of deserialisedAggregateFunctions.keys()) { // TODO: Filter this according to line item type (e.g. ANY etc if the source line item is a boolean)
                             entityNames.push(new CompletionItem(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
                         }
                         break;
