@@ -1,30 +1,11 @@
 import { CharStreams, CommonTokenStream } from "antlr4ts";
 import { IMarkdownString } from "monaco-editor";
+import { CompletionItem } from "../Monaco/CompletionItem";
 import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { unQuoteEntity, getOriginalText, anaplanTimeEntityBaseId, findDescendents } from "./AnaplanHelpers";
 import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
 import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext, AnaplanFormulaParser, DotQualifiedEntityIncompleteContext } from "./antlrclasses/AnaplanFormulaParser";
-
-export class AutoCompleteInfo {
-    public label: string;
-    public text: string;
-    public kind: monaco.languages.CompletionItemKind;
-    public autoInsertChars: string[] | undefined;
-    public detail: string | undefined;
-    public documentation: IMarkdownString | undefined;
-    public sortText: string | undefined;
-
-    constructor(label: string, text: string, kind: monaco.languages.CompletionItemKind, autoInsertChars?: string[], detail?: string, documentation?: IMarkdownString, sortText?: string) {
-        this.label = label;
-        this.text = text;
-        this.kind = kind;
-        this.autoInsertChars = autoInsertChars;
-        this.detail = detail
-        this.documentation = documentation;
-        this.sortText = sortText;
-    }
-}
 
 export function assertUnreachable(x: never): never {
     throw new Error("Didn't expect to get here");
@@ -145,16 +126,16 @@ export class AnaplanMetaData {
         return result;
     }
 
-    getAutoCompleteQualifiedLeftPart(): Set<AutoCompleteInfo> {
+    getAutoCompleteQualifiedLeftPart(): Set<CompletionItem> {
         let keys = new Set<string>();
-        let result = new Set<AutoCompleteInfo>();
+        let result = new Set<CompletionItem>();
 
         for (let lineItem of this._lineItemInfo) {
             if (lineItem[1].qualifier != undefined) {
                 // If this line item is dot-qualified, show just the first part, unless it's a hierarchy property
                 let itemKey = lineItem[1].qualifier + '|' + EntityType[lineItem[1].entityType];
                 if (!keys.has(itemKey)) {
-                    result.add(new AutoCompleteInfo(
+                    result.add(new CompletionItem(
                         lineItem[1].qualifier + (lineItem[1].entityType === EntityType.HierarchyProperty ? '.' + lineItem[1].name : ''),
                         this.quoteIfNeeded(lineItem[1].qualifier) + (lineItem[1].entityType === EntityType.HierarchyProperty ? '.' + this.quoteIfNeeded(lineItem[1].name) : ''),
                         EntityMetaData.getMonacoAutoCompleteKind(lineItem[1].entityType === EntityType.LineItem ? EntityType.Module : lineItem[1].entityType),
@@ -168,14 +149,14 @@ export class AnaplanMetaData {
 
         return result;
     }
-    getAutoCompleteQualifiedRightPart(leftPartText: string): Set<AutoCompleteInfo> {
-        let result = new Set<AutoCompleteInfo>(); // TODO: Handle using the 'code' of the line item
+    getAutoCompleteQualifiedRightPart(leftPartText: string): Set<CompletionItem> {
+        let result = new Set<CompletionItem>(); // TODO: Handle using the 'code' of the line item
         // Add anything that needs to be qualified
         for (let lineItem of this._lineItemInfo) {
             if (lineItem[1].qualifier != undefined) {
                 if (this.quoteIfNeeded(lineItem[1].qualifier) === leftPartText) {
                     // If this line item is dot-qualified, show just the last part
-                    result.add(new AutoCompleteInfo(
+                    result.add(new CompletionItem(
                         lineItem[1].name,
                         this.quoteIfNeeded(lineItem[1].name),
                         monaco.languages.CompletionItemKind.Constant,
@@ -189,12 +170,12 @@ export class AnaplanMetaData {
         return result;
     }
 
-    getAutoCompleteWords(): Set<AutoCompleteInfo> {
-        let result = new Set<AutoCompleteInfo>(); // TODO: Handle using the 'code' of the line item
+    getAutoCompleteWords(): Set<CompletionItem> {
+        let result = new Set<CompletionItem>(); // TODO: Handle using the 'code' of the line item
         // Add anything that doesn't need to be qualified
         for (let lineItem of this._lineItemInfo) {
             if ((lineItem[1].qualifier === undefined || lineItem[1].qualifier === this._moduleName) && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
-                result.add(new AutoCompleteInfo(lineItem[1].name,
+                result.add(new CompletionItem(lineItem[1].name,
                     this.quoteIfNeeded(lineItem[1].name),
                     monaco.languages.CompletionItemKind.Constant,
                     [',', ']', '+', '-', '*', '/', '.'],

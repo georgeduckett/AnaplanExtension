@@ -3,7 +3,7 @@ import { CharStreams, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrat
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { UriComponents } from "monaco-editor";
-import { AnaplanMetaData, AutoCompleteInfo, EntityMetaData } from "../Anaplan/AnaplanMetaData";
+import { AnaplanMetaData, EntityMetaData, EntityType } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
 import { AnaplanFormulaParser, DimensionmappingContext, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext, FuncSquareBracketsContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
@@ -99,13 +99,15 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             AnaplanFormulaParser.RULE_functionname,
         ]);
 
-        let entityNames: AutoCompleteInfo[] = [];
+        let entityNames: CompletionItem[] = [];
 
         let tokenPosition = computeTokenIndex(tree, position.lineNumber, position.column - 1)!;
 
         let parameterisedFuncCtx = findAncestor(tokenPosition.context, FuncParameterisedContext);
 
         let foundKeyword = false;
+
+        let targetTypes: string[] | undefined;
 
         if (parameterisedFuncCtx != undefined) {
             let functionName = parameterisedFuncCtx.functionname().text.toUpperCase();
@@ -125,6 +127,8 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         for (let i = 0; i < funcInfo.length; i++) {
                             let param = funcInfo[i].paramInfo[params.indexOf(possibleParamExpression as ExpressionContext)];
                             if (param != undefined) {
+                                targetTypes = param.format;
+
                                 let keywords = param.format?.filter(f => f.startsWith("KEYWORD:"));
 
                                 if (param.format?.includes("BOOLEAN")) {
@@ -137,7 +141,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
 
                                 if (keywords != undefined && keywords.length != 0) {
                                     for (let i = 0; i < keywords.length; i++) {
-                                        entityNames.push(new AutoCompleteInfo(
+                                        entityNames.push(new CompletionItem(
                                             keywords[i].substring("KEYWORD:".length),
                                             keywords[i].substring("KEYWORD:".length),
                                             monaco.languages.CompletionItemKind.Keyword,
@@ -249,13 +253,13 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                 }
 
                                 if (extraSelectorStrings.length != 0) {
-                                    entityNames.push(new AutoCompleteInfo(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], 'Missing dimensions', new MarkdownString('```\r\n' + extraSelectorStrings.join('  \r\n') + '\r\n```'), '*' + extraSelectorStrings.join(', ')));
+                                    entityNames.push(new CompletionItem(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], 'Missing dimensions', new MarkdownString('```\r\n' + extraSelectorStrings.join('  \r\n') + '\r\n```'), '**' + extraSelectorStrings.join(', ')));
                                 }
                             }
                         }
 
                         for (let e of deserialisedAggregateFunctions.keys()) { // TODO: Filter this according to line item type
-                            entityNames.push(new AutoCompleteInfo(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
+                            entityNames.push(new CompletionItem(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
                         }
                         break;
                     }
@@ -263,10 +267,23 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         for (let e of FunctionsInfo) {
                             let functions = deserialisedFunctions.get(e[0])!;
                             for (let i = 0; i < functions.length; i++) {
-                                entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], functions[i].type, new MarkdownString(functions[i].description + "  \r\n[Anaplan Documentation](" + functions[i]!.htmlPageName + ")")));
+                                entityNames.push(new CompletionItem(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], functions[i].type, new MarkdownString(functions[i].description + "  \r\n[Anaplan Documentation](" + functions[i]!.htmlPageName + ")")));
                             }
                         }
                         break;
+                    }
+                }
+            }
+
+            if (targetTypes != undefined) {
+                // Loop through each entityName removing it if appropriate
+                console.log(targetTypes);
+                if (targetTypes.length === 1 && targetTypes[0] === "ENTITY") {
+                    for (let i = 0; i < entityNames.length; i++) {
+                        if (entityNames[i].detail === EntityType[EntityType.Hierarchy]) {
+                            entityNames[i].sortText = "*" + entityNames[i].sortText;
+                            entityNames[i].preselect = true;
+                        }
                     }
                 }
             }
@@ -310,19 +327,12 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             };
         }
 
-        let suggestions: CompletionItem[] = [];
-        suggestions.push(...entityNames.map(s => {
-            let result = new CompletionItem(s.label, s.kind, s.text, range);
-            result.commitCharacters = s.autoInsertChars;
-            result.detail = s.detail;
-            result.documentation = s.documentation;
-            result.filterText = s.text;
-            result.sortText = s.sortText;
-            return result;
-        }));
+        for (let i = 0; i < entityNames.length; i++) {
+            entityNames[i].range = range;
+        }
 
         return {
-            suggestions: suggestions
+            suggestions: entityNames
         };
     }
 
