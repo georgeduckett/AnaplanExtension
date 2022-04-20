@@ -170,7 +170,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     }
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart:
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPartEmpty: {
-                        // anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered acording to before the qualifying dot)
+                        // anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered according to before the qualifying dot)
                         let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext) ?? findAncestor(tokenPosition.context, DotQualifiedEntityIncompleteContext);
                         if (node != undefined) {
                             let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
