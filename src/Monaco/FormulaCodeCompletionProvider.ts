@@ -254,19 +254,19 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                             }
                         }
 
-                        for (let e of deserialisedAggregateFunctions.keys()) {
+                        for (let e of deserialisedAggregateFunctions.keys()) { // TODO: Filter this according to line item type
                             entityNames.push(new AutoCompleteInfo(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
                         }
                         break;
                     }
-                    case AnaplanFormulaParser.RULE_functionname: { // TODO: Why aren't we autocompleting with these?
+                    case AnaplanFormulaParser.RULE_functionname: {
                         for (let e of FunctionsInfo) {
                             let functions = deserialisedFunctions.get(e[0])!;
                             for (let i = 0; i < functions.length; i++) {
                                 entityNames.push(new AutoCompleteInfo(e[0], e[0], monaco.languages.CompletionItemKind.Function, ['('], functions[i].type, new MarkdownString(functions[i].description + "  \r\n[Anaplan Documentation](" + functions[i]!.htmlPageName + ")")));
                             }
-                            break;
                         }
+                        break;
                     }
                 }
             }

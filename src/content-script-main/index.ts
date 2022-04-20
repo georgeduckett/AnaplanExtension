@@ -4,7 +4,7 @@ import he = require("he");
 import { FormulaCompletionItemProvider } from "../Monaco/FormulaCodeCompletionProvider";
 import { FormulaSignatureHelpProvider } from "../Monaco/FormulaSignatureHelpProvider";
 import FormulaFormattingProvider from "../Monaco/FormulaFormattingProvider";
-import { main } from "./firefoxspecificMonaco"; // This gets changed by the compiling process depending on which we're building for
+import { main } from "./edgespecificMonaco"; // This gets changed by the compiling process depending on which we're building for
 
 export let hoverProvider: FormulaHoverProvider;
 export let completionItemProvider: FormulaCompletionItemProvider;

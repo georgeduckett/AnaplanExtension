@@ -12,7 +12,7 @@
 		"build": "npm install && yarn antlr && yarn preparechromebuild && yarn build-js && yarn bundlechrome && yarn preparefirefoxbuild && yarn build-js && yarn bundlefirefox && yarn prepareedgebuild && yarn build-js && yarn bundleedge",
 		"preparechromebuild": "yarn shx sed -i \"s/firefoxspecificMonaco/chromespecificMonaco/g\" src/content-script-main/index.ts > NUL",
 		"preparefirefoxbuild": "yarn shx sed -i \"s/chromespecificMonaco/firefoxspecificMonaco/g\" src/content-script-main/index.ts > NUL",
-		"prepareedgebuild": "yarn shx sed -i \"s/chromespecificMonaco/firefoxspecificMonaco/g\" src/content-script-main/index.ts > NUL",
+		"prepareedgebuild": "yarn shx sed -i \"s/firefoxspecificMonaco/edgespecificMonaco/g\" src/content-script-main/index.ts > NUL",
 		"build-dev": "npm install && yarn antlr && yarn preparechromebuild && yarn build-jsdev && yarn bundlechrome && yarn extractchrome && yarn preparefirefoxbuild && yarn build-jsdev && yarn bundlefirefox && yarn extractfirefox && yarn prepareedgebuild && yarn build-jsdev && yarn bundleedge && yarn extractedge && yarn jest",
 		"build-prod": "npm install && yarn antlr && yarn preparechromebuild && yarn build-js && yarn bundlechrome && yarn extractchrome && yarn preparefirefoxbuild && yarn build-js && yarn bundlefirefox && yarn extractfirefox && yarn prepareedgebuild && yarn build-js && yarn bundleedge && yarn extractedge && yarn jest",
 		"build-js": "webpack --progress --mode production",
