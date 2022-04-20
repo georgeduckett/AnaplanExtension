@@ -168,7 +168,6 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
         moduleLineItems.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i], new EntityMetaData({
             parentLineItemEntityLongId: -1,
-            //fullAppliesTo: [anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId],
             fullAppliesTo: [],
             formulaScope: '',
             isSummary: false,
