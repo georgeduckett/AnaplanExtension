@@ -127,6 +127,14 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                             if (param != undefined) {
                                 let keywords = param.format?.filter(f => f.startsWith("KEYWORD:"));
 
+                                if (param.format?.includes("BOOLEAN")) {
+                                    keywords?.push("KEYWORD:TRUE");
+                                    keywords?.push("KEYWORD:FALSE");
+                                    if (keywords == undefined) {
+                                        keywords = ["KEYWORD:TRUE", "KEYWORD:FALSE"];
+                                    }
+                                }
+
                                 if (keywords != undefined && keywords.length != 0) {
                                     for (let i = 0; i < keywords.length; i++) {
                                         entityNames.push(new AutoCompleteInfo(
@@ -143,7 +151,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                 }
             }
         }
-
+        // TODO: Filter autocomplete types according to the param of the function we're in (if any)
         if (!foundKeyword) {
             let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
 
@@ -251,7 +259,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         }
                         break;
                     }
-                    case AnaplanFormulaParser.RULE_functionname: {
+                    case AnaplanFormulaParser.RULE_functionname: { // TODO: Why aren't we autocompleting with these?
                         for (let e of FunctionsInfo) {
                             let functions = deserialisedFunctions.get(e[0])!;
                             for (let i = 0; i < functions.length; i++) {
@@ -262,63 +270,60 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     }
                 }
             }
+        }
 
-            // Finally combine all found lists into one for the UI.
-            // We do that in separate steps so that you can apply some ordering to each of your sub lists.
-            // Then you also can order symbols groups as a whole depending their importance.
-            const word = model.getWordUntilPosition(position);
+        const word = model.getWordUntilPosition(position);
 
-            let range = {
-                startLineNumber: position.lineNumber,
-                endLineNumber: position.lineNumber,
-                startColumn: word.startColumn,
-                endColumn: word.endColumn,
-            };
+        let range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn,
+        };
 
-            let currentContext: ParseTree | undefined = tokenPosition.context
+        let currentContext: ParseTree | undefined = tokenPosition.context
 
-            while (currentContext != undefined && !(currentContext instanceof ParserRuleContext)) {
-                currentContext = currentContext.parent;
-            }
+        while (currentContext != undefined && !(currentContext instanceof ParserRuleContext)) {
+            currentContext = currentContext.parent;
+        }
 
-            if (currentContext instanceof DotQualifiedEntityRightPartEmptyContext) {
-                // The parser treated this as incomplete, so we want everything from the prior dot
-                let dotIndex = model.getValue().lastIndexOf('.', (currentContext.stop ?? currentContext.start).stopIndex);
+        if (currentContext instanceof DotQualifiedEntityRightPartEmptyContext) {
+            // The parser treated this as incomplete, so we want everything from the prior dot
+            let dotIndex = model.getValue().lastIndexOf('.', (currentContext.stop ?? currentContext.start).stopIndex);
 
-                if (dotIndex != -1) {
-                    dotIndex++;
-                    range = {
-                        startLineNumber: model.getPositionAt(dotIndex).lineNumber,
-                        startColumn: model.getPositionAt(dotIndex).column,
-                        endLineNumber: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).lineNumber,
-                        endColumn: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).column,
-                    }
-                }
-            }
-            else if (currentContext != undefined && currentContext instanceof ParserRuleContext) {
+            if (dotIndex != -1) {
+                dotIndex++;
                 range = {
-                    startLineNumber: model.getPositionAt(currentContext.start.startIndex).lineNumber,
-                    startColumn: model.getPositionAt(currentContext.start.startIndex).column,
+                    startLineNumber: model.getPositionAt(dotIndex).lineNumber,
+                    startColumn: model.getPositionAt(dotIndex).column,
                     endLineNumber: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).lineNumber,
                     endColumn: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).column,
-                };
+                }
             }
-
-            let suggestions: CompletionItem[] = [];
-            suggestions.push(...entityNames.map(s => {
-                let result = new CompletionItem(s.label, s.kind, s.text, range);
-                result.commitCharacters = s.autoInsertChars;
-                result.detail = s.detail;
-                result.documentation = s.documentation;
-                result.filterText = s.text;
-                result.sortText = s.sortText;
-                return result;
-            }));
-
-            return {
-                suggestions: suggestions
+        }
+        else if (currentContext != undefined && currentContext instanceof ParserRuleContext) {
+            range = {
+                startLineNumber: model.getPositionAt(currentContext.start.startIndex).lineNumber,
+                startColumn: model.getPositionAt(currentContext.start.startIndex).column,
+                endLineNumber: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).lineNumber,
+                endColumn: model.getPositionAt((currentContext.stop ?? currentContext.start).stopIndex).column,
             };
         }
+
+        let suggestions: CompletionItem[] = [];
+        suggestions.push(...entityNames.map(s => {
+            let result = new CompletionItem(s.label, s.kind, s.text, range);
+            result.commitCharacters = s.autoInsertChars;
+            result.detail = s.detail;
+            result.documentation = s.documentation;
+            result.filterText = s.text;
+            result.sortText = s.sortText;
+            return result;
+        }));
+
+        return {
+            suggestions: suggestions
+        };
     }
 
     private TryAddPossibleEntry(possibleEntities: { entityMetaData: EntityMetaData; aggregateFunction: string; }[], extraSelectorStrings: string[]) {
