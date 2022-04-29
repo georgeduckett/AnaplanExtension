@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Better Formula Editor for Anaplan",
-	"version": "2.0.7",
+	"version": "2.0.8",
 	"description": "This addon enhances Anaplan formula editing in several ways; providing code completion, hover info and validity checks.",
 	"icons": {
 		"128": "logo.drawio.png"
