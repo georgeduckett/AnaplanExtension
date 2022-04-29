@@ -135,7 +135,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                     keywords?.push("KEYWORD:TRUE");
                                     keywords?.push("KEYWORD:FALSE");
                                     if (keywords == undefined) {
-                                        keywords = ["KEYWORD:TRUE", "KEYWORD:FALSE"]; // TODO: These shouldn't be the only code completion options; we should complete entities too (maybe only if the entity is a boolean)
+                                        keywords = ["KEYWORD:TRUE", "KEYWORD:FALSE"];
                                     }
                                 }
 
@@ -147,7 +147,10 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                             monaco.languages.CompletionItemKind.Keyword,
                                             [',', ')']));
                                     }
-                                    foundKeyword = true;
+                                    if (!param.format?.includes("BOOLEAN")) {
+                                        // If the keywords we added are because the parameter is a boolean calculate code completion as normal, in addition to TRUE and FALSE
+                                        foundKeyword = true;
+                                    }
                                 }
                             }
                         }
