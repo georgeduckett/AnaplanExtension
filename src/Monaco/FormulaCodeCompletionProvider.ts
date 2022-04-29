@@ -11,6 +11,7 @@ import { findAncestor, findDescendents, tryGetChild } from "../Anaplan/AnaplanHe
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
 import { deserialisedAggregateFunctions, deserialisedFunctions } from "../Anaplan/.generateAnaplanData/FunctionInfo";
 import { DefaultCodeCompleteAggregation, Format } from "../Anaplan/Format";
+import { AnaplanDataTypeStrings } from "../Anaplan/AnaplanDataTypeStrings";
 
 type TokenPosition = { index: number, context: ParseTree };
 
@@ -261,7 +262,45 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                             }
                         }
 
-                        for (let e of deserialisedAggregateFunctions.keys()) { // TODO: Filter this according to line item type (e.g. ANY etc if the source line item is a boolean)
+                        let deserialisedAggregateFunctionsToAdd: string[];
+
+                        if (referenceContext != undefined) {
+                            let referencedEntityFormat = this._anaplanMetaData?.getEntityType(referenceContext.entity());
+                            let overwroteFunctionsToAdd = true;
+
+                            switch (referencedEntityFormat?.dataType) {
+                                // Filter this according to line item type (e.g. ANY etc if the source line item is a boolean)
+                                case AnaplanDataTypeStrings.BOOLEAN.dataType: {
+                                    deserialisedAggregateFunctionsToAdd = ["ALL", "ANY"]; break;
+                                }
+                                case AnaplanDataTypeStrings.DATE.dataType: {
+                                    deserialisedAggregateFunctionsToAdd = ["MAX", "MIN"]; break;
+                                }
+                                case AnaplanDataTypeStrings.NUMBER.dataType: {
+                                    deserialisedAggregateFunctionsToAdd = ["AVERAGE", "MAX", "MIN", "SUM"]; break;
+                                }
+                                case AnaplanDataTypeStrings.TEXT.dataType: {
+                                    deserialisedAggregateFunctionsToAdd = ["TEXTLIST"]; break;
+                                }
+                                case AnaplanDataTypeStrings.TIME_ENTITY.dataType: {
+                                    deserialisedAggregateFunctionsToAdd = ["MAX", "MIN"]; break;
+                                }
+                                default: {
+                                    overwroteFunctionsToAdd = false;
+                                    deserialisedAggregateFunctionsToAdd = Array.from(deserialisedAggregateFunctions.keys());
+                                    break;
+                                }
+                            }
+
+                            if (overwroteFunctionsToAdd) {
+                                deserialisedAggregateFunctionsToAdd.push("FIRSTNONBLANK", "LASTNONBLANK", "LOOKUP", "SELECT");
+                            }
+                        }
+                        else {
+                            deserialisedAggregateFunctionsToAdd = Array.from(deserialisedAggregateFunctions.keys());
+                        }
+
+                        for (let e of deserialisedAggregateFunctionsToAdd) {
                             entityNames.push(new CompletionItem(e, e, monaco.languages.CompletionItemKind.Function, [':'], deserialisedAggregateFunctions.get(e)!.type, new MarkdownString(deserialisedAggregateFunctions.get(e)!.description + "  \r\n[Anaplan Documentation](" + deserialisedAggregateFunctions.get(e)!.htmlPageName + ")")));
                         }
                         break;
