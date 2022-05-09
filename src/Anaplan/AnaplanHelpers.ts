@@ -499,7 +499,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                 myresult.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
                 // Use CODE() or NAME() (preferring the correct one based on the hierarchy being a numered list or not) to go from entity to text
                 markerToQuickFix.set(err,
-                    [{
+                    [{ // TODO: Refactor these to allow them to work within the formula type evaluator visitor
                         title: `Convert using NAME()`,
                         diagnostics: [],
                         kind: "quickfix",
