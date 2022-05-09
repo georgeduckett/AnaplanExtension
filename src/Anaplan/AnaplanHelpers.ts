@@ -389,7 +389,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
 
     let formulaContext = myparser.formula();
 
-    let monacoErrors = [];
+    let monacoErrors: monaco.editor.IMarkerData[] = [];
 
     if (errors.length === 0) {
         const myresult = formulaEvaluator.visit(formulaContext);
@@ -590,27 +590,13 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
         // If we have parser errors, then we only care about those, not whether or not the formula evaluates to what we need (since if there are errors the evaluation could easily be wrong anyway)
         monacoErrors = [];
         for (let e of errors) {
-            monacoErrors.push({
-                startLineNumber: e.startLine,
-                startColumn: e.startCol,
-                endLineNumber: e.endLine,
-                endColumn: e.endCol,
-                message: e.message,
-                severity: 8 //monaco.MarkerSeverity.Error (don't use enum so we can test)
-            });
+            monacoErrors.push(e);
         };
     }
     else {
         // We don't have parser errors, so add the formula errors in
         for (let e of formulaEvaluator.formulaErrors) {
-            monacoErrors.push({
-                startLineNumber: e.startLine,
-                startColumn: e.startCol,
-                endLineNumber: e.endLine,
-                endColumn: e.endCol,
-                message: e.message,
-                severity: 8 //monaco.MarkerSeverity.Error
-            });
+            monacoErrors.push(e);
         };
     }
 

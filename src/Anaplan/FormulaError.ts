@@ -1,16 +1,15 @@
-export class FormulaError {
-  startLine: number;
-  endLine: number;
-  startCol: number;
-  endCol: number;
+export class FormulaError implements monaco.editor.IMarkerData {
+  startLineNumber: number;
+  endLineNumber: number;
+  startColumn: number;
+  endColumn: number;
   message: string;
-  errorCode: string;
-  constructor(startLine: number, endLine: number, startCol: number, endCol: number, message: string, errorCode: string) {
-    this.startLine = startLine;
-    this.endLine = endLine;
-    this.startCol = startCol;
-    this.endCol = endCol;
+  severity = 8; //monaco.MarkerSeverity.Error
+  constructor(startLine: number, endLine: number, startCol: number, endCol: number, message: string) {
+    this.startLineNumber = startLine;
+    this.endLineNumber = endLine;
+    this.startColumn = startCol;
+    this.endColumn = endCol;
     this.message = message;
-    this.errorCode = errorCode;
   }
 }

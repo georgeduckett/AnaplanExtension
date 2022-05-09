@@ -23,7 +23,6 @@ export class CollectorErrorListener implements ANTLRErrorListener<Token> {
                 charPositionInLine + 1,
                 charPositionInLine + 1 + length,
                 message,
-                "1" // This the error code you can customize them as you want
             )
         )
     }
