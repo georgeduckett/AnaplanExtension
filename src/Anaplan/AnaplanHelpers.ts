@@ -165,6 +165,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
 
         // Add in the hierarchy itself as an entity
         let format = AnaplanDataTypeStrings.ENTITY(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].entityLongId);
+        format.isNumberedList = anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].isNumberedList
 
         moduleLineItems.set(anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i], new EntityMetaData({
             parentLineItemEntityLongId: -1,
@@ -178,7 +179,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]));
     }
 
-    let timeFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined);
+    let timeFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined, undefined);
     timeFormat.periodType = { entityIndex: -1 };// TODO: What should this be?
     moduleLineItems.set("Time", new EntityMetaData({
         parentLineItemEntityLongId: -1,
@@ -316,7 +317,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         });
     entityNames.set(-1, 'TIME.All Periods');
 
-    let allPeriodsFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined);
+    let allPeriodsFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined, undefined);
     allPeriodsFormat.periodType = { entityIndex: -1 };// TODO: What should this be?
 
     moduleLineItems.set('TIME.All Periods', new EntityMetaData({
@@ -376,6 +377,8 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
     if (formula.length === 0) {
         return [];
     }
+
+    markerToQuickFix.clear();
 
     let targetFormat = anaplanMetaData.getCurrentItem().format;
 
@@ -494,7 +497,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
             }
             else if (targetFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType &&
                 myresult.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
-                // Use CODE() or NAME() (giving both as an option) to go from entity to text
+                // Use CODE() or NAME() (preferring the correct one based on the hierarchy being a numered list or not) to go from entity to text
                 markerToQuickFix.set(err,
                     [{
                         title: `Convert using NAME()`,
@@ -531,7 +534,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                                 }
                             ]
                         },
-                        isPreferred: true, // maybe based on whether the list is numeric or not
+                        isPreferred: !(myresult.isNumberedList === true),
                     },
                     {
                         title: `Convert using CODE()`,
@@ -568,7 +571,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                                 }
                             ]
                         },
-                        isPreferred: false,
+                        isPreferred: myresult.isNumberedList === true,
                     }]);
             }
         } else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {

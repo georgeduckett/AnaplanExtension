@@ -7,7 +7,8 @@ export class Format {
     showAll?: boolean;
     dataType: string;
     periodType: any;
-    constructor(dataType: string, hierarchyEntityLongId?: number) { this.dataType = dataType; this.hierarchyEntityLongId = hierarchyEntityLongId; }
+    isNumberedList?: boolean;
+    constructor(dataType: string, hierarchyEntityLongId?: number, isNumberedList?: boolean) { this.dataType = dataType; this.hierarchyEntityLongId = hierarchyEntityLongId; this.isNumberedList = isNumberedList; }
 }
 
 export function DefaultCodeCompleteAggregation(format: Format): string {
