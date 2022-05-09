@@ -47,7 +47,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitFormula(ctx: FormulaContext): Format {
     this.formulaErrors.length = 0;
     return this.visit(ctx.expression());
-    // TODO: Check the type of entity we're referring to is the correct one (i.e. not a hierarchy when we're not expecting one)
+    // TODO: Check the type of entity we're referring to is the correct one (i.e. not a hierarchy when we're not expecting one and vice versa)
   }
 
   visitParenthesisExp(ctx: ParenthesisExpContext): Format {
