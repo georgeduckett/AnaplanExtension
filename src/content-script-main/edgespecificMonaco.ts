@@ -1,4 +1,4 @@
-import { hoverProvider, completionItemProvider, signatureHelpProvider } from ".";
+import { hoverProvider, completionItemProvider, signatureHelpProvider, formulaQuickFixesCodeActionProvider } from ".";
 import { loadMonaco } from "../monaco-loader";
 import { FormulaTokensProvider } from "../Monaco/FormulaTokensProvider";
 import { MonacoOptions } from "../settings";
@@ -16,6 +16,7 @@ export async function main() {
     monaco.languages.setTokensProvider('anaplanformula', new FormulaTokensProvider());
     monaco.languages.registerHoverProvider('anaplanformula', hoverProvider);
     monaco.languages.registerCompletionItemProvider('anaplanformula', completionItemProvider);
+    monaco.languages.registerCodeActionProvider('anaplanformula', formulaQuickFixesCodeActionProvider);
     monaco.languages.registerSignatureHelpProvider('anaplanformula', signatureHelpProvider);
 
     function updateDocument() {

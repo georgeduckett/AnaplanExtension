@@ -369,6 +369,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!.lineItemInfo);
 }
 
+export let markerToQuickFix = new Map<any, monaco.languages.CodeAction[]>();
+
 export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaData,
     modelLineCount: number, modelLineMaxColumn: number): monaco.editor.IMarkerData[] {
     if (formula.length === 0) {
@@ -396,14 +398,179 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
         if (myresult.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
             myresult.dataType != anaplanMetaData.getCurrentItem().format.dataType) {
             // Ensure the data type is the same if we did actually work out what it is
-            monacoErrors.push({
+            let err = {
                 startLineNumber: 1,
                 startColumn: 1,
                 endLineNumber: modelLineCount,
                 endColumn: modelLineMaxColumn,
                 message: `Formula evaluates to ${myresult.dataType} but the line item type is ${targetFormat.dataType}`,
                 severity: 8 //monaco.MarkerSeverity.Error (don't use enum so we can test)
-            });
+            };
+            monacoErrors.push(err);
+
+            if (targetFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType &&
+                myresult.dataType === AnaplanDataTypeStrings.NUMBER.dataType) {
+                // Add a quick fix to convert the formula to text
+                markerToQuickFix.set(err,
+                    [{
+                        title: `Convert using TEXT()`,
+                        diagnostics: [],
+                        kind: "quickfix",
+                        edit: {
+                            edits: [
+                                {
+                                    resource: {} as any,
+                                    edit:
+                                    {
+                                        range: {
+                                            startLineNumber: err.startLineNumber,
+                                            startColumn: err.startColumn,
+                                            endLineNumber: err.startLineNumber,
+                                            endColumn: err.startColumn
+                                        },
+                                        text: "TEXT("
+                                    }
+                                },
+                                {
+                                    resource: {} as any,
+                                    edit:
+                                    {
+                                        range: {
+                                            startLineNumber: err.endLineNumber,
+                                            startColumn: err.endColumn,
+                                            endLineNumber: err.endLineNumber,
+                                            endColumn: err.endColumn
+                                        },
+                                        text: ")"
+                                    }
+
+                                }
+                            ]
+                        },
+                        isPreferred: true,
+                    }]);
+            }
+            else if (targetFormat.dataType === AnaplanDataTypeStrings.NUMBER.dataType &&
+                myresult.dataType === AnaplanDataTypeStrings.TEXT.dataType) {
+                // Add a quick fix to convert the formula to number
+                markerToQuickFix.set(err,
+                    [{
+                        title: `Convert using VALUE()`,
+                        diagnostics: [],
+                        kind: "quickfix",
+                        edit: {
+                            edits: [
+                                {
+                                    resource: {} as any,
+                                    edit:
+                                    {
+                                        range: {
+                                            startLineNumber: err.startLineNumber,
+                                            startColumn: err.startColumn,
+                                            endLineNumber: err.startLineNumber,
+                                            endColumn: err.startColumn
+                                        },
+                                        text: "VALUE("
+                                    }
+                                },
+                                {
+                                    resource: {} as any,
+                                    edit:
+                                    {
+                                        range: {
+                                            startLineNumber: err.endLineNumber,
+                                            startColumn: err.endColumn,
+                                            endLineNumber: err.endLineNumber,
+                                            endColumn: err.endColumn
+                                        },
+                                        text: ")"
+                                    }
+
+                                }
+                            ]
+                        },
+                        isPreferred: true,
+                    }]);
+            }
+            else if (targetFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType &&
+                myresult.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
+                // Use CODE() or NAME() (giving both as an option) to go from entity to text
+                markerToQuickFix.set(err,
+                    [{
+                        title: `Convert using NAME()`,
+                        diagnostics: [],
+                        kind: "quickfix",
+                        edit: {
+                            edits: [
+                                {
+                                    resource: {} as any,
+                                    edit:
+                                    {
+                                        range: {
+                                            startLineNumber: err.startLineNumber,
+                                            startColumn: err.startColumn,
+                                            endLineNumber: err.startLineNumber,
+                                            endColumn: err.startColumn
+                                        },
+                                        text: "NAME("
+                                    }
+                                },
+                                {
+                                    resource: {} as any,
+                                    edit:
+                                    {
+                                        range: {
+                                            startLineNumber: err.endLineNumber,
+                                            startColumn: err.endColumn,
+                                            endLineNumber: err.endLineNumber,
+                                            endColumn: err.endColumn
+                                        },
+                                        text: ")"
+                                    }
+
+                                }
+                            ]
+                        },
+                        isPreferred: true, // maybe based on whether the list is numeric or not
+                    },
+                    {
+                        title: `Convert using CODE()`,
+                        diagnostics: [],
+                        kind: "quickfix",
+                        edit: {
+                            edits: [
+                                {
+                                    resource: {} as any,
+                                    edit:
+                                    {
+                                        range: {
+                                            startLineNumber: err.startLineNumber,
+                                            startColumn: err.startColumn,
+                                            endLineNumber: err.startLineNumber,
+                                            endColumn: err.startColumn
+                                        },
+                                        text: "CODE("
+                                    }
+                                },
+                                {
+                                    resource: {} as any,
+                                    edit:
+                                    {
+                                        range: {
+                                            startLineNumber: err.endLineNumber,
+                                            startColumn: err.endColumn,
+                                            endLineNumber: err.endLineNumber,
+                                            endColumn: err.endColumn
+                                        },
+                                        text: ")"
+                                    }
+
+                                }
+                            ]
+                        },
+                        isPreferred: false,
+                    }]);
+            }
         } else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
             // Ensure the entity types is the same if the data types are entity
             if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {

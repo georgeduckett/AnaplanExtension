@@ -2,16 +2,19 @@ import { FormulaHoverProvider } from "../Monaco/FormulaHoverProvider";
 import { getAnaplanMetaData, setModelErrors } from "../Anaplan/AnaplanHelpers";
 import he = require("he");
 import { FormulaCompletionItemProvider } from "../Monaco/FormulaCodeCompletionProvider";
+import { FormulaQuickFixesCodeActionProvider } from "../Monaco/FormulaQuickFixesCodeActionProvider";
 import { FormulaSignatureHelpProvider } from "../Monaco/FormulaSignatureHelpProvider";
 import FormulaFormattingProvider from "../Monaco/FormulaFormattingProvider";
 import { main } from "./edgespecificMonaco"; // This gets changed by the compiling process depending on which we're building for
 
 export let hoverProvider: FormulaHoverProvider;
 export let completionItemProvider: FormulaCompletionItemProvider;
+export let formulaQuickFixesCodeActionProvider: FormulaQuickFixesCodeActionProvider;
 export let signatureHelpProvider: FormulaSignatureHelpProvider;
 
 hoverProvider = new FormulaHoverProvider();
 completionItemProvider = new FormulaCompletionItemProvider();
+formulaQuickFixesCodeActionProvider = new FormulaQuickFixesCodeActionProvider();
 signatureHelpProvider = new FormulaSignatureHelpProvider();
 
 if (!window.location.href.includes("embedded") && /https:\/\/.*\.app\.anaplan\.com\/.*\/anaplan\/framework\.jsp.*/.test(window.location.href)) {
@@ -115,6 +118,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			// Anaplan have their own token provider
 			monaco.languages.registerHoverProvider('anaplanguage', hoverProvider);
 			monaco.languages.registerCompletionItemProvider('anaplanguage', completionItemProvider);
+			monaco.languages.registerCodeActionProvider('anaplanguage', formulaQuickFixesCodeActionProvider);
 			monaco.languages.registerSignatureHelpProvider('anaplanguage', signatureHelpProvider);
 			monaco.languages.registerDocumentFormattingEditProvider('anaplanguage', new FormulaFormattingProvider());
 
