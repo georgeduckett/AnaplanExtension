@@ -159,7 +159,6 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                 }
             }
         }
-        // TODO: Add Quickfix for converting text to number using VALUE and number to text using TEXT
         if (!foundKeyword) {
             let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
             // TODO: Prefer line items that match missing dimension types when after a selector (e.g. LOOKUP: ....)

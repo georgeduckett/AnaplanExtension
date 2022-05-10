@@ -150,7 +150,7 @@ export class AnaplanMetaData {
         return result;
     }
     getAutoCompleteQualifiedRightPart(leftPartText: string): Set<CompletionItem> {
-        let result = new Set<CompletionItem>(); // TODO: Handle using the 'code' of the line item
+        let result = new Set<CompletionItem>();
         // Add anything that needs to be qualified
         for (let lineItem of this._lineItemInfo) {
             if (lineItem[1].qualifier != undefined) {
@@ -171,7 +171,7 @@ export class AnaplanMetaData {
     }
 
     getAutoCompleteWords(): Set<CompletionItem> {
-        let result = new Set<CompletionItem>(); // TODO: Handle using the 'code' of the line item
+        let result = new Set<CompletionItem>();
         // Add anything that doesn't need to be qualified
         for (let lineItem of this._lineItemInfo) {
             if ((lineItem[1].qualifier === undefined || lineItem[1].qualifier === this._moduleName) && !lineItem[0].startsWith('<<') && !lineItem[0].startsWith('--')) {
@@ -412,7 +412,6 @@ export class AnaplanMetaData {
                 extraTargetEntityMappings = extraTargetEntityMappings.filter(e => !this.areCompatibleDimensions(e, sourceDimensions[i]));
             }
 
-            // TODO: Work out exactly what this special entity id (for subsets?) is. Seems to be other entities starting 121, possibly relating to subsets
             extraSourceEntityMappings = extraSourceEntityMappings.filter(e => e != 121000000021);
             extraTargetEntityMappings = extraTargetEntityMappings.filter(e => e != 121000000021);
 
