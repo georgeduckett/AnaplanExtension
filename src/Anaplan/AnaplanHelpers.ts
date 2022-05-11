@@ -2,6 +2,7 @@ import { CharStreams, CommonTokenStream, ParserRuleContext } from "antlr4ts";
 import { Interval } from "antlr4ts/misc/Interval";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { hoverProvider } from "../content-script-main";
+import { FormulaQuickFixesCodeActionProvider } from "../Monaco/FormulaQuickFixesCodeActionProvider";
 import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { AnaplanMetaData, EntityMetaData, EntityType } from "./AnaplanMetaData";
@@ -370,15 +371,13 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     return new AnaplanMetaData(moduleLineItems, subsetParentDimensionId, entityNames, entityIds, hierarchyParents, currentModuleName, moduleLineItems.get(currentLineItemName)!.lineItemInfo);
 }
 
-export let markerToQuickFix = new Map<any, monaco.languages.CodeAction[]>();
-
 export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaData,
     modelLineCount: number, modelLineMaxColumn: number): monaco.editor.IMarkerData[] {
     if (formula.length === 0) {
         return [];
     }
 
-    markerToQuickFix.clear();
+    FormulaQuickFixesCodeActionProvider.clearMarkerQuickFixes();
 
     let targetFormat = anaplanMetaData.getCurrentItem().format;
 
@@ -457,7 +456,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
     if (targetFormatString === AnaplanDataTypeStrings.TEXT.dataType &&
         resultFormat.dataType === AnaplanDataTypeStrings.NUMBER.dataType) {
         // Add a quick fix to convert the formula to text
-        markerToQuickFix.set(err,
+        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
             [{
                 title: `Convert the value to text using TEXT()`,
                 diagnostics: [],
@@ -496,7 +495,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
     else if (targetFormatString === AnaplanDataTypeStrings.NUMBER.dataType &&
         resultFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType) {
         // Add a quick fix to convert the formula to number
-        markerToQuickFix.set(err,
+        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
             [{
                 title: `Parse the text to a number using VALUE()`,
                 diagnostics: [],
@@ -536,7 +535,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
     else if ((targetFormat as any).hierarchyEntityLongId !== undefined &&
         resultFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType) {
         // Use FINDITEM to find the entity
-        markerToQuickFix.set(err,
+        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
             [{
                 title: `Lookup the item using FINDITEM()`,
                 diagnostics: [],
@@ -575,7 +574,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
     else if (targetFormatString === AnaplanDataTypeStrings.TEXT.dataType &&
         resultFormat.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
         // Use CODE() or NAME() (preferring the correct one based on the hierarchy being a numered list or not) to go from entity to text
-        markerToQuickFix.set(err,
+        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
             [{
                 title: `Get the name of the entity using NAME()`,
                 diagnostics: [],

@@ -1,6 +1,3 @@
-import { markerToQuickFix } from "../Anaplan/AnaplanHelpers";
-
-
 function IsSupersetObjectOf(supersetObject: any, subsetObject: any) {
     for (let key in subsetObject) {
         if (!(key in supersetObject) || supersetObject[key] !== subsetObject[key]) {
@@ -11,9 +8,16 @@ function IsSupersetObjectOf(supersetObject: any, subsetObject: any) {
 }
 
 export class FormulaQuickFixesCodeActionProvider implements monaco.languages.CodeActionProvider {
+    private static markerToQuickFix = new Map<any, monaco.languages.CodeAction[]>();
+    public static clearMarkerQuickFixes() {
+        this.markerToQuickFix.clear();
+    }
+    public static setMarkerQuickFix(marker: monaco.editor.IMarkerData, quickFixes: monaco.languages.CodeAction[]) {
+        this.markerToQuickFix.set(marker, quickFixes);
+    }
     provideCodeActions(model: monaco.editor.ITextModel, range: monaco.Range, context: monaco.languages.CodeActionContext, token: monaco.CancellationToken): monaco.languages.ProviderResult<monaco.languages.CodeActionList> {
         const actions = context.markers.flatMap(error => {
-            let quickFixes = Array.from(markerToQuickFix.entries()).filter(entry => IsSupersetObjectOf(error, entry[0])).flatMap(entry => entry[1]);
+            let quickFixes = Array.from(FormulaQuickFixesCodeActionProvider.markerToQuickFix.entries()).filter(entry => IsSupersetObjectOf(error, entry[0])).flatMap(entry => entry[1]);
             if (quickFixes.length === 0) return undefined;
 
             quickFixes.forEach(qf => qf.diagnostics = [error]);
