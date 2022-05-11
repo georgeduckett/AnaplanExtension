@@ -410,170 +410,7 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                 severity: 8 //monaco.MarkerSeverity.Error (don't use enum so we can test)
             };
             monacoErrors.push(err);
-
-            if (targetFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType &&
-                myresult.dataType === AnaplanDataTypeStrings.NUMBER.dataType) {
-                // Add a quick fix to convert the formula to text
-                markerToQuickFix.set(err,
-                    [{
-                        title: `Convert using TEXT()`,
-                        diagnostics: [],
-                        kind: "quickfix",
-                        edit: {
-                            edits: [
-                                {
-                                    resource: {} as any,
-                                    edit:
-                                    {
-                                        range: {
-                                            startLineNumber: err.startLineNumber,
-                                            startColumn: err.startColumn,
-                                            endLineNumber: err.startLineNumber,
-                                            endColumn: err.startColumn
-                                        },
-                                        text: "TEXT("
-                                    }
-                                },
-                                {
-                                    resource: {} as any,
-                                    edit:
-                                    {
-                                        range: {
-                                            startLineNumber: err.endLineNumber,
-                                            startColumn: err.endColumn,
-                                            endLineNumber: err.endLineNumber,
-                                            endColumn: err.endColumn
-                                        },
-                                        text: ")"
-                                    }
-
-                                }
-                            ]
-                        },
-                        isPreferred: true,
-                    }]);
-            }
-            else if (targetFormat.dataType === AnaplanDataTypeStrings.NUMBER.dataType &&
-                myresult.dataType === AnaplanDataTypeStrings.TEXT.dataType) {
-                // Add a quick fix to convert the formula to number
-                markerToQuickFix.set(err,
-                    [{
-                        title: `Convert using VALUE()`,
-                        diagnostics: [],
-                        kind: "quickfix",
-                        edit: {
-                            edits: [
-                                {
-                                    resource: {} as any,
-                                    edit:
-                                    {
-                                        range: {
-                                            startLineNumber: err.startLineNumber,
-                                            startColumn: err.startColumn,
-                                            endLineNumber: err.startLineNumber,
-                                            endColumn: err.startColumn
-                                        },
-                                        text: "VALUE("
-                                    }
-                                },
-                                {
-                                    resource: {} as any,
-                                    edit:
-                                    {
-                                        range: {
-                                            startLineNumber: err.endLineNumber,
-                                            startColumn: err.endColumn,
-                                            endLineNumber: err.endLineNumber,
-                                            endColumn: err.endColumn
-                                        },
-                                        text: ")"
-                                    }
-
-                                }
-                            ]
-                        },
-                        isPreferred: true,
-                    }]);
-            }
-            else if (targetFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType &&
-                myresult.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
-                // Use CODE() or NAME() (preferring the correct one based on the hierarchy being a numered list or not) to go from entity to text
-                markerToQuickFix.set(err,
-                    [{ // TODO: Refactor these to allow them to work within the formula type evaluator visitor
-                        title: `Convert using NAME()`,
-                        diagnostics: [],
-                        kind: "quickfix",
-                        edit: {
-                            edits: [
-                                {
-                                    resource: {} as any,
-                                    edit:
-                                    {
-                                        range: {
-                                            startLineNumber: err.startLineNumber,
-                                            startColumn: err.startColumn,
-                                            endLineNumber: err.startLineNumber,
-                                            endColumn: err.startColumn
-                                        },
-                                        text: "NAME("
-                                    }
-                                },
-                                {
-                                    resource: {} as any,
-                                    edit:
-                                    {
-                                        range: {
-                                            startLineNumber: err.endLineNumber,
-                                            startColumn: err.endColumn,
-                                            endLineNumber: err.endLineNumber,
-                                            endColumn: err.endColumn
-                                        },
-                                        text: ")"
-                                    }
-
-                                }
-                            ]
-                        },
-                        isPreferred: !(myresult.isNumberedList === true),
-                    },
-                    {
-                        title: `Convert using CODE()`,
-                        diagnostics: [],
-                        kind: "quickfix",
-                        edit: {
-                            edits: [
-                                {
-                                    resource: {} as any,
-                                    edit:
-                                    {
-                                        range: {
-                                            startLineNumber: err.startLineNumber,
-                                            startColumn: err.startColumn,
-                                            endLineNumber: err.startLineNumber,
-                                            endColumn: err.startColumn
-                                        },
-                                        text: "CODE("
-                                    }
-                                },
-                                {
-                                    resource: {} as any,
-                                    edit:
-                                    {
-                                        range: {
-                                            startLineNumber: err.endLineNumber,
-                                            startColumn: err.endColumn,
-                                            endLineNumber: err.endLineNumber,
-                                            endColumn: err.endColumn
-                                        },
-                                        text: ")"
-                                    }
-
-                                }
-                            ]
-                        },
-                        isPreferred: myresult.isNumberedList === true,
-                    }]);
-            }
+            AddFormatConversionQuickFixes(anaplanMetaData, targetFormat, myresult, err);
         } else if (myresult.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
             // Ensure the entity types is the same if the data types are entity
             if (myresult.hierarchyEntityLongId != targetFormat.hierarchyEntityLongId) {
@@ -610,6 +447,204 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
     }
 
     return monacoErrors;
+}
+
+export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, targetFormat: globalThis.Format | string, resultFormat: Format, err: monaco.editor.IMarkerData | undefined): void {
+    if (err === undefined) return;
+
+    let targetFormatString = targetFormat instanceof Format ? targetFormat.dataType : targetFormat;
+
+    if (targetFormatString === AnaplanDataTypeStrings.TEXT.dataType &&
+        resultFormat.dataType === AnaplanDataTypeStrings.NUMBER.dataType) {
+        // Add a quick fix to convert the formula to text
+        markerToQuickFix.set(err,
+            [{
+                title: `Convert the value to text using TEXT()`,
+                diagnostics: [],
+                kind: "quickfix",
+                edit: {
+                    edits: [
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.startLineNumber,
+                                    startColumn: err.startColumn,
+                                    endLineNumber: err.startLineNumber,
+                                    endColumn: err.startColumn
+                                },
+                                text: "TEXT("
+                            }
+                        },
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.endLineNumber,
+                                    startColumn: err.endColumn,
+                                    endLineNumber: err.endLineNumber,
+                                    endColumn: err.endColumn
+                                },
+                                text: ")"
+                            }
+                        }
+                    ]
+                },
+                isPreferred: true,
+            }]);
+    }
+    else if (targetFormatString === AnaplanDataTypeStrings.NUMBER.dataType &&
+        resultFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType) {
+        // Add a quick fix to convert the formula to number
+        markerToQuickFix.set(err,
+            [{
+                title: `Parse the text to a number using VALUE()`,
+                diagnostics: [],
+                kind: "quickfix",
+                edit: {
+                    edits: [
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.startLineNumber,
+                                    startColumn: err.startColumn,
+                                    endLineNumber: err.startLineNumber,
+                                    endColumn: err.startColumn
+                                },
+                                text: "VALUE("
+                            }
+                        },
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.endLineNumber,
+                                    startColumn: err.endColumn,
+                                    endLineNumber: err.endLineNumber,
+                                    endColumn: err.endColumn
+                                },
+                                text: ")"
+                            }
+                        }
+                    ]
+                },
+                isPreferred: true,
+            }]);
+    }
+    // Add a quick fix to convert from text to entity (using FINDITEM)
+    else if ((targetFormat as any).hierarchyEntityLongId !== undefined &&
+        resultFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType) {
+        // Use FINDITEM to find the entity
+        markerToQuickFix.set(err,
+            [{
+                title: `Lookup the item using FINDITEM()`,
+                diagnostics: [],
+                kind: "quickfix",
+                edit: {
+                    edits: [
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.startLineNumber,
+                                    startColumn: err.startColumn,
+                                    endLineNumber: err.startLineNumber,
+                                    endColumn: err.startColumn
+                                },
+                                text: `FINDITEM(${anaplanMetaData.quoteIfNeeded(anaplanMetaData.getEntityNameFromId((targetFormat as any).hierarchyEntityLongId))}, `
+                            }
+                        },
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.endLineNumber,
+                                    startColumn: err.endColumn,
+                                    endLineNumber: err.endLineNumber,
+                                    endColumn: err.endColumn
+                                },
+                                text: ")"
+                            }
+                        }
+                    ]
+                },
+                isPreferred: true,
+            }]);
+    }
+    else if (targetFormatString === AnaplanDataTypeStrings.TEXT.dataType &&
+        resultFormat.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
+        // Use CODE() or NAME() (preferring the correct one based on the hierarchy being a numered list or not) to go from entity to text
+        markerToQuickFix.set(err,
+            [{
+                title: `Get the name of the entity using NAME()`,
+                diagnostics: [],
+                kind: "quickfix",
+                edit: {
+                    edits: [
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.startLineNumber,
+                                    startColumn: err.startColumn,
+                                    endLineNumber: err.startLineNumber,
+                                    endColumn: err.startColumn
+                                },
+                                text: "NAME("
+                            }
+                        },
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.endLineNumber,
+                                    startColumn: err.endColumn,
+                                    endLineNumber: err.endLineNumber,
+                                    endColumn: err.endColumn
+                                },
+                                text: ")"
+                            }
+                        }
+                    ]
+                },
+                isPreferred: !(resultFormat.isNumberedList === true),
+            },
+            {
+                title: `Get the code of the entity using CODE()`,
+                diagnostics: [],
+                kind: "quickfix",
+                edit: {
+                    edits: [
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.startLineNumber,
+                                    startColumn: err.startColumn,
+                                    endLineNumber: err.startLineNumber,
+                                    endColumn: err.startColumn
+                                },
+                                text: "CODE("
+                            }
+                        },
+                        {
+                            resource: {} as any,
+                            edit: {
+                                range: {
+                                    startLineNumber: err.endLineNumber,
+                                    startColumn: err.endColumn,
+                                    endLineNumber: err.endLineNumber,
+                                    endColumn: err.endColumn
+                                },
+                                text: ")"
+                            }
+                        }
+                    ]
+                },
+                isPreferred: resultFormat.isNumberedList === true,
+            }]);
+    }
 }
 
 export function setModelErrors(model: monaco.editor.ITextModel, anaplanMetaData: AnaplanMetaData) {

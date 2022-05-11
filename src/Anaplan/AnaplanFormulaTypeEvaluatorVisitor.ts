@@ -1,7 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext } from './antlrclasses/AnaplanFormulaParser';
-import { findAncestor, getOriginalText } from './AnaplanHelpers';
+import { AddFormatConversionQuickFixes, findAncestor, getOriginalText } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData, EntityType } from './AnaplanMetaData';
@@ -109,13 +109,17 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let leftIsDateType = leftResult.dataType === AnaplanDataTypeStrings.DATE.dataType || leftResult.dataType === AnaplanDataTypeStrings.TIME_ENTITY.dataType;
     let rightIsDateType = rightResult.dataType === AnaplanDataTypeStrings.DATE.dataType || rightResult.dataType === AnaplanDataTypeStrings.TIME_ENTITY.dataType;
 
+    // TODO: Special case both left and right being strings. Suggest a fix of using concatenation
+
     // Left isn't a number or a date
     if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType && !leftIsDateType) {
-      this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
+      let err = this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.NUMBER, leftResult, err);
     }
     // Right isn't a number or a date
     if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType && !rightIsDateType) {
-      this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
+      let err = this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.NUMBER, rightResult, err);
     }
 
 
@@ -146,11 +150,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let rightResult = this.visit(ctx._right);
 
     if (leftResult.dataType != AnaplanDataTypeStrings.TEXT.dataType) {
-      this.addFormulaError(ctx._left, `Expected Text, but found ${leftResult.dataType}.`);
+      let err = this.addFormulaError(ctx._left, `Expected Text, but found ${leftResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.TEXT, leftResult, err);
     }
 
     if (rightResult.dataType != AnaplanDataTypeStrings.TEXT.dataType) {
-      this.addFormulaError(ctx._right, `Expected Text, but found ${rightResult.dataType}.`);
+      let err = this.addFormulaError(ctx._right, `Expected Text, but found ${rightResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.TEXT, rightResult, err);
     }
     return AnaplanDataTypeStrings.TEXT;
   }
@@ -224,7 +230,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
               else if (actualFormat.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
                 requiredFormat.indexOf(actualFormat.dataType) === -1) {
                 // The format of this param doesn't match one of the required formats
-                this.addFormulaError(actualParams[i], `Invalid parameter type in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat}), found (${actualFormat.dataType}).`);
+                let err = this.addFormulaError(actualParams[i], `Invalid parameter type in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat}), found (${actualFormat.dataType}).`);
+                requiredFormat.forEach(f => AddFormatConversionQuickFixes(this._anaplanMetaData, f, actualFormat, err));
               }
             }
           }
@@ -391,6 +398,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if ((ctx._left.text.match(entitySpecialCharSelector) != null && !(ctx._left.text.endsWith("'") && ctx._left.text.startsWith("'"))) ||
       (ctx._right.text.match(entitySpecialCharSelector) != null) && !(ctx._right.text.endsWith("'") && ctx._right.text.startsWith("'"))) {
       this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
+      // TODO: Add quick fix to surround with single quotes
     }
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext) &&
@@ -419,17 +427,20 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
 
     this.addFormulaError(ctx, "Missing mappings from " + targetMissingEntityIdsString + " to " + sourceMissingEntityIdsString + ".");
+    // TODO: Add in quick fix to add missing mappings
   }
-  //https://betterprogramming.pub/create-a-custom-web-editor-using-typescript-react-antlr-and-monaco-editor-bcfc7554e446
-  addFormulaError(ctx: ParserRuleContext, message: string) {
 
+  addFormulaError(ctx: ParserRuleContext, message: string): FormulaError | undefined {
+    let error;
     if (ctx instanceof ParserRuleContext) {
-      this.formulaErrors.push(new FormulaError(
+      error = new FormulaError(
         ctx.start.line,
         ctx.stop?.line ?? ctx.start.line,
         ctx.start.charPositionInLine + 1,
         ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
-        message));
+        message)
+      this.formulaErrors.push(error);
     }
+    return error;
   }
 }
