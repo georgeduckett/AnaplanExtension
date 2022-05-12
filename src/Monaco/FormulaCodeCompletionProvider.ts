@@ -201,63 +201,10 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
 
                         let referenceContext = findAncestor(tokenPosition.context, FuncSquareBracketsContext);
                         if (referenceContext != undefined) {
-                            let entityDimensions = this._anaplanMetaData?.getEntityDimensions(referenceContext.entity());
-                            let currentLineItemDimensions = this._anaplanMetaData?.getCurrentItemFullAppliesTo()!;
-                            let missingDimensions = this._anaplanMetaData?.getMissingDimensions(referenceContext, undefined);
+                            let extraSelectorStrings = this._anaplanMetaData!.GetMissingDimensionsAutoCompletion(referenceContext);
 
-                            if (missingDimensions != undefined) {
-                                let extraSelectorStrings: string[] = [];
-
-                                for (let i = 0; i < missingDimensions.extraTargetEntityMappings.length; i++) {
-                                    let possibleEntities: { entityMetaData: EntityMetaData, aggregateFunction: string }[] = [];
-                                    this._anaplanMetaData?.getAllLineItems().forEach(li => {
-                                        // Don't consider line items with more than one dimension unless the dimensions match the current line item
-                                        if (li.lineItemInfo.fullAppliesTo.length != 1 && !li.lineItemInfo.fullAppliesTo.every(d => entityDimensions?.includes(d))) {
-                                            return;
-                                        }
-
-                                        if (this._anaplanMetaData?.getSubsetNormalisedEntityId(li.lineItemInfo.format.hierarchyEntityLongId!) == this._anaplanMetaData?.getSubsetNormalisedEntityId(missingDimensions?.extraTargetEntityMappings[i]!)) {
-                                            // Found a line item referring to an entity that exists in the target mapping, but not the source
-                                            let entityDimensionsIntersection = entityDimensions?.filter(ed => li.lineItemInfo.fullAppliesTo.map(f => this._anaplanMetaData?.getSubsetNormalisedEntityId(f)).includes(this._anaplanMetaData?.getSubsetNormalisedEntityId(ed)!));
-                                            if ((entityDimensionsIntersection?.length ?? 0) != 0) {
-                                                // This line item's dimensionality overlaps with the target line item
-
-                                                // Ideally we would take the aggregation method from the aggregation of the current line item, but that data is not available, so we just have defaults depending on the line item format's data type
-                                                possibleEntities.push({ entityMetaData: li, aggregateFunction: DefaultCodeCompleteAggregation(this._anaplanMetaData!.getCurrentItem().format) });
-                                            }
-                                        }
-                                    });
-
-                                    // for existing possible entries, filter the existing entries with possible ones, not the other way around. This way we use an existing aggregation function
-                                    this.TryAddPossibleEntry(possibleEntities, extraSelectorStrings);
-                                }
-
-                                for (let i = 0; i < missingDimensions.extraSourceEntityMappings.length; i++) {
-                                    let possibleEntities: { entityMetaData: EntityMetaData, aggregateFunction: string }[] = [];
-                                    this._anaplanMetaData?.getAllLineItems().forEach(li => {
-                                        // Don't consider line items with more than one dimension unless the dimensions match the current line item
-                                        if (li.lineItemInfo.fullAppliesTo.length != 1 && !li.lineItemInfo.fullAppliesTo.every(d => entityDimensions?.includes(d))) {
-                                            return;
-                                        }
-
-                                        if (this._anaplanMetaData?.getSubsetNormalisedEntityId(li.lineItemInfo.format.hierarchyEntityLongId!) == this._anaplanMetaData?.getSubsetNormalisedEntityId(missingDimensions!.extraSourceEntityMappings[i])) {
-                                            // Found a line item referring to an entity that exists in the source mapping, but not the target
-                                            let currentLineItemDimensionsIntersection = currentLineItemDimensions?.filter(ed => li.lineItemInfo.fullAppliesTo.map(d => this._anaplanMetaData?.getSubsetNormalisedEntityId(d)).includes(this._anaplanMetaData?.getSubsetNormalisedEntityId(ed)!));
-                                            if ((currentLineItemDimensionsIntersection?.length ?? 0) != 0) {
-                                                // This line item's dimensionality overlaps with the target line item
-
-                                                // Ideally we would take the aggregation method from the aggregation of the current line item, but that data is not available, so we just have defaults depending on the line item format's data type
-                                                possibleEntities.push({ entityMetaData: li, aggregateFunction: "LOOKUP" });
-                                            }
-                                        }
-                                    });
-
-                                    this.TryAddPossibleEntry(possibleEntities, extraSelectorStrings);
-                                }
-
-                                if (extraSelectorStrings.length != 0) {
-                                    entityNames.push(new CompletionItem(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], 'Missing dimensions', new MarkdownString('```\r\n' + extraSelectorStrings.join('  \r\n') + '\r\n```'), '**' + extraSelectorStrings.join(', '), true));
-                                }
+                            if (extraSelectorStrings.length != 0) {
+                                entityNames.push(new CompletionItem(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], 'Missing dimensions', new MarkdownString('```\r\n' + extraSelectorStrings.join('  \r\n') + '\r\n```'), '**' + extraSelectorStrings.join(', '), true));
                             }
                         }
 
@@ -378,22 +325,6 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
             };
         }
         return range;
-    }
-
-    private TryAddPossibleEntry(possibleEntities: { entityMetaData: EntityMetaData; aggregateFunction: string; }[], extraSelectorStrings: string[]) {
-        let possibleEntitiesExisting = this._anaplanMetaData!.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData.qualifier === pe.entityMetaData.qualifier && ee.entityMetaData.name === pe.entityMetaData.name).length != 0);
-        let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
-
-        // Use an existing mapping if available since that would have the correct aggregation function
-        if (possibleEntitiesExisting.length === 1) {
-            extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);
-        } // If not, then use the single valid one
-        else if (possibleEntities.length === 1) {
-            extraSelectorStrings.push(`${possibleEntities[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntities[0].entityMetaData)}`);
-        } // If not, then use a single PROP... one
-        else if (possibleEntitiesPropOnly.length === 1) {
-            extraSelectorStrings.push(`${possibleEntitiesPropOnly[0].aggregateFunction}: ${this._anaplanMetaData?.getNameFromComponents(possibleEntitiesPropOnly[0].entityMetaData)}`);
-        }
     }
 }
 
