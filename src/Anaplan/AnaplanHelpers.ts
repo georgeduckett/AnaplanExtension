@@ -457,13 +457,16 @@ export function getRangeFromContext(ctx: ParserRuleContext | undefined) {
     };
 }
 
-export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, targetFormat: globalThis.Format | string, resultFormat: Format, err: monaco.editor.IMarkerData | undefined, ctxToFix: ParserRuleContext | undefined = undefined, messagePrefix: string | undefined = undefined): void {
+function hasOwnProperty<X extends {}>(obj: X, prop: string): obj is X & Record<string, unknown> {
+    return obj.hasOwnProperty(prop)
+}
+export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, targetFormat: Format | string, resultFormat: Format, err: monaco.editor.IMarkerData | undefined, ctxToFix: ParserRuleContext | undefined = undefined, messagePrefix: string | undefined = undefined): void {
     if (err === undefined) return;
 
+    messagePrefix ??= "";
+
     let targetRange = getRangeFromContext(ctxToFix) ?? err;
-
-    let targetFormatString = targetFormat instanceof Format ? targetFormat.dataType : targetFormat;
-
+    let targetFormatString = hasOwnProperty(targetFormat, 'dataType') ? targetFormat.dataType : targetFormat;
     if (targetFormatString === AnaplanDataTypeStrings.TEXT.dataType &&
         resultFormat.dataType === AnaplanDataTypeStrings.NUMBER.dataType) {
         // Add a quick fix to convert the formula to text
