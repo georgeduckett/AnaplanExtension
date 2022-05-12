@@ -345,7 +345,7 @@ export class AnaplanMetaData {
         return false;
     }
 
-    getMissingDimensions(sourceDimensions: number[] | FuncSquareBracketsContext, targetDimensions: number[] | undefined): { extraSourceEntityMappings: number[], extraTargetEntityMappings: number[] } {
+    getMissingDimensions(sourceDimensions: number[] | FuncSquareBracketsContext, targetDimensions: number[] | undefined = undefined): { extraSourceEntityMappings: number[], extraTargetEntityMappings: number[] } {
         if (sourceDimensions instanceof FuncSquareBracketsContext) {
             // Check the entity and line item dimensions match, if not we'll need to check for SELECT/SUM/LOOKUP
             let { extraSourceEntityMappings, extraTargetEntityMappings } =
@@ -421,10 +421,10 @@ export class AnaplanMetaData {
             return { extraSourceEntityMappings, extraTargetEntityMappings };
         }
     }
-    GetMissingDimensionsAutoCompletion(referenceContext: FuncSquareBracketsContext): string[] {
-        let entityDimensions = this.getEntityDimensions(referenceContext.entity());
+    GetMissingDimensionsAutoCompletion(referenceContext: FuncSquareBracketsContext | EntityContext): string[] {
+        let entityDimensions = this.getEntityDimensions(referenceContext instanceof FuncSquareBracketsContext ? referenceContext.entity() : referenceContext);
         let currentLineItemDimensions = this.getCurrentItemFullAppliesTo()!;
-        let missingDimensions = this.getMissingDimensions(referenceContext, undefined);
+        let missingDimensions = referenceContext instanceof FuncSquareBracketsContext ? this.getMissingDimensions(referenceContext) : this.getMissingDimensions(entityDimensions, currentLineItemDimensions);
 
         if (missingDimensions != undefined) {
             let extraSelectorStrings: string[] = [];

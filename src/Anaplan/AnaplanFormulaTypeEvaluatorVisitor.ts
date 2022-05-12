@@ -11,6 +11,7 @@ import { FunctionsInfo } from './FunctionInfo';
 import { AnaplanDataTypeStrings } from './AnaplanDataTypeStrings';
 import { Format } from './Format';
 import { deserialisedAggregateFunctions, deserialisedFunctions, deserialisedKeywords } from './.generateAnaplanData/FunctionInfo';
+import { FormulaQuickFixesCodeActionProvider } from '../Monaco/FormulaQuickFixesCodeActionProvider';
 
 export let entitySpecialCharSelector = '[^A-z\s%#£\?]';
 
@@ -426,8 +427,44 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       targetMissingEntityIdsString = "<None>";
     }
 
-    this.addFormulaError(ctx, "Missing mappings from " + targetMissingEntityIdsString + " to " + sourceMissingEntityIdsString + ".");
-    // TODO: Add in quick fix to add missing mappings
+    let err = this.addFormulaError(ctx, "Missing mappings from " + targetMissingEntityIdsString + " to " + sourceMissingEntityIdsString + ".");
+    if (err != undefined) {
+      // Add in quick fix to add missing mappings
+      let missingDimenisonsAutoCompleteStrings = this._anaplanMetaData.GetMissingDimensionsAutoCompletion(ctx);
+
+      if (missingDimenisonsAutoCompleteStrings.length != 0) {
+        let rangeStart = err.endColumn;
+        let startText = '[';
+        if (ctx.text.endsWith(']')) {
+          // Replace any existing square brackets
+          rangeStart -= 1;
+          startText = ', ';
+        }
+        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
+          [{
+            title: `Add in the missing mappings`,
+            diagnostics: [],
+            kind: "quickfix",
+            edit: {
+              edits: [
+                {
+                  resource: {} as any,
+                  edit: {
+                    range: {
+                      startLineNumber: err.endLineNumber,
+                      startColumn: rangeStart,
+                      endLineNumber: err.endLineNumber,
+                      endColumn: err.endColumn
+                    },
+                    text: startText + missingDimenisonsAutoCompleteStrings.join(", ") + "]"
+                  }
+                }
+              ]
+            },
+            isPreferred: true,
+          }]);
+      }
+    }
   }
 
   addFormulaError(ctx: ParserRuleContext, message: string): FormulaError | undefined {
