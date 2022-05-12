@@ -7,7 +7,7 @@ import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { AnaplanMetaData, EntityMetaData, EntityType } from "./AnaplanMetaData";
 import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, DotQualifiedEntityIncompleteContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
+import { AnaplanFormulaParser, DotQualifiedEntityIncompleteContext, EntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
 import { CollectorErrorListener } from "./CollectorErrorListener";
 import { Format } from "./Format";
 import { FormulaError } from "./FormulaError";
@@ -447,9 +447,20 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
 
     return monacoErrors;
 }
+export function getRangeFromContext(ctx: ParserRuleContext | undefined) {
+    if (ctx === undefined) return undefined;
+    return {
+        startLineNumber: ctx.start.line,
+        endLineNumber: ctx.stop?.line ?? ctx.start.line,
+        startColumn: ctx.start.charPositionInLine + 1,
+        endColumn: ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
+    };
+}
 
-export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, targetFormat: globalThis.Format | string, resultFormat: Format, err: monaco.editor.IMarkerData | undefined): void {
+export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, targetFormat: globalThis.Format | string, resultFormat: Format, err: monaco.editor.IMarkerData | undefined, ctxToFix: ParserRuleContext | undefined = undefined, messagePrefix: string | undefined = undefined): void {
     if (err === undefined) return;
+
+    let targetRange = getRangeFromContext(ctxToFix) ?? err;
 
     let targetFormatString = targetFormat instanceof Format ? targetFormat.dataType : targetFormat;
 
@@ -458,7 +469,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
         // Add a quick fix to convert the formula to text
         FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
             [{
-                title: `Convert the value to text using TEXT()`,
+                title: messagePrefix + `Convert the value to text using TEXT()`,
                 diagnostics: [],
                 kind: "quickfix",
                 edit: {
@@ -467,10 +478,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.startLineNumber,
-                                    startColumn: err.startColumn,
-                                    endLineNumber: err.startLineNumber,
-                                    endColumn: err.startColumn
+                                    startLineNumber: targetRange.startLineNumber,
+                                    startColumn: targetRange.startColumn,
+                                    endLineNumber: targetRange.startLineNumber,
+                                    endColumn: targetRange.startColumn
                                 },
                                 text: "TEXT("
                             }
@@ -479,10 +490,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.endLineNumber,
-                                    startColumn: err.endColumn,
-                                    endLineNumber: err.endLineNumber,
-                                    endColumn: err.endColumn
+                                    startLineNumber: targetRange.endLineNumber,
+                                    startColumn: targetRange.endColumn,
+                                    endLineNumber: targetRange.endLineNumber,
+                                    endColumn: targetRange.endColumn
                                 },
                                 text: ")"
                             }
@@ -497,7 +508,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
         // Add a quick fix to convert the formula to number
         FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
             [{
-                title: `Parse the text to a number using VALUE()`,
+                title: messagePrefix + `Parse the text to a number using VALUE()`,
                 diagnostics: [],
                 kind: "quickfix",
                 edit: {
@@ -506,10 +517,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.startLineNumber,
-                                    startColumn: err.startColumn,
-                                    endLineNumber: err.startLineNumber,
-                                    endColumn: err.startColumn
+                                    startLineNumber: targetRange.startLineNumber,
+                                    startColumn: targetRange.startColumn,
+                                    endLineNumber: targetRange.startLineNumber,
+                                    endColumn: targetRange.startColumn
                                 },
                                 text: "VALUE("
                             }
@@ -518,10 +529,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.endLineNumber,
-                                    startColumn: err.endColumn,
-                                    endLineNumber: err.endLineNumber,
-                                    endColumn: err.endColumn
+                                    startLineNumber: targetRange.endLineNumber,
+                                    startColumn: targetRange.endColumn,
+                                    endLineNumber: targetRange.endLineNumber,
+                                    endColumn: targetRange.endColumn
                                 },
                                 text: ")"
                             }
@@ -537,7 +548,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
         // Use FINDITEM to find the entity
         FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
             [{
-                title: `Lookup the item using FINDITEM()`,
+                title: messagePrefix + `Lookup the item using FINDITEM()`,
                 diagnostics: [],
                 kind: "quickfix",
                 edit: {
@@ -546,10 +557,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.startLineNumber,
-                                    startColumn: err.startColumn,
-                                    endLineNumber: err.startLineNumber,
-                                    endColumn: err.startColumn
+                                    startLineNumber: targetRange.startLineNumber,
+                                    startColumn: targetRange.startColumn,
+                                    endLineNumber: targetRange.startLineNumber,
+                                    endColumn: targetRange.startColumn
                                 },
                                 text: `FINDITEM(${anaplanMetaData.quoteIfNeeded(anaplanMetaData.getEntityNameFromId((targetFormat as any).hierarchyEntityLongId))}, `
                             }
@@ -558,10 +569,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.endLineNumber,
-                                    startColumn: err.endColumn,
-                                    endLineNumber: err.endLineNumber,
-                                    endColumn: err.endColumn
+                                    startLineNumber: targetRange.endLineNumber,
+                                    startColumn: targetRange.endColumn,
+                                    endLineNumber: targetRange.endLineNumber,
+                                    endColumn: targetRange.endColumn
                                 },
                                 text: ")"
                             }
@@ -576,7 +587,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
         // Use CODE() or NAME() (preferring the correct one based on the hierarchy being a numered list or not) to go from entity to text
         FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
             [{
-                title: `Get the name of the entity using NAME()`,
+                title: messagePrefix + `Get the name of the entity using NAME()`,
                 diagnostics: [],
                 kind: "quickfix",
                 edit: {
@@ -585,10 +596,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.startLineNumber,
-                                    startColumn: err.startColumn,
-                                    endLineNumber: err.startLineNumber,
-                                    endColumn: err.startColumn
+                                    startLineNumber: targetRange.startLineNumber,
+                                    startColumn: targetRange.startColumn,
+                                    endLineNumber: targetRange.startLineNumber,
+                                    endColumn: targetRange.startColumn
                                 },
                                 text: "NAME("
                             }
@@ -597,10 +608,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.endLineNumber,
-                                    startColumn: err.endColumn,
-                                    endLineNumber: err.endLineNumber,
-                                    endColumn: err.endColumn
+                                    startLineNumber: targetRange.endLineNumber,
+                                    startColumn: targetRange.endColumn,
+                                    endLineNumber: targetRange.endLineNumber,
+                                    endColumn: targetRange.endColumn
                                 },
                                 text: ")"
                             }
@@ -610,7 +621,7 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                 isPreferred: !(resultFormat.isNumberedList === true),
             },
             {
-                title: `Get the code of the entity using CODE()`,
+                title: messagePrefix + `Get the code of the entity using CODE()`,
                 diagnostics: [],
                 kind: "quickfix",
                 edit: {
@@ -619,10 +630,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.startLineNumber,
-                                    startColumn: err.startColumn,
-                                    endLineNumber: err.startLineNumber,
-                                    endColumn: err.startColumn
+                                    startLineNumber: targetRange.startLineNumber,
+                                    startColumn: targetRange.startColumn,
+                                    endLineNumber: targetRange.startLineNumber,
+                                    endColumn: targetRange.startColumn
                                 },
                                 text: "CODE("
                             }
@@ -631,10 +642,10 @@ export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, 
                             resource: {} as any,
                             edit: {
                                 range: {
-                                    startLineNumber: err.endLineNumber,
-                                    startColumn: err.endColumn,
-                                    endLineNumber: err.endLineNumber,
-                                    endColumn: err.endColumn
+                                    startLineNumber: targetRange.endLineNumber,
+                                    startColumn: targetRange.endColumn,
+                                    endLineNumber: targetRange.endLineNumber,
+                                    endColumn: targetRange.endColumn
                                 },
                                 text: ")"
                             }

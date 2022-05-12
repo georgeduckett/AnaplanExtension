@@ -1,7 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext } from './antlrclasses/AnaplanFormulaParser';
-import { AddFormatConversionQuickFixes, findAncestor, getOriginalText } from './AnaplanHelpers';
+import { AddFormatConversionQuickFixes, findAncestor, getOriginalText, getRangeFromContext } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData, EntityType } from './AnaplanMetaData';
@@ -67,7 +67,9 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     var elseExpressionResult = this.visit(ctx._elseExpression);
 
     if (thenExpressionResult.dataType != elseExpressionResult.dataType) {
-      this.addFormulaError(ctx, `Data types for each result must be the same. 'Then' is ${thenExpressionResult.dataType}, 'Else' is ${elseExpressionResult.dataType}.`);
+      let err = this.addFormulaError(ctx, `Data types for each result must be the same. 'Then' is ${thenExpressionResult.dataType}, 'Else' is ${elseExpressionResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, thenExpressionResult, elseExpressionResult, err, ctx._elseExpression, "Change the 'ELSE'; ");
+      AddFormatConversionQuickFixes(this._anaplanMetaData, elseExpressionResult, thenExpressionResult, err, ctx._thenExpression, "Change the 'THEN'; ");
       return AnaplanDataTypeStrings.UNKNOWN;
     }
 
@@ -466,14 +468,14 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       }
     }
   }
-
   addFormulaError(ctx: ParserRuleContext, message: string): FormulaError | undefined {
     let error;
+    let range = getRangeFromContext(ctx)!;
     error = new FormulaError(
-      ctx.start.line,
-      ctx.stop?.line ?? ctx.start.line,
-      ctx.start.charPositionInLine + 1,
-      ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
+      range.startLineNumber,
+      range.endLineNumber,
+      range.startColumn,
+      range.endColumn,
       message)
     this.formulaErrors.push(error);
     return error;

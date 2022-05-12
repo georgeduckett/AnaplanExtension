@@ -13,7 +13,12 @@ export class FormulaQuickFixesCodeActionProvider implements monaco.languages.Cod
         this.markerToQuickFix.clear();
     }
     public static setMarkerQuickFix(marker: monaco.editor.IMarkerData, quickFixes: monaco.languages.CodeAction[]) {
-        this.markerToQuickFix.set(marker, quickFixes);
+        if (this.markerToQuickFix.has(marker)) {
+            this.markerToQuickFix.set(marker, quickFixes.concat(this.markerToQuickFix.get(marker)!));
+        }
+        else {
+            this.markerToQuickFix.set(marker, quickFixes);
+        }
     }
     provideCodeActions(model: monaco.editor.ITextModel, range: monaco.Range, context: monaco.languages.CodeActionContext, token: monaco.CancellationToken): monaco.languages.ProviderResult<monaco.languages.CodeActionList> {
         const actions = context.markers.flatMap(error => {
