@@ -256,7 +256,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                                 }
 
                                 if (extraSelectorStrings.length != 0) {
-                                    entityNames.push(new CompletionItem(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], 'Missing dimensions', new MarkdownString('```\r\n' + extraSelectorStrings.join('  \r\n') + '\r\n```'), '**' + extraSelectorStrings.join(', ')));
+                                    entityNames.push(new CompletionItem(extraSelectorStrings.join(', ').replace("'", ""), extraSelectorStrings.join(', '), monaco.languages.CompletionItemKind.Function, [']'], 'Missing dimensions', new MarkdownString('```\r\n' + extraSelectorStrings.join('  \r\n') + '\r\n```'), '**' + extraSelectorStrings.join(', '), true));
                                 }
                             }
                         }

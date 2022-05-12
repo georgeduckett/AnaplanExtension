@@ -1,7 +1,7 @@
 import { editor, IMarkdownString, IRange } from "monaco-editor";
 
 export class CompletionItem implements monaco.languages.CompletionItem {
-    public constructor(label: string, insertText: string, kind: monaco.languages.CompletionItemKind, commitCharacters: string[] | undefined, detail: string | undefined = undefined, documentation: IMarkdownString | undefined = undefined, sortText: string | undefined = undefined, range: monaco.IRange | undefined = undefined) {
+    public constructor(label: string, insertText: string, kind: monaco.languages.CompletionItemKind, commitCharacters: string[] | undefined, detail: string | undefined = undefined, documentation: IMarkdownString | undefined = undefined, sortText: string | undefined = undefined, preSelect: boolean | undefined = undefined, range: monaco.IRange | undefined = undefined) {
         this.label = label;
         this.kind = kind;
         this.insertText = insertText;
@@ -9,6 +9,7 @@ export class CompletionItem implements monaco.languages.CompletionItem {
         this.detail = detail;
         this.documentation = documentation;
         this.range = range ?? { startLineNumber: 0, startColumn: 0, endLineNumber: 0, endColumn: 0 };
+        this.preselect = preSelect;
     }
     insertText: string;
     range: monaco.IRange | { insert: monaco.IRange; replace: monaco.IRange; };
