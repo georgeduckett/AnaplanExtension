@@ -469,15 +469,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
   addFormulaError(ctx: ParserRuleContext, message: string): FormulaError | undefined {
     let error;
-    if (ctx instanceof ParserRuleContext) {
-      error = new FormulaError(
-        ctx.start.line,
-        ctx.stop?.line ?? ctx.start.line,
-        ctx.start.charPositionInLine + 1,
-        ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
-        message)
-      this.formulaErrors.push(error);
-    }
+    error = new FormulaError(
+      ctx.start.line,
+      ctx.stop?.line ?? ctx.start.line,
+      ctx.start.charPositionInLine + 1,
+      ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
+      message)
+    this.formulaErrors.push(error);
     return error;
   }
 }
