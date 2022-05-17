@@ -109,7 +109,8 @@ export class AnaplanMetaData {
     }
 
     getNameFromComponents(entityMetaData: EntityMetaData) {
-        if (entityMetaData.qualifier === undefined) {
+        // Don't include the qualifier if it's from the same module as the current line item
+        if (entityMetaData.qualifier === undefined || entityMetaData.qualifier === this._moduleName) {
             return this.quoteIfNeeded(entityMetaData.name);
         }
         else {
@@ -482,7 +483,6 @@ export class AnaplanMetaData {
     private TryAddPossibleEntry(possibleEntities: { entityMetaData: EntityMetaData; aggregateFunction: string; }[], extraSelectorStrings: string[]) {
         let possibleEntitiesExisting = this.getAggregateEntries().filter(ee => possibleEntities.filter(pe => ee.aggregateFunction.startsWith('LOOKUP') === pe.aggregateFunction.startsWith('LOOKUP') && ee.entityMetaData.qualifier === pe.entityMetaData.qualifier && ee.entityMetaData.name === pe.entityMetaData.name).length != 0);
         let possibleEntitiesPropOnly = possibleEntities.filter(pe => pe.entityMetaData.qualifier?.startsWith('PROP ') ?? false);
-
         // Use an existing mapping if available since that would have the correct aggregation function
         if (possibleEntitiesExisting.length === 1) {
             extraSelectorStrings.push(`${possibleEntitiesExisting[0].aggregateFunction}: ${this.getNameFromComponents(possibleEntitiesExisting[0].entityMetaData)}`);

@@ -13,7 +13,7 @@ import { Format } from './Format';
 import { deserialisedAggregateFunctions, deserialisedFunctions, deserialisedKeywords } from './.generateAnaplanData/FunctionInfo';
 import { FormulaQuickFixesCodeActionProvider } from '../Monaco/FormulaQuickFixesCodeActionProvider';
 
-export let entitySpecialCharSelector = '[^A-z\s%#£\?]';
+export let entitySpecialCharSelector = '[^A-z\\s%#£$\\?_]';
 
 export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor<Format> implements AnaplanFormulaVisitor<Format> {
   public readonly _anaplanMetaData: AnaplanMetaData;

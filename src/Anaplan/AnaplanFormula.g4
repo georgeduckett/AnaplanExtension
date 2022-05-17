@@ -70,7 +70,7 @@ fragment NUMBER: DIGIT+ (DOT DIGIT+)?;
 fragment DIGIT: [0-9];
 fragment LOWERCASE: [a-z];
 fragment UPPERCASE: [A-Z];
-fragment WORDSYMBOL: [#?_£%];
+fragment WORDSYMBOL: [%#£$?_];
 
 //////////////////
 // Tokens // ////////////////

@@ -158,7 +158,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     }
                 }
             }
-        }
+        } // TODO: Look into the error reported on the anaplan message.
         if (!foundKeyword) {
             let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
             // TODO: Prefer line items that match missing dimension types when after a selector (e.g. LOOKUP: ....)
