@@ -78,10 +78,14 @@ export class AnaplanMetaData {
             let dimensionMappings = findDescendents(myparser.formula(), DimensionmappingContext);
             for (let j = 0; j < dimensionMappings.length; j++) {
                 let aggregateFunction = dimensionMappings[j].dimensionmappingselector().text;
+                if (aggregateFunction === "SELECT") {
+                    continue; // TODO: Maybe add something in aggregateEntries in this case?
+                }
+
                 let entityLineItem = this.getItemInfoFromEntityContext(dimensionMappings[j].entity(), li.qualifier);
 
                 if (entityLineItem === undefined) {
-                    throw new Error("Could not find entity: " + dimensionMappings[j].entity().text + " in formula: " + li.lineItemInfo.formula);
+                    console.error("Could not find entity: " + dimensionMappings[j].entity().text + " in formula: " + li.lineItemInfo.formula);
                 }
                 else {
                     if (this._aggregateEntries.find(ae => ae.aggregateFunction === aggregateFunction &&
