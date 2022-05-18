@@ -6,7 +6,7 @@ import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor"
 import { unQuoteEntity, getOriginalText, anaplanTimeEntityBaseId, findDescendents } from "./AnaplanHelpers";
 import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
 import { EntityContext, QuotedEntityContext, WordsEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, DimensionmappingContext, AnaplanFormulaParser, DotQualifiedEntityIncompleteContext } from "./antlrclasses/AnaplanFormulaParser";
-import { DefaultCodeCompleteAggregation } from "./Format";
+import { DefaultCodeCompleteAggregation, Format } from "./Format";
 
 export function assertUnreachable(x: never): never {
     throw new Error("Didn't expect to get here");
@@ -79,7 +79,23 @@ export class AnaplanMetaData {
             for (let j = 0; j < dimensionMappings.length; j++) {
                 let aggregateFunction = dimensionMappings[j].dimensionmappingselector().text;
                 if (aggregateFunction === "SELECT") {
-                    continue; // TODO: Maybe add something in aggregateEntries in this case?
+                    let splitName = dimensionMappings[j].entity().text.split('.');
+                    if (splitName.length === 2) {
+                        this._aggregateEntries.push({
+                            entityMetaData: new EntityMetaData({
+                                parentLineItemEntityLongId: -1,
+                                fullAppliesTo: [],
+                                formulaScope: '',
+                                isSummary: false,
+                                format: AnaplanDataTypeStrings.ENTITY(this.getEntityIdFromName(splitName[0])),
+                            },
+                                EntityType.HierarchyListItem,
+                                splitName[0],
+                                splitName[1]), aggregateFunction: aggregateFunction
+                        });
+                    }
+
+                    continue;
                 }
 
                 let entityLineItem = this.getItemInfoFromEntityContext(dimensionMappings[j].entity(), li.qualifier);
