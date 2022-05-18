@@ -1,7 +1,7 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
 import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext } from './antlrclasses/AnaplanFormulaParser';
-import { AddFormatConversionQuickFixes, findAncestor, getOriginalText, getRangeFromContext } from './AnaplanHelpers';
+import { AddFormatConversionQuickFixes, AddTextSurroundQuickFix, findAncestor, getOriginalText, getRangeFromContext } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
 import { AnaplanMetaData, EntityType } from './AnaplanMetaData';
@@ -81,11 +81,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let rightResult = this.visit(ctx._right);
 
     if (leftResult.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
-      this.addFormulaError(ctx._left, `Expected a Boolean, but found ${leftResult.dataType}.`);
+      let err = this.addFormulaError(ctx._left, `Expected a Boolean, but found ${leftResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.BOOLEAN, leftResult, err);
     }
 
     if (rightResult.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
-      this.addFormulaError(ctx._right, `Expected a Boolean, but found ${rightResult.dataType}.`);
+      let err = this.addFormulaError(ctx._right, `Expected a Boolean, but found ${rightResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.BOOLEAN, rightResult, err);
     }
 
     return AnaplanDataTypeStrings.BOOLEAN;
@@ -96,11 +98,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let rightResult = this.visit(ctx._right);
 
     if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
-      this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
+      let err = this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.NUMBER, leftResult, err);
     }
 
     if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType) {
-      this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
+      let err = this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.NUMBER, rightResult, err);
     }
     return AnaplanDataTypeStrings.NUMBER;
   }
@@ -112,19 +116,48 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let leftIsDateType = leftResult.dataType === AnaplanDataTypeStrings.DATE.dataType || leftResult.dataType === AnaplanDataTypeStrings.TIME_ENTITY.dataType;
     let rightIsDateType = rightResult.dataType === AnaplanDataTypeStrings.DATE.dataType || rightResult.dataType === AnaplanDataTypeStrings.TIME_ENTITY.dataType;
 
-    // TODO: Special case both left and right being strings. Suggest a fix of using concatenation
-
-    // Left isn't a number or a date
-    if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType && !leftIsDateType) {
-      let err = this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
-      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.NUMBER, leftResult, err);
+    // Special case both left and right being strings. Suggest a fix of using concatenation
+    if (leftResult.dataType === AnaplanDataTypeStrings.TEXT.dataType &&
+      rightResult.dataType === AnaplanDataTypeStrings.TEXT.dataType &&
+      ctx._op.text === '+') {
+      let err = this.addFormulaError(ctx, `Cannot use '+' to concatenate text, use '&' instead.`);
+      let range = getRangeFromContext(ctx._op)!;
+      FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err!,
+        [{
+          title: `Use an ampersand to concatenate the text`,
+          diagnostics: [],
+          kind: "quickfix",
+          edit: {
+            edits: [
+              {
+                resource: {} as any,
+                edit: {
+                  range: {
+                    startLineNumber: range.startLineNumber,
+                    startColumn: range.startColumn,
+                    endLineNumber: range.endLineNumber,
+                    endColumn: range.endColumn
+                  },
+                  text: '&'
+                }
+              }
+            ]
+          },
+          isPreferred: true,
+        }]);
     }
-    // Right isn't a number or a date
-    if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType && !rightIsDateType) {
-      let err = this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
-      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.NUMBER, rightResult, err);
+    else {
+      // Left isn't a number or a date
+      if (leftResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType && !leftIsDateType) {
+        let err = this.addFormulaError(ctx._left, `Expected a Number, but found ${leftResult.dataType}.`);
+        AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.NUMBER, leftResult, err);
+      }
+      // Right isn't a number or a date
+      if (rightResult.dataType != AnaplanDataTypeStrings.NUMBER.dataType && !rightIsDateType) {
+        let err = this.addFormulaError(ctx._right, `Expected a Number, but found ${rightResult.dataType}.`);
+        AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.NUMBER, rightResult, err);
+      }
     }
-
 
     // If the left is a date and not the right, then use the left result
     if (leftIsDateType && !rightIsDateType) {
@@ -167,7 +200,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
   visitNotExp(ctx: NotExpContext): Format {
     let format = this.visit(ctx.expression());
     if (format.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
-      this.addFormulaError(ctx, `Expected a Boolean, but found ${format.dataType}.`);
+      let err = this.addFormulaError(ctx, `Expected a Boolean, but found ${format.dataType}.`);
+      AddFormatConversionQuickFixes(this._anaplanMetaData, AnaplanDataTypeStrings.BOOLEAN, format, err);
     }
     return format;
   }
@@ -251,6 +285,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
 
     this.addFormulaError(ctx.functionname(), `Unknown function ${functionName}.`);
+    // TODO: Add quickfixes for suggested function names?
     return AnaplanDataTypeStrings.UNKNOWN;
   }
 
@@ -287,6 +322,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         default: // If it's an aggregation we check the target entity mappings
           if (!deserialisedAggregateFunctions.has(selectorType.toUpperCase())) {
             this.addFormulaError(dimensionMapping.dimensionmappingselector(), `Unknown aggregation function '${selectorType}'`);
+            // TODO: Suggest similarly spelt aggregation functions
           }
 
           if (["ANY", "ALL"].includes(selectorType.toUpperCase()) && visitEntityResult.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
@@ -373,7 +409,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     }
 
     if (ctx.text.match(entitySpecialCharSelector) != null && !(ctx.text.endsWith("'") && ctx.text.startsWith("'"))) {
-      this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
+      let err = this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
+      AddTextSurroundQuickFix(this._anaplanMetaData, "'", "'", err, ctx, "Add single quotes", true);
     }
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext) &&
@@ -400,8 +437,77 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
 
     if ((ctx._left.text.match(entitySpecialCharSelector) != null && !(ctx._left.text.endsWith("'") && ctx._left.text.startsWith("'"))) ||
       (ctx._right.text.match(entitySpecialCharSelector) != null) && !(ctx._right.text.endsWith("'") && ctx._right.text.startsWith("'"))) {
-      this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
-      // TODO: Add quick fix to surround with single quotes
+      let err = this.addFormulaError(ctx, `Entities containing certain characters must be be enclosed in single quotes.`);
+      // Add quick fix to surround with single quotes as appropriate
+      let edits = [];
+
+      if (ctx._left.text.match(entitySpecialCharSelector) != null && !(ctx._left.text.endsWith("'") && ctx._left.text.startsWith("'"))) {
+        let targetRange = getRangeFromContext(ctx._left)!;
+
+        edits.push({
+          resource: {} as any,
+          edit: {
+            range: {
+              startLineNumber: targetRange.startLineNumber,
+              startColumn: targetRange.startColumn,
+              endLineNumber: targetRange.startLineNumber,
+              endColumn: targetRange.startColumn
+            },
+            text: "'"
+          }
+        });
+        edits.push({
+          resource: {} as any,
+          edit: {
+            range: {
+              startLineNumber: targetRange.endLineNumber,
+              startColumn: targetRange.endColumn,
+              endLineNumber: targetRange.endLineNumber,
+              endColumn: targetRange.endColumn
+            },
+            text: "'"
+          }
+        });
+      }
+      if (ctx._right.text.match(entitySpecialCharSelector) != null && !(ctx._right.text.endsWith("'") && ctx._right.text.startsWith("'"))) {
+        let targetRange = getRangeFromContext(ctx._right)!;
+
+        edits.push({
+          resource: {} as any,
+          edit: {
+            range: {
+              startLineNumber: targetRange.startLineNumber,
+              startColumn: targetRange.startColumn,
+              endLineNumber: targetRange.startLineNumber,
+              endColumn: targetRange.startColumn
+            },
+            text: "'"
+          }
+        });
+        edits.push({
+          resource: {} as any,
+          edit: {
+            range: {
+              startLineNumber: targetRange.endLineNumber,
+              startColumn: targetRange.endColumn,
+              endLineNumber: targetRange.endLineNumber,
+              endColumn: targetRange.endColumn
+            },
+            text: "'"
+          }
+        });
+      }
+
+      FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err!,
+        [{
+          title: 'Add surrounding single quotes',
+          diagnostics: [],
+          kind: "quickfix",
+          edit: {
+            edits: edits
+          },
+          isPreferred: true,
+        }]);
     }
 
     if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext) &&

@@ -1,4 +1,4 @@
-import { CharStreams, CommonTokenStream, ParserRuleContext } from "antlr4ts";
+import { CharStreams, CommonTokenStream, ParserRuleContext, Token } from "antlr4ts";
 import { Interval } from "antlr4ts/misc/Interval";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { hoverProvider } from "../content-script-main";
@@ -447,216 +447,96 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
 
     return monacoErrors;
 }
-export function getRangeFromContext(ctx: ParserRuleContext | undefined) {
+export function getRangeFromContext(ctx: ParserRuleContext | Token | undefined) {
     if (ctx === undefined) return undefined;
-    return {
-        startLineNumber: ctx.start.line,
-        endLineNumber: ctx.stop?.line ?? ctx.start.line,
-        startColumn: ctx.start.charPositionInLine + 1,
-        endColumn: ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
-    };
+    if (ctx instanceof ParserRuleContext) {
+        return {
+            startLineNumber: ctx.start.line,
+            endLineNumber: ctx.stop?.line ?? ctx.start.line,
+            startColumn: ctx.start.charPositionInLine + 1,
+            endColumn: ctx.stop === undefined ? ctx.start.charPositionInLine + 1 + (ctx.start.stopIndex - ctx.start.startIndex) + 1 : ctx.stop.charPositionInLine + 1 + (ctx.stop.stopIndex - ctx.stop.startIndex) + 1,
+        };
+    }
+    else {
+        return {
+            startLineNumber: ctx.line,
+            endLineNumber: ctx.line,
+            startColumn: ctx.charPositionInLine + 1,
+            endColumn: ctx.stopIndex === undefined ? ctx.charPositionInLine + 1 + (ctx.stopIndex - ctx.startIndex) + 1 : ctx.charPositionInLine + 1 + (ctx.stopIndex - ctx.startIndex) + 1,
+        };
+    }
 }
 
 function hasOwnProperty<X extends {}>(obj: X, prop: string): obj is X & Record<string, unknown> {
     return obj.hasOwnProperty(prop)
+}
+
+export function AddTextSurroundQuickFix(anaplanMetaData: AnaplanMetaData, prefix: string, suffix: string, err: monaco.editor.IMarkerData | undefined, ctxToFix: ParserRuleContext | undefined, message: string, isPreferred: boolean): void {
+    if (err === undefined) return;
+
+    let targetRange = getRangeFromContext(ctxToFix) ?? err;
+    FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
+        [{
+            title: message,
+            diagnostics: [],
+            kind: "quickfix",
+            edit: {
+                edits: [
+                    {
+                        resource: {} as any,
+                        edit: {
+                            range: {
+                                startLineNumber: targetRange.startLineNumber,
+                                startColumn: targetRange.startColumn,
+                                endLineNumber: targetRange.startLineNumber,
+                                endColumn: targetRange.startColumn
+                            },
+                            text: prefix
+                        }
+                    },
+                    {
+                        resource: {} as any,
+                        edit: {
+                            range: {
+                                startLineNumber: targetRange.endLineNumber,
+                                startColumn: targetRange.endColumn,
+                                endLineNumber: targetRange.endLineNumber,
+                                endColumn: targetRange.endColumn
+                            },
+                            text: suffix
+                        }
+                    }
+                ]
+            },
+            isPreferred: isPreferred,
+        }]);
 }
 export function AddFormatConversionQuickFixes(anaplanMetaData: AnaplanMetaData, targetFormat: Format | string, resultFormat: Format, err: monaco.editor.IMarkerData | undefined, ctxToFix: ParserRuleContext | undefined = undefined, messagePrefix: string | undefined = undefined): void {
     if (err === undefined) return;
 
     messagePrefix ??= "";
 
-    let targetRange = getRangeFromContext(ctxToFix) ?? err;
     let targetFormatString = hasOwnProperty(targetFormat, 'dataType') ? targetFormat.dataType : targetFormat;
     if (targetFormatString === AnaplanDataTypeStrings.TEXT.dataType &&
         resultFormat.dataType === AnaplanDataTypeStrings.NUMBER.dataType) {
         // Add a quick fix to convert the formula to text
-        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
-            [{
-                title: messagePrefix + `Convert the value to text using TEXT()`,
-                diagnostics: [],
-                kind: "quickfix",
-                edit: {
-                    edits: [
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.startLineNumber,
-                                    startColumn: targetRange.startColumn,
-                                    endLineNumber: targetRange.startLineNumber,
-                                    endColumn: targetRange.startColumn
-                                },
-                                text: "TEXT("
-                            }
-                        },
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.endLineNumber,
-                                    startColumn: targetRange.endColumn,
-                                    endLineNumber: targetRange.endLineNumber,
-                                    endColumn: targetRange.endColumn
-                                },
-                                text: ")"
-                            }
-                        }
-                    ]
-                },
-                isPreferred: true,
-            }]);
+        AddTextSurroundQuickFix(anaplanMetaData, "TEXT(", ")", err, ctxToFix, messagePrefix + "Convert using TEXT()", true);
     }
     else if (targetFormatString === AnaplanDataTypeStrings.NUMBER.dataType &&
         resultFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType) {
-        // Add a quick fix to convert the formula to number
-        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
-            [{
-                title: messagePrefix + `Parse the text to a number using VALUE()`,
-                diagnostics: [],
-                kind: "quickfix",
-                edit: {
-                    edits: [
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.startLineNumber,
-                                    startColumn: targetRange.startColumn,
-                                    endLineNumber: targetRange.startLineNumber,
-                                    endColumn: targetRange.startColumn
-                                },
-                                text: "VALUE("
-                            }
-                        },
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.endLineNumber,
-                                    startColumn: targetRange.endColumn,
-                                    endLineNumber: targetRange.endLineNumber,
-                                    endColumn: targetRange.endColumn
-                                },
-                                text: ")"
-                            }
-                        }
-                    ]
-                },
-                isPreferred: true,
-            }]);
+        AddTextSurroundQuickFix(anaplanMetaData, "VALUE(", ")", err, ctxToFix, messagePrefix + "Convert using VALUE()", true);
     }
     // Add a quick fix to convert from text to entity (using FINDITEM)
     else if ((targetFormat as any).hierarchyEntityLongId !== undefined &&
         resultFormat.dataType === AnaplanDataTypeStrings.TEXT.dataType) {
         // Use FINDITEM to find the entity
-        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
-            [{
-                title: messagePrefix + `Lookup the item using FINDITEM()`,
-                diagnostics: [],
-                kind: "quickfix",
-                edit: {
-                    edits: [
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.startLineNumber,
-                                    startColumn: targetRange.startColumn,
-                                    endLineNumber: targetRange.startLineNumber,
-                                    endColumn: targetRange.startColumn
-                                },
-                                text: `FINDITEM(${anaplanMetaData.quoteIfNeeded(anaplanMetaData.getEntityNameFromId((targetFormat as any).hierarchyEntityLongId))}, `
-                            }
-                        },
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.endLineNumber,
-                                    startColumn: targetRange.endColumn,
-                                    endLineNumber: targetRange.endLineNumber,
-                                    endColumn: targetRange.endColumn
-                                },
-                                text: ")"
-                            }
-                        }
-                    ]
-                },
-                isPreferred: true,
-            }]);
+        AddTextSurroundQuickFix(anaplanMetaData, `FINDITEM(${anaplanMetaData.quoteIfNeeded(anaplanMetaData.getEntityNameFromId((targetFormat as any).hierarchyEntityLongId))}, `, ")", err, ctxToFix, messagePrefix + "Lookup the item using FINDITEM()", true);
     }
     else if (targetFormatString === AnaplanDataTypeStrings.TEXT.dataType &&
         resultFormat.dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
         // Use CODE() or NAME() (preferring the correct one based on the hierarchy being a numered list or not) to go from entity to text
-        FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
-            [{
-                title: messagePrefix + `Get the name of the entity using NAME()`,
-                diagnostics: [],
-                kind: "quickfix",
-                edit: {
-                    edits: [
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.startLineNumber,
-                                    startColumn: targetRange.startColumn,
-                                    endLineNumber: targetRange.startLineNumber,
-                                    endColumn: targetRange.startColumn
-                                },
-                                text: "NAME("
-                            }
-                        },
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.endLineNumber,
-                                    startColumn: targetRange.endColumn,
-                                    endLineNumber: targetRange.endLineNumber,
-                                    endColumn: targetRange.endColumn
-                                },
-                                text: ")"
-                            }
-                        }
-                    ]
-                },
-                isPreferred: !(resultFormat.isNumberedList === true),
-            },
-            {
-                title: messagePrefix + `Get the code of the entity using CODE()`,
-                diagnostics: [],
-                kind: "quickfix",
-                edit: {
-                    edits: [
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.startLineNumber,
-                                    startColumn: targetRange.startColumn,
-                                    endLineNumber: targetRange.startLineNumber,
-                                    endColumn: targetRange.startColumn
-                                },
-                                text: "CODE("
-                            }
-                        },
-                        {
-                            resource: {} as any,
-                            edit: {
-                                range: {
-                                    startLineNumber: targetRange.endLineNumber,
-                                    startColumn: targetRange.endColumn,
-                                    endLineNumber: targetRange.endLineNumber,
-                                    endColumn: targetRange.endColumn
-                                },
-                                text: ")"
-                            }
-                        }
-                    ]
-                },
-                isPreferred: resultFormat.isNumberedList === true,
-            }]);
+        AddTextSurroundQuickFix(anaplanMetaData, "NAME(", ")", err, ctxToFix, messagePrefix + "Get the name of the entity using NAME()", !(resultFormat.isNumberedList === true));
+        AddTextSurroundQuickFix(anaplanMetaData, "CODE(", ")", err, ctxToFix, messagePrefix + "Get the code of the entity using CODE()", (resultFormat.isNumberedList === true));
     }
 }
 
