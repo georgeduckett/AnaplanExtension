@@ -162,6 +162,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         if (!foundKeyword) {
             let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
             // TODO: Prefer line items that match missing dimension types when after a selector (e.g. LOOKUP: ....)
+            // TODO: Don't autocomplete invalid entity types (e.g. a hierarchy when we don't expect one and anything other than a hiearchy when we do)
             for (let candidate of candidates.rules) {
                 switch (candidate[0]) {
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
