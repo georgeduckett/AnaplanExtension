@@ -290,7 +290,6 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let closeFunctionNames = Array.from(FunctionsInfo.keys()).filter(f => f[0] === functionName[0] && levenshteinDistance(f, functionName) <= (functionName.length >>> 1));
     if (closeFunctionNames.length > 0) {
 
-      let targetRange = getRangeFromContext(ctx.functionname())!;
       FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err!, closeFunctionNames.flatMap(f => [{
         title: `Change to ${f}`,
         diagnostics: [],
@@ -300,7 +299,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
             {
               resource: {} as any,
               edit: {
-                range: targetRange,
+                range: err,
                 text: f
               }
             }
@@ -321,6 +320,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     let dimensionMappings = ctx.dimensionmapping();
 
     let visitEntityResult = this.visit(ctx.entity());
+    let foundUnknownAggregation = false;
 
     for (let i = 0; i < dimensionMappings.length; i++) {
       let dimensionMapping = dimensionMappings[i];
@@ -345,8 +345,29 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       switch (selectorType.toUpperCase()) {
         default: // If it's an aggregation we check the target entity mappings
           if (!deserialisedAggregateFunctions.has(selectorType.toUpperCase())) {
-            this.addFormulaError(dimensionMapping.dimensionmappingselector(), `Unknown aggregation function '${selectorType}'`);
-            // TODO: Suggest similarly spelt aggregation functions
+            foundUnknownAggregation = true;
+            let err = this.addFormulaError(dimensionMapping.dimensionmappingselector(), `Unknown aggregation function '${selectorType}'`);
+            // Suggest similarly spelt aggregation functions
+            let closeFunctionNames = Array.from(deserialisedAggregateFunctions.keys()).filter(f => f[0] === selectorType[0] && levenshteinDistance(f, selectorType) <= (selectorType.length >>> 1));
+            if (closeFunctionNames.length > 0) {
+              FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err!, closeFunctionNames.flatMap(f => [{
+                title: `Change to ${f}`,
+                diagnostics: [],
+                kind: "quickfix",
+                edit: {
+                  edits: [
+                    {
+                      resource: {} as any,
+                      edit: {
+                        range: err,
+                        text: f
+                      }
+                    }
+                  ]
+                },
+                isPreferred: false,
+              }]));
+            }
           }
 
           if (["ANY", "ALL"].includes(selectorType.toUpperCase()) && visitEntityResult.dataType != AnaplanDataTypeStrings.BOOLEAN.dataType) {
@@ -361,7 +382,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       }
     }
 
-    if (extraSourceEntityMappings.length != 0) { //&& extraTargetEntityMappings.length != 0) {
+    if (!foundUnknownAggregation && extraSourceEntityMappings.length != 0) { //&& extraTargetEntityMappings.length != 0) {
       this.addMissingDimensionsFormulaError(ctx, extraSourceEntityMappings, extraTargetEntityMappings);
     }
 
