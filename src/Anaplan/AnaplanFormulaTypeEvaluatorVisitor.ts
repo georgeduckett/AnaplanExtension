@@ -12,6 +12,7 @@ import { AnaplanDataTypeStrings } from './AnaplanDataTypeStrings';
 import { Format } from './Format';
 import { deserialisedAggregateFunctions, deserialisedFunctions, deserialisedKeywords } from './.generateAnaplanData/FunctionInfo';
 import { FormulaQuickFixesCodeActionProvider } from '../Monaco/FormulaQuickFixesCodeActionProvider';
+import { levenshteinDistance } from './LevenshteinDistance';
 
 export let entitySpecialCharSelector = '[^A-z\\s%#£$\\?_]';
 
@@ -122,7 +123,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       ctx._op.text === '+') {
       let err = this.addFormulaError(ctx, `Cannot use '+' to concatenate text, use '&' instead.`);
       let range = getRangeFromContext(ctx._op)!;
-      FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err!,
+      FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
         [{
           title: `Use an ampersand to concatenate the text`,
           diagnostics: [],
@@ -284,8 +285,31 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       }
     }
 
-    this.addFormulaError(ctx.functionname(), `Unknown function ${functionName}.`);
-    // TODO: Add quickfixes for suggested function names?
+    let err = this.addFormulaError(ctx.functionname(), `Unknown function ${functionName}.`);
+    // find any close function names and suggest the closest ones that start with the same letter
+    let closeFunctionNames = Array.from(FunctionsInfo.keys()).filter(f => f[0] === functionName[0] && levenshteinDistance(f, functionName) <= (functionName.length >>> 1));
+    if (closeFunctionNames.length > 0) {
+
+      let targetRange = getRangeFromContext(ctx.functionname())!;
+      FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err!, closeFunctionNames.flatMap(f => [{
+        title: `Change to ${f}`,
+        diagnostics: [],
+        kind: "quickfix",
+        edit: {
+          edits: [
+            {
+              resource: {} as any,
+              edit: {
+                range: targetRange,
+                text: f
+              }
+            }
+          ]
+        },
+        isPreferred: false,
+      }]));
+    }
+
     return AnaplanDataTypeStrings.UNKNOWN;
   }
 
@@ -574,7 +598,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       }
     }
   }
-  addFormulaError(ctx: ParserRuleContext, message: string): FormulaError | undefined {
+  addFormulaError(ctx: ParserRuleContext, message: string): FormulaError {
     let error;
     let range = getRangeFromContext(ctx)!;
     error = new FormulaError(
