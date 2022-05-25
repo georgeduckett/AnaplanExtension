@@ -87,7 +87,7 @@ export class AnaplanMetaData {
                                 fullAppliesTo: [],
                                 formulaScope: '',
                                 isSummary: false,
-                                format: AnaplanDataTypeStrings.ENTITY(this.getEntityIdFromName(splitName[0])),
+                                format: this.getItemInfoFromEntityName(splitName[0])?.lineItemInfo.format ?? AnaplanDataTypeStrings.ENTITY(this.getEntityIdFromName(splitName[0])),
                             },
                                 EntityType.HierarchyListItem,
                                 splitName[0],

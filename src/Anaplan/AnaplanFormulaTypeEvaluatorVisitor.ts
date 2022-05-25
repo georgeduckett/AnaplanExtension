@@ -244,10 +244,34 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if (FunctionsInfo.has(functionName)) {
       let funcInfo = deserialisedFunctions.get(functionName);
       if (funcInfo != undefined) {
-        // TODO: Warn that it makes no sense to get the CODE of a non-numbered list or NAME of a numbered list
         // Check function parameters
         let actualParams = ctx.expression();
         let actualFormats = actualParams.map(param => this.visit(param)); // We still get the actual format even if we don't have one to check against as we want to get any errors in the params
+
+        // Warn that it is unlikely they want to get the NAME of a numbered list
+        if (functionName === 'NAME' && actualFormats.length === 1 && actualFormats[0].dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
+          if (actualFormats[0].isNumberedList) {
+            let err = this.addFormulaError(ctx, `The NAME of a numbered list item is just the number, did you mean to get the CODE instead?`, 4); // 4 = warning
+            FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
+              [{
+                title: 'Change to CODE',
+                diagnostics: [],
+                kind: "quickfix",
+                edit: {
+                  edits: [
+                    {
+                      resource: {} as any,
+                      edit: {
+                        range: getRangeFromContext(ctx.functionname())!,
+                        text: 'CODE'
+                      }
+                    },
+                  ]
+                },
+                isPreferred: true,
+              }]);
+          }
+        }
 
         for (let funcIndex = 0; funcIndex < funcInfo?.length; funcIndex++) {
           let signatureParams = funcInfo[funcIndex]?.paramInfo ?? [];
@@ -619,7 +643,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       }
     }
   }
-  addFormulaError(ctx: ParserRuleContext, message: string): FormulaError {
+  addFormulaError(ctx: ParserRuleContext, message: string, severity: number = 8): FormulaError {
     let error;
     let range = getRangeFromContext(ctx)!;
     error = new FormulaError(
@@ -627,7 +651,8 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       range.endLineNumber,
       range.startColumn,
       range.endColumn,
-      message)
+      message,
+      severity)
     this.formulaErrors.push(error);
     return error;
   }

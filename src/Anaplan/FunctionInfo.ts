@@ -16,7 +16,7 @@ let itemFunc = (visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParameteri
         return AnaplanDataTypeStrings.TIME_ENTITY;
     }
     else {
-        return AnaplanDataTypeStrings.ENTITY(visitor._anaplanMetaData.getEntityIdFromName(itemName));
+        return visitor._anaplanMetaData.getItemInfoFromEntityName(itemName)?.lineItemInfo.format ?? AnaplanDataTypeStrings.ENTITY(visitor._anaplanMetaData.getEntityIdFromName(itemName));
     }
 }
 let parentFunc = (visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParameterisedContext) => {
@@ -42,7 +42,7 @@ let parentFunc = (visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParamete
                 return AnaplanDataTypeStrings.UNKNOWN;
             }
 
-            return AnaplanDataTypeStrings.ENTITY(parentEntityId);
+            return visitor._anaplanMetaData.getItemInfoFromEntityName(visitor._anaplanMetaData.getEntityNameFromId(parentEntityId))?.lineItemInfo.format ?? AnaplanDataTypeStrings.ENTITY(parentEntityId);
         }
 
     }
