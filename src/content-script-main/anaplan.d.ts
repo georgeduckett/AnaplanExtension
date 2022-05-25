@@ -80,13 +80,13 @@ declare interface PropertiesLabelPage {
     guid?: any;
     nestingCount: number;
     count: number;
-    entityIds: any[];
+    entityIds: string[];
     entityCodes: any[];
     entityLongIds: any[];
     parentEntityLongIds: any[];
     isEditable: any[];
     isAggregate: any[];
-    labels: any[];
+    labels: string[];
     treeLineSequences: any[];
     canDelete: any[];
     canInsertSibling: any[];

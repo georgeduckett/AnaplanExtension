@@ -103,7 +103,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                     anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemInfos[j],
                     EntityType.LineItem,
                     anaplan.data.ModelContentCache._modelInfo.modulesLabelPage.labels[0][i],
-                    anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j]));
+                    anaplan.data.ModelContentCache._modelInfo.moduleInfos[i].lineItemsLabelPage.labels[0][j],
+                    undefined));
 
                 if (dataTypeString === AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
 
@@ -161,7 +162,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
             },
                 EntityType.HierarchyProperty,
                 anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
-                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j]));
+                anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i].propertiesLabelPage.labels[j],
+                undefined));
         }
 
         // Add in the hierarchy itself as an entity
@@ -177,7 +179,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         },
             EntityType.Hierarchy,
             undefined,
-            anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i]));
+            anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchiesLabelPage.labels[0][i],
+            anaplan.data.ModelContentCache._modelInfo.hierarchiesInfo.hierarchyInfos[i]));
     }
 
     let timeFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined, undefined);
@@ -191,7 +194,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     },
         EntityType.Hierarchy,
         undefined,
-        "Time"));
+        "Time",
+        undefined));
 
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.hierarchySubsetsInfo.hierarchySubsetsLabelPage.labels[0].length; i++) {
         entityNames.set(
@@ -233,7 +237,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
                         },
                             EntityType.LineItemSubSet,
                             anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
-                            anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l]));
+                            anaplan.data.ModelContentCache._modelInfo.moduleInfos[j].lineItemsLabelPage.labels[0][l],
+                            undefined));
                     }
                     break;
                 }
@@ -254,7 +259,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         },
             EntityType.LineItemSubSet,
             undefined,
-            anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i]));
+            anaplan.data.ModelContentCache._modelInfo.lineItemSubsetsInfo.lineItemSubsetsLabelPage.labels[0][i],
+            undefined));
     }
 
     // Add the versions
@@ -281,7 +287,8 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
         },
             EntityType.Version,
             "VERSIONS",
-            anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.labels[0][i]));
+            anaplan.data.ModelContentCache._modelInfo.versionsLabelPage.labels[0][i],
+            undefined));
     }
 
     // Add in the different time periods
@@ -330,7 +337,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     },
         EntityType.HierarchyListItem,
         "TIME",
-        "All Periods"));
+        "All Periods", undefined));
 
     // Add in the special time period types
     for (let i = 0; i < anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.length; i++) {

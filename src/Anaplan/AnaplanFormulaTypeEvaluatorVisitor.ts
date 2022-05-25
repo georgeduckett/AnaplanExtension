@@ -1,6 +1,6 @@
 import { AnaplanFormulaVisitor } from './antlrclasses/AnaplanFormulaVisitor'
 import { AbstractParseTreeVisitor } from 'antlr4ts/tree/AbstractParseTreeVisitor'
-import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext } from './antlrclasses/AnaplanFormulaParser';
+import { FormulaContext, ParenthesisExpContext, BinaryoperationExpContext, IfExpContext, MuldivExpContext, AddsubtractExpContext, ComparisonExpContext, ConcatenateExpContext, NotExpContext, StringliteralExpContext, PlusSignedAtomContext, MinusSignedAtomContext, FuncAtomContext, AtomAtomContext, NumberAtomContext, EntityAtomContext, FuncParameterisedContext, DimensionmappingContext, FunctionnameContext, WordsEntityContext, QuotedEntityContext, DotQualifiedEntityContext, FuncSquareBracketsContext, EntityContext, SignedAtomContext, DotQualifiedEntityIncompleteContext, AtomExpContext } from './antlrclasses/AnaplanFormulaParser';
 import { AddFormatConversionQuickFixes, AddTextSurroundQuickFix, findAncestor, getOriginalText, getRangeFromContext } from './AnaplanHelpers';
 import { FormulaError } from './FormulaError';
 import { ParserRuleContext } from 'antlr4ts/ParserRuleContext';
@@ -251,7 +251,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
         // Warn that it is unlikely they want to get the NAME of a numbered list
         if (functionName === 'NAME' && actualFormats.length === 1 && actualFormats[0].dataType === AnaplanDataTypeStrings.ENTITY(undefined).dataType) {
           if (actualFormats[0].isNumberedList) {
-            let err = this.addFormulaError(ctx, `The NAME of a numbered list item is just the number, did you mean to get the CODE instead?`, 4); // 4 = warning
+            let err = this.addFormulaError(ctx, `The NAME of a numbered list item is just the number, did you mean to get the CODE or a DisplayName property instead?`, 4); // 4 = warning
             FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
               [{
                 title: 'Change to CODE',
@@ -268,8 +268,47 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
                     },
                   ]
                 },
-                isPreferred: true,
+                isPreferred: false,
               }]);
+            // Suggest an alternate quickfix to get the displayname of the numbered list if there is a displayname property and the code is of the form NAME(ITEM(NumberedList))
+            if (actualParams[0] instanceof AtomExpContext) {
+              if (actualParams[0].signedAtom() instanceof FuncAtomContext) {
+                if ((actualParams[0].signedAtom() as FuncAtomContext).func_() instanceof FuncParameterisedContext) {
+                  let innerFunc = (actualParams[0].signedAtom() as FuncAtomContext).func_() as FuncParameterisedContext;
+                  if (innerFunc.functionname().text === 'ITEM' && innerFunc.expression().length === 1) {
+                    let innerExpression = innerFunc.expression()[0]
+                    let itemInfo = this._anaplanMetaData.getItemInfoFromEntityContext(innerExpression);
+                    if (itemInfo?.entityType === 1) {
+                      // We are referring to a hierarchy within the inner ITEM function
+                      // We need to determine whether this hierarchy has a displayname property
+                      if (itemInfo.hierarchyInfo != undefined) {
+                        if (itemInfo.hierarchyInfo.displayNamePropertyEntityIndex != -1) {
+                          let propertyName = itemInfo.hierarchyInfo.propertiesLabelPage.labels[itemInfo.hierarchyInfo.displayNamePropertyEntityIndex - 1];
+                          FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err,
+                            [{
+                              title: `Change to use ${itemInfo.name}.${propertyName}`,
+                              diagnostics: [],
+                              kind: "quickfix",
+                              edit: {
+                                edits: [
+                                  {
+                                    resource: {} as any,
+                                    edit: {
+                                      range: getRangeFromContext(ctx)!,
+                                      text: `${this._anaplanMetaData.quoteIfNeeded(itemInfo.name)}.${this._anaplanMetaData.quoteIfNeeded(propertyName)}`
+                                    }
+                                  },
+                                ]
+                              },
+                              isPreferred: true,
+                            }]);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
 
@@ -286,13 +325,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
               if (actualFormat.dataType === AnaplanDataTypeStrings.KEYWORD.dataType) {
                 if (!requiredFormat.some(s => s === "KEYWORD:" + actualParams[i].text.toUpperCase())) {
                   // It's a keyword but the text of this param doesn't match an allowed keyword for this function
-                  this.addFormulaError(actualParams[i], `Invalid keyword for parameter in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat.filter(s => s.startsWith("KEYWORD:")).map(s => s.substring("KEYWORD:".length))}), found (${actualParams[i].text}).`);
+                  this.addFormulaError(actualParams[i], `Invalid keyword for parameter in function ${functionName} for parameter ${signatureParams[i].name}.Expected(${requiredFormat.filter(s => s.startsWith("KEYWORD:")).map(s => s.substring("KEYWORD:".length))}), found(${actualParams[i].text}).`);
                 }
               }
               else if (actualFormat.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
                 requiredFormat.indexOf(actualFormat.dataType) === -1) {
                 // The format of this param doesn't match one of the required formats
-                let err = this.addFormulaError(actualParams[i], `Invalid parameter type in function ${functionName} for parameter ${signatureParams[i].name}. Expected (${requiredFormat}), found (${actualFormat.dataType}).`);
+                let err = this.addFormulaError(actualParams[i], `Invalid parameter type in function ${functionName} for parameter ${signatureParams[i].name}.Expected(${requiredFormat}), found(${actualFormat.dataType}).`);
                 requiredFormat.forEach(f => AddFormatConversionQuickFixes(this._anaplanMetaData, f, actualFormat, err));
               }
             }
@@ -315,7 +354,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if (closeFunctionNames.length > 0) {
 
       FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err!, closeFunctionNames.flatMap(f => [{
-        title: `Change to ${f}`,
+        title: `Change to ${f} `,
         diagnostics: [],
         kind: "quickfix",
         edit: {
@@ -375,7 +414,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
             let closeFunctionNames = Array.from(deserialisedAggregateFunctions.keys()).filter(f => f[0] === selectorType[0] && levenshteinDistance(f, selectorType) <= (selectorType.length >>> 1));
             if (closeFunctionNames.length > 0) {
               FormulaQuickFixesCodeActionProvider.setMarkerQuickFix(err!, closeFunctionNames.flatMap(f => [{
-                title: `Change to ${f}`,
+                title: `Change to ${f} `,
                 diagnostics: [],
                 kind: "quickfix",
                 edit: {

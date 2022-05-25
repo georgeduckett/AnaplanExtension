@@ -16,15 +16,17 @@ export enum EntityType { Module, Hierarchy, LineItem, LineItemSubSet, Version, H
 
 export class EntityMetaData {
     public lineItemInfo: LineItemInfo;
+    public hierarchyInfo: HierarchyInfo | undefined;
     public entityType: EntityType;
     public qualifier: string | undefined;
     public name: string;
 
-    constructor(lineItemInfo: LineItemInfo, entityType: EntityType, qualifier: string | undefined, name: string) {
+    constructor(lineItemInfo: LineItemInfo, entityType: EntityType, qualifier: string | undefined, name: string, hierarchyInfo: HierarchyInfo | undefined) {
         this.lineItemInfo = lineItemInfo;
         this.entityType = entityType;
         this.qualifier = qualifier;
         this.name = name;
+        this.hierarchyInfo = hierarchyInfo;
     }
 
     public getMonacoAutoCompleteKind(): monaco.languages.CompletionItemKind {
@@ -91,7 +93,8 @@ export class AnaplanMetaData {
                             },
                                 EntityType.HierarchyListItem,
                                 splitName[0],
-                                splitName[1]), aggregateFunction: aggregateFunction
+                                splitName[1],
+                                undefined), aggregateFunction: aggregateFunction
                         });
                     }
 
@@ -324,6 +327,10 @@ export class AnaplanMetaData {
             return fullUnquotedEntityName;
         } else if (ctx instanceof FuncSquareBracketsContext) {
             return this.getEntityName(ctx.entity(), currentModuleName);
+        }
+        let descendentEntity = findDescendents(ctx, EntityContext);
+        if (descendentEntity.length === 1) {
+            return this.getEntityName(descendentEntity[0], currentModuleName);
         }
 
         throw new Error("Unknown EntityContext type. Has the grammar file been altered?     " + ctx.text);
