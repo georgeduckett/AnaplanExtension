@@ -192,7 +192,9 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 
 					handle = setTimeout(() => {
 						// When the formula changes, after a delay update the metadata.
-						setModelErrors(model, getEditorMetaData());
+						if (document.querySelectorAll(".formula-editor__header")[0] != undefined) {
+							setModelErrors(model, getEditorMetaData());
+						}
 					}, 250);
 				});
 
