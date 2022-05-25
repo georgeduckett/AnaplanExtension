@@ -11,6 +11,9 @@ export class FunctionInfo {
 }
 
 let itemFunc = (visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParameterisedContext) => {
+    if (ctx.expression()[0] === undefined) {
+        return AnaplanDataTypeStrings.ENTITY(undefined);
+    }
     let itemName = unQuoteEntity(getOriginalText(ctx.expression()[0]));
     if (itemName === "Time") {
         return AnaplanDataTypeStrings.TIME_ENTITY;
