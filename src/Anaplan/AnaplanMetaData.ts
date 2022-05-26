@@ -1,5 +1,4 @@
 import { CharStreams, CommonTokenStream } from "antlr4ts";
-import { IMarkdownString } from "monaco-editor";
 import { CompletionItem } from "../Monaco/CompletionItem";
 import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { entitySpecialCharSelector } from "./AnaplanFormulaTypeEvaluatorVisitor";

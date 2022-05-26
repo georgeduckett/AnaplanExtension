@@ -1,4 +1,3 @@
-import { Position, Range } from "monaco-editor";
 import { deserialisedFunctions } from "../Anaplan/.generateAnaplanData/FunctionInfo";
 
 class SignatureHelpResultClass implements monaco.languages.SignatureHelpResult {

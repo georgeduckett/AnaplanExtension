@@ -1,16 +1,15 @@
-import { CodeCompletionCore, Symbol, SymbolTable, VariableSymbol } from "antlr4-c3";
-import { CharStreams, CommonTokenStream, ConsoleErrorListener, DefaultErrorStrategy, ParserRuleContext } from "antlr4ts";
+import { CodeCompletionCore } from "antlr4-c3";
+import { CharStreams, CommonTokenStream, ParserRuleContext } from "antlr4ts";
 import { ParseTree } from "antlr4ts/tree/ParseTree";
 import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 import { UriComponents } from "monaco-editor";
-import { AnaplanMetaData, EntityMetaData, EntityType } from "../Anaplan/AnaplanMetaData";
+import { AnaplanMetaData, EntityType } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, DimensionmappingContext, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext, FuncSquareBracketsContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
+import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext, FuncSquareBracketsContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
-import { findAncestor, findDescendents, tryGetChild } from "../Anaplan/AnaplanHelpers";
+import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
 import { deserialisedAggregateFunctions, deserialisedFunctions } from "../Anaplan/.generateAnaplanData/FunctionInfo";
-import { DefaultCodeCompleteAggregation, Format } from "../Anaplan/Format";
 import { AnaplanDataTypeStrings } from "../Anaplan/AnaplanDataTypeStrings";
 
 type TokenPosition = { index: number, context: ParseTree };

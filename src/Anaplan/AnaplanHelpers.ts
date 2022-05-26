@@ -7,7 +7,7 @@ import { AnaplanDataTypeStrings } from "./AnaplanDataTypeStrings";
 import { AnaplanFormulaTypeEvaluatorVisitor } from "./AnaplanFormulaTypeEvaluatorVisitor";
 import { AnaplanMetaData, EntityMetaData, EntityType } from "./AnaplanMetaData";
 import { AnaplanFormulaLexer } from "./antlrclasses/AnaplanFormulaLexer";
-import { AnaplanFormulaParser, DotQualifiedEntityIncompleteContext, EntityContext, FuncSquareBracketsContext } from './antlrclasses/AnaplanFormulaParser';
+import { AnaplanFormulaParser } from './antlrclasses/AnaplanFormulaParser';
 import { CollectorErrorListener } from "./CollectorErrorListener";
 import { Format } from "./Format";
 import { FormulaError } from "./FormulaError";

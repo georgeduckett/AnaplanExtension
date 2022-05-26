@@ -1,4 +1,4 @@
-import { editor, IMarkdownString, IRange } from "monaco-editor";
+import { editor, IMarkdownString } from "monaco-editor";
 
 export class CompletionItem implements monaco.languages.CompletionItem {
     public constructor(label: string, insertText: string, kind: monaco.languages.CompletionItemKind, commitCharacters: string[] | undefined, detail: string | undefined = undefined, documentation: IMarkdownString | undefined = undefined, sortText: string | undefined = undefined, preSelect: boolean | undefined = undefined, range: monaco.IRange | undefined = undefined) {

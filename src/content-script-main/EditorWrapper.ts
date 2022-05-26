@@ -1,6 +1,6 @@
 import type { MonacoOptions } from '../settings';
 
-import { editor, KeyCode } from "monaco-editor";
+import { editor } from "monaco-editor";
 import { Monaco } from "../monaco-loader";
 import { getAnaplanMetaData, setModelErrors } from '../Anaplan/AnaplanHelpers';
 import { hoverProvider, completionItemProvider } from '.';
