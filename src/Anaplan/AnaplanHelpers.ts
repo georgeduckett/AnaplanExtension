@@ -184,7 +184,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     }
 
     let timeFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined, undefined);
-    timeFormat.periodType = { entityIndex: -1 };
+    timeFormat.periodType = { entityIndex: -1, entityGuid: undefined, entityId: undefined, entityLabel: undefined };
     moduleLineItems.set("Time", new EntityMetaData({
         parentLineItemEntityLongId: -1,
         fullAppliesTo: [],
@@ -326,7 +326,7 @@ export function getAnaplanMetaData(currentModule: string | number, lineItemName:
     entityNames.set(-1, 'TIME.All Periods');
 
     let allPeriodsFormat = new Format(AnaplanDataTypeStrings.TIME_ENTITY.dataType, undefined, undefined);
-    allPeriodsFormat.periodType = { entityIndex: -1 };
+    allPeriodsFormat.periodType = { entityIndex: -1, entityGuid: undefined, entityId: undefined, entityLabel: undefined };
 
     moduleLineItems.set('TIME.All Periods', new EntityMetaData({
         parentLineItemEntityLongId: -1,

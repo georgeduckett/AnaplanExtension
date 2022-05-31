@@ -6,7 +6,7 @@ export class Format {
     selectiveAccessApplied?: boolean;
     showAll?: boolean;
     dataType: string;
-    periodType: any;
+    periodType?: PeriodType;
     isNumberedList?: boolean;
     constructor(dataType: string, hierarchyEntityLongId?: number, isNumberedList?: boolean) { this.dataType = dataType; this.hierarchyEntityLongId = hierarchyEntityLongId; this.isNumberedList = isNumberedList; }
 }

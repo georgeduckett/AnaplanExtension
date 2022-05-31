@@ -27,6 +27,7 @@ let parentFunc = (visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParamete
 
     if (entityFormat.dataType == AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
         // TODO: Check the level (year/month/etc) of the TIME_ENTITY and move it up one
+
         return AnaplanDataTypeStrings.TIME_ENTITY;
     }
     else {
