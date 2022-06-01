@@ -430,6 +430,19 @@ export function getFormulaErrors(formula: string, anaplanMetaData: AnaplanMetaDa
                 });
             }
         }
+        else if (myresult.dataType === AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
+            // Ensure the period types are the same if the data types are time entities
+            if (myresult.periodType != undefined && targetFormat.periodType != undefined && myresult.periodType.entityId != targetFormat.periodType.entityId) {
+                monacoErrors.push({
+                    startLineNumber: 1,
+                    startColumn: 1,
+                    endLineNumber: modelLineCount,
+                    endColumn: modelLineMaxColumn,
+                    message: `Formula evaluates to a ${myresult.periodType.entityLabel} period but the line item type is ${targetFormat.periodType.entityLabel}`,
+                    severity: 4 //monaco.MarkerSeverity.Warning (don't use enum so we can test). It's a warning since Anaplan allows it
+                });
+            }
+        }
     }
 
     if (errors.length != 0) {

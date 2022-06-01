@@ -179,6 +179,14 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     if (leftResult.dataType != rightResult.dataType) {
       this.addFormulaError(ctx, `Data types for the comparison must be the same. Found ${leftResult.dataType} on the left and ${rightResult.dataType} on the right.`);
     }
+
+    if (ctx._op.text === '=' || ctx._op.text === '<>') {
+      // for equality checks the period type must be the same
+      if (leftResult.periodType != undefined && rightResult.periodType != undefined && leftResult.periodType.entityId != rightResult.periodType.entityId) {
+        this.addFormulaError(ctx, `Period types for the comparison must be the same. Found ${leftResult.periodType.entityLabel} on the left and ${rightResult.periodType.entityLabel} on the right.`);
+      }
+    }
+
     return AnaplanDataTypeStrings.BOOLEAN;
   }
 

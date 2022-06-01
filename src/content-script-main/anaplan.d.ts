@@ -11,7 +11,7 @@ declare interface ModelContentCache {
     _modelInfo: ModelInfo;
 }
 
-declare interface PeriodType {
+declare interface EntityInfo {
     entityGuid: any;
     entityId?: string;
     entityIndex: number;
@@ -24,7 +24,7 @@ declare interface Format {
     selectiveAccessApplied?: boolean;
     showAll?: boolean;
     dataType: string;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface DashboardsLabelPage {
@@ -45,7 +45,7 @@ declare interface DashboardsLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface DashboardsInfo {
@@ -71,7 +71,7 @@ declare interface FunctionalAreasLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface FunctionalAreasInfo {
@@ -100,7 +100,7 @@ declare interface PropertiesLabelPage {
     heldRangeIndices?: any;
     isHeld?: any;
     isAggregateInHierarchy: any[];
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface HierarchyInfo {
@@ -142,7 +142,7 @@ declare interface HierarchiesLabelPage {
     isItemEditable: boolean[][];
     span: number[][];
     showLabel?: boolean;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface HierarchiesInfo {
@@ -169,7 +169,7 @@ declare interface HierarchySubsetsLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface SubsetInfo {
@@ -202,7 +202,7 @@ declare interface ImportsLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface ImportsInfo {
@@ -227,7 +227,7 @@ declare interface LineItemSubsetCategoriesLabelPage {
     isItemEditable: boolean[][];
     span: number[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface LineItemSubsets {
@@ -248,7 +248,7 @@ declare interface LineItemSubsets {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface LineItemSubsetCategoryInfo {
@@ -274,7 +274,7 @@ declare interface LineItemSubsetsLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface LineItemSubsetsInfo {
@@ -301,11 +301,12 @@ declare interface LineItemInfo {
     fullAppliesTo: number[];
     parentLineItemEntityLongId: number;
     resolvedFormulaTargets?: any;
-    leafPeriodType?: PeriodType
+    leafPeriodType?: EntityInfo
     appliesTo?: number;
     format: Format;
     formula?: string;
     isSummary: boolean;
+    timeRangeLabel?: string;
 }
 
 declare interface LineItemsLabelPage {
@@ -326,7 +327,7 @@ declare interface LineItemsLabelPage {
     isItemEditable: boolean[][];
     span: number[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface VersionSelection2 {
@@ -340,7 +341,7 @@ declare interface ModuleInfo {
     appliesTo?: any;
     fullAppliesTo: any[];
     formulaInfos: any[];
-    leafPeriodType: PeriodType;
+    leafPeriodType: EntityInfo;
     timeRangeLabel: string;
     lineItemInfos: LineItemInfo[];
     lineItemSubsetEntityLongIds: number[];
@@ -368,7 +369,7 @@ declare interface ModulesLabelPage {
     isItemEditable: boolean[][];
     span: number[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface TimeRangesLabelPage {
@@ -389,7 +390,7 @@ declare interface TimeRangesLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface TimeRangesInfo {
@@ -415,18 +416,18 @@ declare interface AllowedTimeEntityPeriodTypeLabelPage {
     isItemEditable: boolean[][];
     span: number[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface TimeScaleSupersetInfo {
     calendarTypeEntityIndex: number;
-    allowedTimeEntityPeriodTypes: PeriodType[];
+    allowedTimeEntityPeriodTypes: EntityInfo[];
     allowedTimeEntityPeriodTypeLabelPages: AllowedTimeEntityPeriodTypeLabelPage[];
 }
 
 declare interface TimeScaleInfo {
     calendarTypeEntityIndex: number;
-    allowedTimeEntityPeriodTypes: PeriodType[];
+    allowedTimeEntityPeriodTypes: EntityInfo[];
     allowedTimeEntityPeriodTypeLabelPages: AllowedTimeEntityPeriodTypeLabelPage[];
 }
 
@@ -452,7 +453,7 @@ declare interface VersionsLabelPage {
     isItemEditable: boolean[][];
     span: number[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface ViewsLabelPage {
@@ -473,7 +474,7 @@ declare interface ViewsLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface ViewsInfo {
@@ -499,7 +500,7 @@ declare interface ActionsLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 
 declare interface ActionsInfo {
@@ -525,7 +526,7 @@ declare interface TagsLabelPage {
     isItemEditable: any[][];
     span: any[][];
     showLabel?: any;
-    periodType?: PeriodType;
+    periodType?: EntityInfo;
 }
 declare interface ModelInfo {
     modelDefinitionSerialNumber: number;

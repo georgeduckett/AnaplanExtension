@@ -26,9 +26,32 @@ let parentFunc = (visitor: AnaplanFormulaTypeEvaluatorVisitor, ctx: FuncParamete
     let entityFormat = visitor.visit(ctx.expression()[0]);
 
     if (entityFormat.dataType == AnaplanDataTypeStrings.TIME_ENTITY.dataType) {
-        // TODO: Check the level (year/month/etc) of the TIME_ENTITY and move it up one
-
-        return AnaplanDataTypeStrings.TIME_ENTITY;
+        if (entityFormat.periodType != undefined) {
+            // We have a period type, so we can move up one level
+            let timeRangeLabel = visitor._anaplanMetaData.getCurrentItem().timeRangeLabel;
+            if (timeRangeLabel != undefined) {
+                if (timeRangeLabel === 'Time') {
+                    // Model calendar
+                    let newIndex = entityFormat.periodType.entityIndex + 1;
+                    let newPeriodType = anaplan.data.ModelContentCache._modelInfo.timeScaleInfo.allowedTimeEntityPeriodTypes.find(x => x.entityIndex === newIndex);
+                    if (newPeriodType === undefined) {
+                        visitor.addFormulaError(ctx, `This is a top level time entity. Did you mean to get its parent?`, 4); // 4 = warning, as anaplan does allow it
+                    }
+                    else {
+                        entityFormat.periodType = newPeriodType;
+                    }
+                }
+                else {
+                    // Time range
+                    // anaplan.data.ModelContentCache._modelInfo.timeRangesInfo.timeRangeInfos just has an entityId, not info about the time range so we can't use it
+                    entityFormat.periodType = undefined; // We don't know the period type, since we don't know the time range info
+                }
+            }
+            else {
+                entityFormat.periodType = undefined; // We don't know the period type, since we don't know the time range info
+            }
+        }
+        return entityFormat;
     }
     else {
         let entityId = entityFormat.hierarchyEntityLongId!;
