@@ -493,8 +493,14 @@ trs.each((_, tr) => {
         }
         else {
             functions.set(functionName, []);
-            for (let i = 0; i < paramInfos.length; i++) {
-                functions.get(functionName)?.push(new GeneratedFunctionInfo(functionName, briefDescription, syntaxs[i], type, linkHref, paramInfos[i]));
+            if (paramInfos.length > 0) {
+                for (let i = 0; i < paramInfos.length; i++) {
+                    functions.get(functionName)?.push(new GeneratedFunctionInfo(functionName, briefDescription, syntaxs[i], type, linkHref, paramInfos[i]));
+                }
+            }
+            else {
+                // If no parameters there'll only be one syntax
+                functions.get(functionName)?.push(new GeneratedFunctionInfo(functionName, briefDescription, syntaxs[0], type, linkHref, []));
             }
         }
     }
@@ -511,7 +517,7 @@ functions.forEach((value) => {
 
 
 // Replace undefined with '__undefined' then back again for stringify s otherwise it's removed.
-let serialisedFunctions = JSON.stringify(Array.from(functions.entries()), (k, v) => (v === undefined) ? '__undefined' : v).replace(/"__undefined"/g, 'undefined');
+let serialisedFunctions = JSON.stringify(Array.from(functions.entries()), (k, v) => (v === undefined) ? '__undefined' : v, 2).replace(/"__undefined"/g, 'undefined');
 
 // Sort out invalid characters
 serialisedFunctions = serialisedFunctions.replace(/\\n/g, "\\n")
@@ -523,10 +529,11 @@ serialisedFunctions = serialisedFunctions.replace(/\\n/g, "\\n")
     .replace(/\\b/g, "\\b")
     .replace(/\\f/g, "\\f");
 // remove non-printable and other non-valid JSON chars
-serialisedFunctions = serialisedFunctions.replace(/[\u0000-\u0019]+/g, "");
+serialisedFunctions = serialisedFunctions.replace(/[\u0000-\u0009]+/g, "");
+serialisedFunctions = serialisedFunctions.replace(/[\u0011-\u0019]+/g, "");
 
 // Replace undefined with '__undefined' then back again for stringify s otherwise it's removed.
-let serialisedAggregateFunctions = JSON.stringify(Array.from(aggregateFunctions.entries()), (k, v) => (v === undefined) ? '__undefined' : v).replace(/"__undefined"/g, 'undefined');
+let serialisedAggregateFunctions = JSON.stringify(Array.from(aggregateFunctions.entries()), (k, v) => (v === undefined) ? '__undefined' : v, 2).replace(/"__undefined"/g, 'undefined');
 
 // Sort out invalid characters
 serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/\\n/g, "\\n")
@@ -538,7 +545,8 @@ serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/\\n/g, "\\n
     .replace(/\\b/g, "\\b")
     .replace(/\\f/g, "\\f");
 // remove non-printable and other non-valid JSON chars
-serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/[\u0000-\u0019]+/g, "");
+serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/[\u0000-\u0009]+/g, "");
+serialisedAggregateFunctions = serialisedAggregateFunctions.replace(/[\u0011-\u0019]+/g, "");
 
 //de-serialise JSON to Map:
 let output = `import { GeneratedFunctionInfo } from "../GeneratedFunctionInfo"
