@@ -160,11 +160,11 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         }
         if (!foundKeyword) {
             let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
-            // TODO: Prefer line items that match missing dimension types when after a selector (e.g. LOOKUP: ....)
             // TODO: Don't autocomplete invalid entity types (e.g. a hierarchy when we don't expect one and anything other than a hiearchy when we do)
             for (let candidate of candidates.rules) {
                 switch (candidate[0]) {
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
+                        // TODO: Prefer line items that match missing dimension types when after a selector (e.g. LOOKUP: ....)
                         // anything that could be before a qualifying dot, i.e. modules, list names, subsets
                         for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedLeftPart()) {
                             entityNames.push(e);
@@ -178,7 +178,17 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         if (node != undefined) {
                             let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
                             if (leftPartText != undefined) {
+                                // See whether this is within a dimension mapping selector, and if so prefer entities that resolve missing dimensions
+                                let referenceContext = findAncestor(tokenPosition.context, FuncSquareBracketsContext);
+                                let extraSelectorStrings: string[] = [];
+                                if (referenceContext != undefined) {
+                                    extraSelectorStrings = this._anaplanMetaData!.GetMissingDimensionsAutoCompletion(referenceContext);
+                                }
+
                                 for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedRightPart(leftPartText)) {
+                                    if (extraSelectorStrings.find(ess => ess.includes(`${leftPartText}.${e.insertText}`)) != undefined) {
+                                        e.sortText = "*" + e.sortText;
+                                    }
                                     entityNames.push(e);
                                 }
                             }
@@ -186,6 +196,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                         break;
                     }
                     case AnaplanFormulaParser.RULE_wordsEntityRule: {
+                        // TODO: Prefer line items that match missing dimension types when after a selector (e.g. LOOKUP: ....)
                         // Any entity that doesn't need to be qualified (e.g. line items of the current module)
                         for (let e of this._anaplanMetaData!.getAutoCompleteWords()) {
                             entityNames.push(e);
