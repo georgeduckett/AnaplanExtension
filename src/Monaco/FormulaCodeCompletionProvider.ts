@@ -161,6 +161,7 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
         if (!foundKeyword) {
             let candidates = core.collectCandidates(tokenPosition.index, tokenPosition.context instanceof ParserRuleContext ? tokenPosition.context : undefined);
             // TODO: Don't autocomplete invalid entity types (e.g. a hierarchy when we don't expect one and anything other than a hiearchy when we do)
+            var coveredRightPart = false;
             for (let candidate of candidates.rules) {
                 switch (candidate[0]) {
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityLeftPart: {
@@ -173,6 +174,9 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     }
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPart:
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPartEmpty: {
+                        if (coveredRightPart) continue;
+
+                        coveredRightPart = true;
                         // anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered according to before the qualifying dot)
                         let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext) ?? findAncestor(tokenPosition.context, DotQualifiedEntityIncompleteContext);
                         if (node != undefined) {

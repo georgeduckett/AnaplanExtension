@@ -50,7 +50,8 @@ export class FormulaHoverProvider implements monaco.languages.HoverProvider {
 
     provideHoverForContext(ctx: hoverHandled): monaco.languages.ProviderResult<monaco.languages.Hover> {
         if (ctx instanceof EntityContext) {
-            let entityName = this._anaplanMetaData!.getEntityName(ctx).replace(new RegExp("'", 'g'), "");
+            let entityName = this._anaplanMetaData!.getEntityName(ctx)?.replace(new RegExp("'", 'g'), "");
+            if (entityName === undefined) return;
             // Look up the dimensions of this entity
             let lineItemInfo = this._anaplanMetaData!.getItemInfoFromEntityName(entityName);
 

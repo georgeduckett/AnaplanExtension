@@ -213,6 +213,8 @@ export class AnaplanMetaData {
     getEntityType(ctx: EntityContext): Format {
         let entityName = this.getEntityName(ctx);
 
+        if (entityName === undefined) return AnaplanDataTypeStrings.UNKNOWN;
+
         let wholeStringEntityType = this.getItemInfoFromEntityName(entityName)?.lineItemInfo?.format;
 
         if (wholeStringEntityType === undefined && entityName.includes('.')) {
@@ -226,6 +228,7 @@ export class AnaplanMetaData {
     }
     getEntityDimensions(ctx: EntityContext): number[] {
         let entityName = this.getEntityName(ctx);
+        if (entityName === undefined) return [];
         let entityDimensions = this.getItemInfoFromEntityName(entityName)?.lineItemInfo.fullAppliesTo?.sort();
 
         if (entityDimensions === undefined) {
@@ -236,6 +239,7 @@ export class AnaplanMetaData {
 
     isKnownEntity(ctx: EntityContext): boolean {
         let entityName = this.getEntityName(ctx);
+        if (entityName === undefined) return false;
         if (entityName.includes('.')) {
             // If the entity name is like <Hierarchy>.<something> then assume the <something> is an item in that hierarchy
             if (this.getItemInfoFromEntityName(entityName.substring(0, entityName.indexOf('.')))?.entityType === EntityType.Hierarchy) {
@@ -290,19 +294,23 @@ export class AnaplanMetaData {
         return this._lineItemInfo.get(entityName);
     }
     getItemInfoFromEntityContext(entityContext: EntityContext, currentModuleName: string | undefined = undefined): EntityMetaData | undefined {
-        return this._lineItemInfo.get(this.getEntityName(entityContext, currentModuleName));
+        let entityName = this.getEntityName(entityContext, currentModuleName);
+        if (entityName === undefined) return undefined;
+        return this._lineItemInfo.get(entityName);
     }
 
     getEntityNameFromId(entityId: number): string {
         return this._entityNames.get(entityId) ?? entityId.toString();
     }
 
-    getEntityName(ctx: EntityContext, currentModuleName: string | undefined = undefined): string {
+    getEntityName(ctx: EntityContext, currentModuleName: string | undefined = undefined): string | undefined {
         if (ctx instanceof QuotedEntityContext) {
             if (this.getItemInfoFromEntityName(unQuoteEntity(ctx.quotedEntityRule().text)) != undefined) {
                 return unQuoteEntity(ctx.quotedEntityRule().text);
             }
             return (currentModuleName ?? this._moduleName) + "." + unQuoteEntity(ctx.quotedEntityRule().text);
+        } else if (ctx instanceof DotQualifiedEntityIncompleteContext) {
+            return undefined;
         } else if (ctx instanceof WordsEntityContext) {
             if (this.getItemInfoFromEntityName(getOriginalText(ctx)) != undefined) {
                 return getOriginalText(ctx);
@@ -393,6 +401,7 @@ export class AnaplanMetaData {
                 }
 
                 let selector = this.getEntityName(entity);
+                if (selector === undefined) continue;
                 let lineitem = this.getItemInfoFromEntityName(selector)!;
 
 

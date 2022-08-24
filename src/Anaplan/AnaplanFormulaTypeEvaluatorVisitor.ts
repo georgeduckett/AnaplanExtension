@@ -406,6 +406,7 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       }
 
       let selector = this._anaplanMetaData.getEntityName(entity);
+      if (selector === undefined) continue;
       let lineitem = this._anaplanMetaData.getItemInfoFromEntityName(selector)!;
 
 
@@ -529,9 +530,13 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
       AddTextSurroundQuickFix(this._anaplanMetaData, "'", "'", err, ctx, "Add single quotes", true);
     }
 
-    if (!(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext) &&
+
+    let entityName = this._anaplanMetaData.getEntityName(ctx);
+
+    if ((entityName != undefined) &&
+      !(ctx.parent instanceof FuncSquareBracketsContext || ctx.parent instanceof DimensionmappingContext) &&
       !(ctx.parent instanceof FuncParameterisedContext && ["YEARVALUE", "FINDITEM"].includes(ctx.parent.functionname().text)) &&
-      (this._anaplanMetaData.getItemInfoFromEntityName(this._anaplanMetaData.getEntityName(ctx))?.entityType != EntityType.Hierarchy)) {
+      (this._anaplanMetaData.getItemInfoFromEntityName(entityName)?.entityType != EntityType.Hierarchy)) {
       // If the parent context has the square brackets qualifier, then we've already checked for missing dimensions
       // Also, if we're in a YEARVALUE function we assume it's ok since we can't SELECT a top level item within this function
       // If we're in FINDITEM then that's ok
