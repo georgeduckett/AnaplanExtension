@@ -67,7 +67,9 @@ export class AnaplanFormulaTypeEvaluatorVisitor extends AbstractParseTreeVisitor
     var thenExpressionResult = this.visit(ctx._thenExpression);
     var elseExpressionResult = this.visit(ctx._elseExpression);
 
-    if (thenExpressionResult.dataType != elseExpressionResult.dataType) {
+    if (thenExpressionResult.dataType != elseExpressionResult.dataType &&
+      thenExpressionResult.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType &&
+      elseExpressionResult.dataType != AnaplanDataTypeStrings.UNKNOWN.dataType) {
       let err = this.addFormulaError(ctx, `Data types for each result must be the same. 'Then' is ${thenExpressionResult.dataType}, 'Else' is ${elseExpressionResult.dataType}.`);
       AddFormatConversionQuickFixes(this._anaplanMetaData, thenExpressionResult, elseExpressionResult, err, ctx._elseExpression, "Change the 'ELSE'; ");
       AddFormatConversionQuickFixes(this._anaplanMetaData, elseExpressionResult, thenExpressionResult, err, ctx._thenExpression, "Change the 'THEN'; ");
