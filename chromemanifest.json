@@ -1,11 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "Better Formula Editor for Anaplan",
-<<<<<<< HEAD
 	"version": "3.0.5",
-=======
-	"version": "3.0.4",
->>>>>>> bd8eba20586d94808ba538b67f572d517f4c0191
 	"description": "This extension enhances Anaplan formula editing in several ways; providing code completion, hover info and validity checks.",
 	"icons": {
 		"128": "logo.drawio.png"
