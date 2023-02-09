@@ -106,7 +106,7 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 			clearInterval(monacoChecker);
 			console.debug('Monaco initialised by anaplan page');
 
-			let headerText = document.querySelectorAll(".formula-editor__header")[0].innerHTML.split('—').map(s => s.trim());
+			let headerText = document.querySelectorAll<HTMLElement>(".formula-editor__header")[0].innerText.split('—').map(s => s.trim());
 
 			let currentModuleName = he.decode(headerText[0]);
 			let currentLineItemName = he.decode(headerText[1]);
@@ -199,15 +199,15 @@ else if (window.location.hostname.includes('app.anaplan.com')) {
 				});
 
 				function getEditorMetaData() {
-					let headerElement = document.querySelectorAll(".formula-editor__header")[0];
+					let headerElement = document.querySelectorAll<HTMLElement>(".formula-editor__header")[0];
 
 					let headerText: string;
 
-					if (headerElement.innerHTML.startsWith("<button")) {
-						headerText = headerElement.children[0].children[0].innerHTML;
+					if (headerElement.innerText.startsWith("<button")) {
+						headerText = (headerElement.children[0].children[0] as HTMLElement).innerText;
 					}
 					else {
-						headerText = headerElement.innerHTML;
+						headerText = headerElement.innerText;
 					}
 
 					let currentModuleName = he.decode(headerText.split('—').map(s => s.trim())[0]);
