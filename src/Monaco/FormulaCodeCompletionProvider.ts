@@ -7,7 +7,7 @@ import { AnaplanMetaData, EntityType } from "../Anaplan/AnaplanMetaData";
 import { AnaplanFormulaLexer } from "../Anaplan/antlrclasses/AnaplanFormulaLexer";
 import { AnaplanFormulaParser, DotQualifiedEntityContext, DotQualifiedEntityIncompleteContext, DotQualifiedEntityLeftPartContext, DotQualifiedEntityRightPartEmptyContext, ExpressionContext, FuncParameterisedContext, FuncSquareBracketsContext } from "../Anaplan/antlrclasses/AnaplanFormulaParser";
 import { CompletionItem } from "./CompletionItem";
-import { findAncestor, tryGetChild } from "../Anaplan/AnaplanHelpers";
+import { findAncestor, getOriginalText, tryGetChild } from "../Anaplan/AnaplanHelpers";
 import { FunctionsInfo } from "../Anaplan/FunctionInfo";
 import { deserialisedAggregateFunctions, deserialisedFunctions } from "../Anaplan/.generateAnaplanData/FunctionInfo";
 import { AnaplanDataTypeStrings } from "../Anaplan/AnaplanDataTypeStrings";
@@ -176,24 +176,27 @@ export class FormulaCompletionItemProvider implements monaco.languages.Completio
                     case AnaplanFormulaParser.RULE_dotQualifiedEntityRightPartEmpty: {
                         if (coveredRightPart) continue;
 
-                        coveredRightPart = true;
                         // anything that could be after a qualifying dot, i.e. line items, list properties, subset properties etc (filtered according to before the qualifying dot)
                         let node = findAncestor(tokenPosition.context, DotQualifiedEntityContext) ?? findAncestor(tokenPosition.context, DotQualifiedEntityIncompleteContext);
                         if (node != undefined) {
-                            let leftPartText = tryGetChild(node, DotQualifiedEntityLeftPartContext)?.text;
-                            if (leftPartText != undefined) {
-                                // See whether this is within a dimension mapping selector, and if so prefer entities that resolve missing dimensions
-                                let referenceContext = findAncestor(tokenPosition.context, FuncSquareBracketsContext);
-                                let extraSelectorStrings: string[] = [];
-                                if (referenceContext != undefined) {
-                                    extraSelectorStrings = this._anaplanMetaData!.GetMissingDimensionsAutoCompletion(referenceContext);
-                                }
-
-                                for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedRightPart(leftPartText)) {
-                                    if (extraSelectorStrings.find(ess => ess.includes(`${leftPartText}.${e.insertText}`)) != undefined) {
-                                        e.sortText = "*" + e.sortText;
+                            let leftPartContext = tryGetChild(node, DotQualifiedEntityLeftPartContext);
+                            if (leftPartContext != undefined) {
+                                let leftPartText = getOriginalText(leftPartContext);
+                                if (leftPartText != undefined) {
+                                    // See whether this is within a dimension mapping selector, and if so prefer entities that resolve missing dimensions
+                                    let referenceContext = findAncestor(tokenPosition.context, FuncSquareBracketsContext);
+                                    let extraSelectorStrings: string[] = [];
+                                    if (referenceContext != undefined) {
+                                        extraSelectorStrings = this._anaplanMetaData!.GetMissingDimensionsAutoCompletion(referenceContext);
                                     }
-                                    entityNames.push(e);
+
+                                    for (let e of this._anaplanMetaData!.getAutoCompleteQualifiedRightPart(leftPartText)) {
+                                        if (extraSelectorStrings.find(ess => ess.includes(`${leftPartText}.${e.insertText}`)) != undefined) {
+                                            e.sortText = "*" + e.sortText;
+                                        }
+                                        entityNames.push(e);
+                                        coveredRightPart = true;
+                                    }
                                 }
                             }
                         }
