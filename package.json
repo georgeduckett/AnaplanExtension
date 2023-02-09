@@ -27,7 +27,7 @@
 		"all-dev": "yarn anaplandata && yarn build-dev"
 	},
 	"devDependencies": {
-		"@ffflorian/jszip-cli": "^3.1.6",
+		"@ffflorian/jszip-cli": "^3.1.9",
 		"@types/cheerio": "^0.22.30",
 		"@types/chrome": "^0.0.133",
 		"@types/he": "^1.1.2",
