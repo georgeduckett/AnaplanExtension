@@ -12,4 +12,4 @@ You can also run `yarn build-dev` to just build the development version of the e
 
 Commercial use
 --
-If you wish to use this source code in commercial project without copyleft conditions please contact me.
+If you wish to use this source code in a commercial project without copyleft conditions please contact me.
